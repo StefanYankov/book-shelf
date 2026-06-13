@@ -12,7 +12,7 @@ services:
       - bookshelf_db_data:/var/lib/postgresql/data
     networks:
       - bookshelf_net
-      -
+
 volumes:
   bookshelf_db_data:
 
