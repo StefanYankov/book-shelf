@@ -1,11 +1,12 @@
 package bg.softuni.bookshelf.data.repository;
 
 import bg.softuni.bookshelf.data.entity.Book;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -15,11 +16,16 @@ import java.util.UUID;
 public interface BookRepository extends JpaRepository<Book, UUID> {
 
     /**
-     * Fetches all books from the database and eagerly loads their associated
+     * Fetches a paginated list of books from the database and eagerly loads their associated
      * {@link bg.softuni.bookshelf.data.entity.Author} in a single, optimized query.
+     * <p>
+     * This method is designed to solve the N+1 query problem that would otherwise
+     * occur when accessing the author of each book in a list.
      *
-     * @return a list of all books with their authors fully initialized.
+     * @param pageable The pagination information.
+     * @return a page of books with their authors fully initialized.
      */
-    @Query("SELECT b FROM Book b JOIN FETCH b.author")
-    List<Book> findAllWithAuthors();
+    @Query(value = "SELECT b FROM Book b JOIN FETCH b.author",
+           countQuery = "SELECT COUNT(b) FROM Book b")
+    Page<Book> findAllWithAuthors(Pageable pageable);
 }

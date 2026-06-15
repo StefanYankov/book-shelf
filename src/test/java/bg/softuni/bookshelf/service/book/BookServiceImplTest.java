@@ -7,6 +7,7 @@ import bg.softuni.bookshelf.data.entity.Publisher;
 import bg.softuni.bookshelf.data.repository.*;
 import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
+import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
@@ -20,8 +21,13 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -89,7 +95,7 @@ class BookServiceImplTest {
             // Arrange
             BookCreateDto dto = createValidDtoBuilder().build();
             MockMultipartFile imageFile = new MockMultipartFile("image", "image.jpg", "image/jpeg", new byte[]{1, 2, 3});
-            UploadResult mockUploadResult = new UploadResult("http://example.com/image.jpg", "public-id");
+            UploadResult mockUploadResult = new UploadResult("https://example.com/image.jpg", "public-id");
             Book mappedBook = new Book();
             Book savedBook = new Book();
             BookDetailsDto expectedDto = new BookDetailsDto(UUID.randomUUID(), "The Hobbit", null, 0, 0, null, null, null, null, null, null, null);
@@ -112,7 +118,7 @@ class BookServiceImplTest {
             verify(bookRepository).save(bookCaptor.capture());
             Book capturedBook = bookCaptor.getValue();
             assertThat(capturedBook.getCoverImage()).isNotNull();
-            assertThat(capturedBook.getCoverImage().getUrl()).isEqualTo("http://example.com/image.jpg");
+            assertThat(capturedBook.getCoverImage().getUrl()).isEqualTo("https://example.com/image.jpg");
             assertThat(capturedBook.getCoverImage().getPublicId()).isEqualTo("public-id");
         }
 
@@ -158,6 +164,72 @@ class BookServiceImplTest {
 
             verify(bookRepository, never()).save(any());
             verifyNoInteractions(imageUploadService, bookMapper);
+        }
+    }
+
+    @Nested
+    @DisplayName("getById(UUID) Tests")
+    class GetByIdTests {
+
+        @Test
+        @DisplayName("Happy Path: Should return DTO when book is found")
+        void shouldReturnDtoWhenBookFound() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            Book mockBook = new Book();
+            BookDetailsDto expectedDto = new BookDetailsDto(bookId, "Found Book", null, 0, 0, null, null, null, null, null, null, null);
+
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(mockBook));
+            given(bookMapper.toBookDetailsDto(mockBook)).willReturn(expectedDto);
+
+            // Act
+            BookDetailsDto result = bookServiceImpl.getById(bookId);
+
+            // Assert
+            assertThat(result).isEqualTo(expectedDto);
+        }
+
+        @Test
+        @DisplayName("Error Case: Should throw BusinessException when book is not found")
+        void shouldThrowExceptionWhenBookNotFound() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            given(bookRepository.findById(bookId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> bookServiceImpl.getById(bookId))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.BOOK_NOT_FOUND);
+
+            verifyNoInteractions(bookMapper);
+        }
+    }
+
+    @Nested
+    @DisplayName("getAll(Pageable) Tests")
+    class getAllTests {
+
+        @Test
+        @DisplayName("Happy Path: Should return paginated DTOs")
+        void shouldReturnPaginatedDtos() {
+            // Arrange
+            Pageable pageable = PageRequest.of(0, 10);
+            Book mockBook = new Book();
+            Page<Book> bookPage = new PageImpl<>(List.of(mockBook), pageable, 1);
+            BookSummaryDto summaryDto = new BookSummaryDto(UUID.randomUUID(), "Summary", null, null);
+
+            given(bookRepository.findAllWithAuthors(pageable)).willReturn(bookPage);
+            given(bookMapper.toBookSummaryDto(mockBook)).willReturn(summaryDto);
+
+            // Act
+            Page<BookSummaryDto> result = bookServiceImpl.getAll(pageable);
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst()).isEqualTo(summaryDto);
         }
     }
 }

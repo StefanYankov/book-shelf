@@ -48,7 +48,7 @@ public interface BookService {
      * @param pageable The pagination information.
      * @return A page of book summary DTOs.
      */
-    Page<BookSummaryDto> findAll(Pageable pageable);
+    Page<BookSummaryDto> getAll(Pageable pageable);
 
     /**
      * Partially updates an existing book's information.

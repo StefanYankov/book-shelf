@@ -45,7 +45,6 @@ public class BookServiceImpl implements BookService {
 
         Objects.requireNonNull(createDto, DeveloperErrors.DTO_NULL);
 
-        // 1. Fetch all related entities by their IDs
         Author author = authorRepository.findById(createDto.authorId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTHOR_NOT_FOUND));
         Language language = languageRepository.findById(createDto.languageId())
@@ -57,10 +56,8 @@ public class BookServiceImpl implements BookService {
                         .orElseThrow(() -> new BusinessException(ErrorCode.GENRE_NOT_FOUND)))
                 .collect(Collectors.toSet());
 
-        // 2. Map the DTO to a Book entity
         Book newBook = bookMapper.toBookEntity(createDto, author, language, publisher, genres);
 
-        // 3. Handle cover image upload if a file is provided
         if (coverImageFile != null && !coverImageFile.isEmpty()) {
             UploadResult uploadResult = imageUploadService.uploadImage(coverImageFile);
             Image image = new Image();
@@ -69,26 +66,32 @@ public class BookServiceImpl implements BookService {
             newBook.setCoverImage(image);
         }
 
-        // 4. Save the new entity
         Book savedBook = bookRepository.save(newBook);
 
         log.info("Successfully created new book with ID: {}", savedBook.getId());
 
-        // 5. Map the saved entity to a DTO and return it
         return bookMapper.toBookDetailsDto(savedBook);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BookDetailsDto getById(UUID id) {
-        return null;
+        log.debug("Fetching book by ID: {}", id);
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BOOK_NOT_FOUND));
+        return bookMapper.toBookDetailsDto(book);
     }
 
     @Override
-    public Page<BookSummaryDto> findAll(Pageable pageable) {
-        return null;
+    @Transactional(readOnly = true)
+    public Page<BookSummaryDto> getAll(Pageable pageable) {
+        log.debug("Fetching all books with pagination");
+        Page<Book> bookPage = bookRepository.findAllWithAuthors(pageable);
+        return bookPage.map(bookMapper::toBookSummaryDto);
     }
 
     @Override
+    @Transactional
     public BookDetailsDto updateBook(UUID id, BookUpdateDto updateDto) {
         return null;
     }

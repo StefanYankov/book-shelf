@@ -66,6 +66,21 @@ public class BookMapper {
         );
     }
 
+    /**
+     * Maps a {@link Book} entity to a {@link BookSummaryDto} for list displays.
+     *
+     * @param book The persistent {@link Book} entity.
+     * @return A lightweight {@link BookSummaryDto}.
+     */
+    public BookSummaryDto toBookSummaryDto(Book book) {
+        return new BookSummaryDto(
+                book.getId(),
+                book.getTitle(),
+                book.getAuthor().getName(),
+                book.getCoverImage() != null ? book.getCoverImage().getUrl() : null
+        );
+    }
+
     private AuthorDto toAuthorDto(Author author) {
         return new AuthorDto(author.getId(), author.getName());
     }
