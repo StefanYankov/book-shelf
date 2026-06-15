@@ -17,11 +17,12 @@ public enum ErrorCode {
 
     // --- Book domain (E1000 - E1999) ----
     BOOK_NOT_FOUND("E1000", "Book not found.", HttpStatus.NOT_FOUND),
-    AUTHOR_NOT_FOUND("E1001", "The selected author could not be found.", HttpStatus.BAD_REQUEST),
-    LANGUAGE_NOT_FOUND("E1002", "The selected language could not be found.", HttpStatus.BAD_REQUEST),
-    PUBLISHER_NOT_FOUND("E1003", "The selected publisher could not be found.", HttpStatus.BAD_REQUEST),
-    GENRE_NOT_FOUND("E1004", "One or more selected genres could not be found.", HttpStatus.BAD_REQUEST)
-
+    AUTHOR_NOT_FOUND("E1001", "The selected author could not be found.", HttpStatus.NOT_FOUND),
+    LANGUAGE_NOT_FOUND("E1002", "The selected language could not be found.", HttpStatus.NOT_FOUND),
+    PUBLISHER_NOT_FOUND("E1003", "The selected publisher could not be found.", HttpStatus.NOT_FOUND),
+    GENRE_NOT_FOUND("E1004", "One or more selected genres could not be found.", HttpStatus.NOT_FOUND),
+    LANGUAGE_IN_USE("E1005","The selected language is currently in use.",HttpStatus.CONFLICT),
+    LANGUAGE_NAME_DUPLICATE("E1006", "A language with this name already exists.", HttpStatus.CONFLICT),
     ;
 
     private final String code;
