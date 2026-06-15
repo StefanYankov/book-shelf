@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.UUID;
+// TODO: Refactor to have a isDeleted entity and an actual deletable entity
 
 /**
  * Base mapped superclass for entities requiring a UUID primary key.
