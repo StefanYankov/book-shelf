@@ -77,8 +77,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public BookDetailsDto getById(UUID id) {
         log.debug("Fetching book by ID: {}", id);
-        Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.BOOK_NOT_FOUND));
+        Book book = findBookOrThrow(id);
         return bookMapper.toBookDetailsDto(book);
     }
 
@@ -93,11 +92,81 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public BookDetailsDto updateBook(UUID id, BookUpdateDto updateDto) {
-        return null;
+        log.debug("Attempting to update shipment {}", id);
+        Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
+
+        Book existingBook = findBookOrThrow(id);
+
+        if (updateDto.title() != null) {
+            existingBook.setTitle(updateDto.title());
+        }
+        if (updateDto.isbn() != null) {
+            existingBook.setISBN(updateDto.isbn());
+        }
+        if (updateDto.pages() != null) {
+            existingBook.setPages(updateDto.pages());
+        }
+        if (updateDto.yearPublished() != null) {
+            existingBook.setYearPublished(updateDto.yearPublished());
+        }
+        if (updateDto.summary() != null) {
+            existingBook.setSummary(updateDto.summary());
+        }
+        if (updateDto.format() != null) {
+            existingBook.setFormat(updateDto.format());
+        }
+
+        if (updateDto.authorId() != null) {
+            Author author = authorRepository.findById(updateDto.authorId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.AUTHOR_NOT_FOUND));
+            existingBook.setAuthor(author);
+        }
+        if (updateDto.languageId() != null) {
+            Language language = languageRepository.findById(updateDto.languageId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.LANGUAGE_NOT_FOUND));
+            existingBook.setLanguage(language);
+        }
+        if (updateDto.publisherId() != null) {
+            Publisher publisher = publisherRepository.findById(updateDto.publisherId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PUBLISHER_NOT_FOUND));
+            existingBook.setPublisher(publisher);
+        }
+        if (updateDto.genreIds() != null) {
+            Set<Genre> genres = updateDto.genreIds().stream()
+                    .map(genreId -> genreRepository.findById(genreId)
+                            .orElseThrow(() -> new BusinessException(ErrorCode.GENRE_NOT_FOUND)))
+                    .collect(Collectors.toSet());
+            existingBook.setGenres(genres);
+        }
+
+        Book updatedBook = bookRepository.save(existingBook);
+
+        log.info("Successfully updated book with ID: {}", updatedBook.getId());
+
+        return bookMapper.toBookDetailsDto(updatedBook);
     }
 
     @Override
+    @Transactional
     public void deleteBook(UUID id) {
+        log.debug("Attempting to delete a book with ID: {}", id);
+        Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);
 
+        Book bookToDelete = findBookOrThrow(id);
+        bookRepository.delete(bookToDelete);
+
+        log.info("Successfully deleted book with ID: {}", id);
+
+    }
+
+    /**
+     * Centralized lookup and exception logic to DRY up the service methods.
+     */
+    private Book findBookOrThrow(UUID id) {
+        return bookRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Lookup failed. Company with ID [{}] not found.", id);
+                    return new BusinessException(ErrorCode.BOOK_NOT_FOUND);
+                });
     }
 }
