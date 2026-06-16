@@ -18,7 +18,6 @@ public enum ErrorCode {
     // --- Book domain (E1000 - E1999) ----
     BOOK_NOT_FOUND("E1000", "Book not found.", HttpStatus.NOT_FOUND),
     AUTHOR_NOT_FOUND("E1001", "The selected author could not be found.", HttpStatus.NOT_FOUND),
-    PUBLISHER_NOT_FOUND("E1003", "The selected publisher could not be found.", HttpStatus.NOT_FOUND),
 
     // --- Language domain (E2000 - E2099) ---
     LANGUAGE_NOT_FOUND("E2000", "The selected language could not be found.", HttpStatus.NOT_FOUND),
@@ -28,7 +27,12 @@ public enum ErrorCode {
     // --- Genre domain (E2100 - E2199) ---
     GENRE_NOT_FOUND("E2100", "One or more selected genres could not be found.", HttpStatus.NOT_FOUND),
     GENRE_IN_USE("E2101","The selected genre is currently in use.",HttpStatus.CONFLICT),
-    GENRE_NAME_DUPLICATE("E102", "A genre with this name already exists.", HttpStatus.CONFLICT),
+    GENRE_NAME_DUPLICATE("E2102", "A genre with this name already exists.", HttpStatus.CONFLICT),
+
+    // --- Publisher domain (E2200 - E2299) ---
+    PUBLISHER_NOT_FOUND("E2200", "The selected publisher could not be found.", HttpStatus.NOT_FOUND),
+    PUBLISHER_IN_USE("E2201","The selected publisher is currently in use.",HttpStatus.CONFLICT),
+    PUBLISHER_NAME_DUPLICATE("E2202", "A publisher with this name already exists.", HttpStatus.CONFLICT),
     ;
 
     private final String code;
