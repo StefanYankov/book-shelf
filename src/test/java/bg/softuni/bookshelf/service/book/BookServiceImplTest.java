@@ -226,6 +226,27 @@ class BookServiceImplTest {
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getContent().getFirst()).isEqualTo(summaryDto);
         }
+
+        @Test
+        @DisplayName("findAllByAuthor: Should return correct paginated DTOs")
+        void findAllByAuthor_shouldReturnCorrectDtos() {
+            // Arrange
+            UUID authorId = UUID.randomUUID();
+            Pageable pageable = PageRequest.of(0, 10);
+            Book mockBook = new Book();
+            Page<Book> bookPage = new PageImpl<>(List.of(mockBook), pageable, 1);
+            BookSummaryDto summaryDto = new BookSummaryDto(UUID.randomUUID(), "Book by Author", null, null);
+
+            given(bookRepository.findAllByAuthorId(authorId, pageable)).willReturn(bookPage);
+            given(bookMapper.toBookSummaryDto(mockBook)).willReturn(summaryDto);
+
+            // Act
+            Page<BookSummaryDto> result = bookServiceImpl.findAllByAuthor(authorId, pageable);
+
+            // Assert
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().getFirst()).isEqualTo(summaryDto);
+        }
     }
 
     @Nested

@@ -2,9 +2,7 @@ package bg.softuni.bookshelf.data.entity.value;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * A reusable, embeddable object representing an image stored in Cloudinary.
@@ -13,7 +11,10 @@ import lombok.Setter;
 @Embeddable
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
+@ToString
 public class Image {
 
     /**
