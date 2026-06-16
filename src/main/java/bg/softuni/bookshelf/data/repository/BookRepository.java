@@ -28,4 +28,13 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query(value = "SELECT b FROM Book b JOIN FETCH b.author",
            countQuery = "SELECT COUNT(b) FROM Book b")
     Page<Book> findAllWithAuthors(Pageable pageable);
+
+    /**
+     * Finds a paginated list of all books written by a specific author.
+     *
+     * @param authorId The UUID of the author.
+     * @param pageable The pagination information.
+     * @return A page of books by the specified author.
+     */
+    Page<Book> findAllByAuthorId(UUID authorId, Pageable pageable);
 }

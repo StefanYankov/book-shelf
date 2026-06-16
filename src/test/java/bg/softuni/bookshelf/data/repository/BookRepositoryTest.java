@@ -111,4 +111,31 @@ class BookRepositoryTest {
             assertThat(resultPage).isEmpty();
         }
     }
+
+    @Nested
+    @DisplayName("findAllByAuthorId(UUID, Pageable) Tests")
+    class FindAllByAuthorIdTests {
+
+        @Test
+        @DisplayName("Should return paginated books for the specified author")
+        void shouldReturnPaginatedBooksForAuthor() {
+            // Arrange
+            Author author1 = createAndSaveAuthor("J.R.R. Tolkien");
+            Author author2 = createAndSaveAuthor("Frank Herbert");
+            Language lang = createAndSaveLanguage("English");
+            Publisher pub = createAndSavePublisher("Allen & Unwin");
+
+            createAndSaveBook("The Hobbit", "978-0-345-33968-3", author1, lang, pub);
+            createAndSaveBook("Dune", "978-0-441-01359-3", author2, lang, pub);
+            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", author1, lang, pub);
+            entityManager.clear();
+
+            // Act
+            Page<Book> tolkienBooksPage = bookRepository.findAllByAuthorId(author1.getId(), PageRequest.of(0, 1));
+
+            // Assert
+            assertThat(tolkienBooksPage.getTotalElements()).isEqualTo(2);
+            assertThat(tolkienBooksPage.getContent()).hasSize(1);
+        }
+    }
 }

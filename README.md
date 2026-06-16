@@ -26,6 +26,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Database**: PostgreSQL
 - **Migrations**: Flyway
 - **Containerization**: Docker & Docker Compose
+- **Internal Communication**: Service-to-Service (where appropriate) to promote a Modular Monolith design.
 - **Security**: Spring Security 6+
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation
 - **Testing**: JUnit 5, Testcontainers, Mockito, AssertJ
@@ -39,13 +40,17 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     *   JSR-380 input validation on all DTOs.
     *   Automated Flyway database migrations.
 *   **Domain Model**:
-    *   A complete JPA entity model with relationships (`Book`, `Author`, `User`, etc.).
-    *   `@Version` annotation on base entities for optimistic locking to prevent concurrent modification issues.
-    *   `JOINED` inheritance strategy for the `User` hierarchy (`ApplicationUser`, `AdminUser`).
-*   **Book Service**:
-    *   Full CRUD (Create, Read, Update, Delete) operations for the `Book` entity.
-    *   Scalable, paginated query for fetching books with `JOIN FETCH` to prevent N+1 problems.
+    *   A complete JPA entity model with  relationships (`Book`, `Author`, `User`, etc.).
+    *   `@Version` annotation on base entities for optimistic locking.
+    *   `JOINED` inheritance strategy for the `User` hierarchy.
+*   **Core Services**:
+    *   Full CRUD services implemented for `Book`, `Language`, `Genre`, `Publisher`, and `Author`.
+    *   Application-level, case-insensitive duplicate name validation for all relevant entities.
+    *   Robust handling of `DataIntegrityViolationException` on delete operations.
+*   **Book and Author Services**:
+    *   Scalable, paginated queries with `JOIN FETCH` to prevent N+1 problems.
     *   Abstracted `ImageUploadService` for flexible integration with cloud storage providers.
+    *   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
 
 ## Project Structure
 The project follows a classic **Layered Architecture** (Package-by-Layer) to separate concerns based on technical function.

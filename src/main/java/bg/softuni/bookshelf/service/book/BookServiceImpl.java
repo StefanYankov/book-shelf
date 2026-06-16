@@ -41,9 +41,8 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public BookDetailsDto createBook(BookCreateDto createDto, MultipartFile coverImageFile) {
-        log.debug("Attempting to create new book");
-
         Objects.requireNonNull(createDto, DeveloperErrors.DTO_NULL);
+        log.debug("Attempting to create new book with title: {}", createDto.title());
 
         Author author = authorRepository.findById(createDto.authorId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTHOR_NOT_FOUND));
@@ -159,13 +158,21 @@ public class BookServiceImpl implements BookService {
 
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable) {
+        log.debug("Fetching books for author ID: {} with pagination", authorId);
+        return bookRepository.findAllByAuthorId(authorId, pageable)
+                .map(bookMapper::toBookSummaryDto);
+    }
+
     /**
      * Centralized lookup and exception logic to DRY up the service methods.
      */
     private Book findBookOrThrow(UUID id) {
         return bookRepository.findById(id)
                 .orElseThrow(() -> {
-                    log.warn("Lookup failed. Company with ID [{}] not found.", id);
+                    log.warn("Lookup failed. Book with ID [{}] not found.", id);
                     return new BusinessException(ErrorCode.BOOK_NOT_FOUND);
                 });
     }

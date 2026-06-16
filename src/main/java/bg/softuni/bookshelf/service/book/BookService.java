@@ -7,6 +7,7 @@ import bg.softuni.bookshelf.service.book.dto.BookUpdateDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.UUID;
 
 /**
@@ -68,4 +69,13 @@ public interface BookService {
      * @param id The UUID of the book to delete.
      */
     void deleteBook(UUID id);
+
+    /**
+     * Finds a paginated list of all books written by a specific author.
+     *
+     * @param authorId The UUID of the author.
+     * @param pageable The pagination information.
+     * @return A page of book summary DTOs for the specified author.
+     */
+    Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable);
 }
