@@ -11,6 +11,11 @@ public final class ValidationConstants {
         public static final int MAX_USERNAME_LENGTH = 50;
         public static final int MAX_EMAIL_LENGTH = 100;
         public static final int MAX_NAME_LENGTH = 50;
+        public static final int MIN_USERNAME_LENGTH = 3;
+    }
+
+    public static final class Password {
+        public static final int MIN_LENGTH = 8;
     }
 
     // Book-related constants

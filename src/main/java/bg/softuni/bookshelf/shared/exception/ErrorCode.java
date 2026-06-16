@@ -15,13 +15,21 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND("E0001", "The requested resource could not be found.", HttpStatus.NOT_FOUND),
     VALIDATION_FAILED("E0002", "Input validation failed.", HttpStatus.BAD_REQUEST),
 
-    // --- Book domain (E1000 - E1999) ----
-    BOOK_NOT_FOUND("E1000", "Book not found.", HttpStatus.NOT_FOUND),
+    // --- Authentication (E1000 - E1099) ---
+    USERNAME_ALREADY_EXISTS("E1000", "A user with this username already exists.", HttpStatus.CONFLICT),
+    EMAIL_ALREADY_EXISTS("E1001", "A user with this email address already exists.", HttpStatus.CONFLICT),
+    INVALID_CREDENTIALS("E1002", "Invalid username or password.", HttpStatus.UNAUTHORIZED),
+    INVALID_TOKEN("E1003", "The provided token is invalid or has expired.", HttpStatus.UNAUTHORIZED),
+    EXPIRED_TOKEN("E1004", "The provided token has expired. Please request a new one.", HttpStatus.BAD_REQUEST),
+    USER_NOT_FOUND("E1005", "User not found.", HttpStatus.NOT_FOUND),
+
+    // --- Book domain (E1100 - E1199) ----
+    BOOK_NOT_FOUND("E1100", "Book not found.", HttpStatus.NOT_FOUND),
 
     // --- Language domain (E2000 - E2099) ---
     LANGUAGE_NOT_FOUND("E2000", "The selected language could not be found.", HttpStatus.NOT_FOUND),
     LANGUAGE_IN_USE("E2001","The selected language is currently in use.",HttpStatus.CONFLICT),
-    LANGUAGE_NAME_DUPLICATE("E0002", "A language with this name already exists.", HttpStatus.CONFLICT),
+    LANGUAGE_NAME_DUPLICATE("E2002", "A language with this name already exists.", HttpStatus.CONFLICT),
 
     // --- Genre domain (E2100 - E2199) ---
     GENRE_NOT_FOUND("E2100", "One or more selected genres could not be found.", HttpStatus.NOT_FOUND),
@@ -34,9 +42,9 @@ public enum ErrorCode {
     PUBLISHER_NAME_DUPLICATE("E2202", "A publisher with this name already exists.", HttpStatus.CONFLICT),
 
     // --- Author domain (E2300 - E2399) ---
-    AUTHOR_NOT_FOUND("E2200", "The selected author could not be found.", HttpStatus.NOT_FOUND),
-    AUTHOR_IN_USE("E2201","The selected author is currently in use.",HttpStatus.CONFLICT),
-    AUTHOR_NAME_DUPLICATE("E2202", "A author with this name already exists.", HttpStatus.CONFLICT),
+    AUTHOR_NOT_FOUND("E2300", "The selected author could not be found.", HttpStatus.NOT_FOUND),
+    AUTHOR_IN_USE("E2301","The selected author is currently in use.",HttpStatus.CONFLICT),
+    AUTHOR_NAME_DUPLICATE("E2302", "An author with this name already exists.", HttpStatus.CONFLICT)
     
     ;
 

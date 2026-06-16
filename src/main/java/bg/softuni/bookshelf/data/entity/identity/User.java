@@ -8,7 +8,9 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * Abstract base class for all users in the system.
+ * Root entity for the application's user hierarchy, acting as the principal for Spring Security.
+ * Implements a JOINED inheritance strategy, meaning shared authentication data is stored here,
+ * while specific role datais stored in sub-tables.
  */
 @Entity
 @Table(name = "users")
