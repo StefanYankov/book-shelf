@@ -3,16 +3,16 @@
 > This repository contains the final project for the "Java Web - May 2026" course, part of the "Spring Fundamentals" module at SoftUni.
 
 ---
-# Book Shelf API
+# Book Shelf (Goodreads clone)
 
 ## Overview
 
 This project is the **final project** for the university course:
-**Java Web - May 2026 (Spring Fundamentals)** at **SoftUni**.
+**Java Web - May 2026 (Spring Fundamentals)** at **Software University**.
 
 ## Project Introduction
 
-The **Book Shelf API** is a Java-based web application developed as a final project for the **Spring Fundamentals** course at **SoftUni**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
+The **Book Shelf API** is a Java-based web application developed as a final project for the **Spring Fundamentals** course at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
 
 ## Table of Contents
 - [Architecture & Technologies](#architecture-and-technologies)
@@ -20,20 +20,27 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - [Implemented Features](#implemented-features)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+- [Repository](#repository)
 
 ## Architecture and Technologies
-- **Backend**: Spring Boot 3.x / Java 21
-- **Database**: PostgreSQL
+- **Backend**: Spring Boot 3.4.0 / Java 21
+- **Frontend**: Angular 22 (Standalone, Zoneless, Signals)
+- **Database**: PostgreSQL 17
 - **Migrations**: Flyway
 - **Containerization**: Docker & Docker Compose
-- **Internal Communication**: Service-to-Service (where appropriate) to promote a Modular Monolith design.
-- **Security**: Spring Security 6+
-- **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation
-- **Testing**: JUnit 5, Testcontainers, Mockito, AssertJ
+- **Security**: Spring Security 6+ with stateless JWT authentication.
+- **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
+- **Testing**:
+    - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ
+    - **Frontend**: Vitest, JSDOM
 
 ## Implemented Features
 
 The project is being developed using a strict **Domain-Driven Design (DDD)** approach, organized into vertical slices:
+
+### Backend Application Structure & Features
 
 *   **System Foundation**:
     *   Centralized RFC 7807 `ProblemDetail` exception handling (`GlobalExceptionHandler`).
@@ -52,25 +59,37 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     *   Abstracted `ImageUploadService` for flexible integration with cloud storage providers.
     *   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
 
+### Frontend Application Structure & Features
+
+The Angular frontend is built with a standalone component architecture and follows a modular, feature-driven structure based on user roles:
+
 ## Project Structure
-The project follows a classic **Layered Architecture** (Package-by-Layer) to separate concerns based on technical function.
+The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
 
 ```
 book-shelf/
-├── 📂 src/
+├── 📂 .github/workflows/         # CI/CD Pipelines
+│   ├── 📄 backend-ci.yaml
+│   └── 📄 frontend-ci.yml
+│
+├── 📂 frontend/                  # Angular Application
+│   ├── 📂 src/
+│   └── 📄 angular.json
+│
+├── 📂 src/                       # Spring Boot Application
 │   ├── 📂 main/
 │   │   ├── 📂 java/bg/softuni/bookshelf/
 │   │   │   ├── 📜 BookShelfApplication.java
-│   │   │   ├── 📂 data/              # JPA Entities and Repositories
+│   │   │   ├── 📂 config/             # Spring Security and App configuration
+│   │   │   ├── 📂 data/               # JPA Entities and Repositories
 │   │   │   ├── 📂 service/            # Service layer (business logic)
-│   │   │   └── 📂 shared/             # Cross-cutting concerns (Exceptions, Infrastructure)
+│   │   │   ├── 📂 shared/             # Cross-cutting concerns
+│   │   │   └── 📂 web/                # Controllers and Exception Handling
 │   │   └── 📂 resources/
 │   │       ├── 📂 db/migration/       # Flyway SQL scripts
-│   │       └── 📄 application.yaml    # Backend Configuration
+│   │       └── 📄 application.yaml
 │   │
-│   └── 📂 test/                  # Test Suite
-│       └── 📂 java/bg/softuni/bookshelf/
-│           └── ...                # Unit and Integration tests per layer
+│   └── 📂 test/
 │
 ├── 📄 build.gradle                # Backend build script
 ├── 📄 compose.yaml                # Docker Compose (Postgres setup)
@@ -90,7 +109,18 @@ book-shelf/
     *   The backend will be available on `http://localhost:8080`.
     *   *Note: Flyway will automatically create the database schema on startup.*
 
-3. **Run Tests**:
+3. **Generate Frontend API Client**:
+    *   Navigate to the `frontend/` directory in your terminal.
+    *   Run `npm install` to install dependencies.
+    *   **CRITICAL:** Run `npm run generate-api` to create the TypeScript API client from the running backend. This must be done whenever the backend API contract changes.
+
+4. **Run Frontend**:
+    *   Navigate to the `frontend/` directory in your terminal.
+    *   Run `npm start`.
+    *   Open your browser to `http://localhost:4200`.
+
+
+5. **Run Tests**:
     *   To run the complete test suite, use the Gradle wrapper:
     ```bash
     ./gradlew test
@@ -100,3 +130,16 @@ book-shelf/
 Once the application is running, the OpenAPI (Swagger UI) documentation is available at:
 
 http://localhost:8080/swagger-ui.html
+
+---
+
+## License
+
+The project is licensed under the MIT License.
+
+## Acknowledgments
+- Developed as part of the [**Spring Fundamentals**](https://softuni.bg/trainings/5311/spring-fundamentals-may-2026) course / [**Java Web**](https://softuni.bg/modules/120/java-web-may-2026/1629) module at [**Software University**](https://softuni.bg/).
+- Special thanks to the course instructor for creating the project requirements.
+
+## Repository
+GitHub Repository: [https://github.com/StefanYankov/book-shelf](https://github.com/StefanYankov/book-shelf)
