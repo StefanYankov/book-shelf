@@ -5,7 +5,7 @@ import { AuthService } from './services/auth.service';
 /**
  * Functional Route Guard that prevents unauthenticated users from accessing protected routes.
  */
-export const authGuard: CanActivateFn = (route, state) => {
+export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
