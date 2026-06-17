@@ -1,0 +1,21 @@
+<div class="verify-email-container">
+  @if (isLoading) {
+    <p>Verifying your email, please wait...</p>
+  } @else {
+    @if (isSuccess) {
+      <div class="success-message">
+        <h2>Email Verified!</h2>
+        <p>Your account has been successfully activated.</p>
+        <p>You will be redirected to the login page shortly.</p>
+        <a routerLink="/login">Go to Login Now</a>
+      </div>
+    }
+    @if (errorMessage) {
+      <div class="error-message">
+        <h2>Verification Failed</h2>
+        <p>{{ errorMessage }}</p>
+        <a routerLink="/login">Return to Login</a>
+      </div>
+    }
+  }
+</div>

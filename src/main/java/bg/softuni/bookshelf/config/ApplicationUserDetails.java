@@ -21,6 +21,10 @@ public class ApplicationUserDetails implements UserDetails {
         this.user = user;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (user instanceof AdminUser) {
@@ -59,6 +63,6 @@ public class ApplicationUserDetails implements UserDetails {
         if (user instanceof ApplicationUser appUser) {
             return appUser.isActive() && appUser.isEmailVerified();
         }
-        return true; // Admins are always enabled
+        return true;
     }
 }
