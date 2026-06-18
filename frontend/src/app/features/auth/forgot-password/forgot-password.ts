@@ -40,7 +40,7 @@ export class ForgotPassword {
             this.router.navigate(['/login']);
           }, 4000);
         }),
-        catchError(_ => {
+        catchError(() => {
           this.isLoading = false;
           this.errorMessage = 'An unexpected error occurred. Please try again.';
           return of(null);

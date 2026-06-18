@@ -18,7 +18,6 @@
         formControlName="username"
         placeholder="e.g. johndoe"
         autocomplete="username"
-        autofocus
       />
       @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
         <div class="validation-error">Username is required</div>
