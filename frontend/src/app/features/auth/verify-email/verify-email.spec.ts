@@ -27,7 +27,7 @@ describe('VerifyEmail Component', () => {
           useValue: {
             snapshot: {
               queryParamMap: {
-                get: (_key: string) => token
+                get: () => token
               }
             }
           }
