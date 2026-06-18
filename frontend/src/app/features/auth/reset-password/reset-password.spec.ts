@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { ResetPassword } from './reset-password';
-import { AuthenticationAPIService } from '../../../api/api/authenticationAPI.service';
+import { AuthenticationAPIService } from '../../../api';
 import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
@@ -62,7 +62,7 @@ describe('ResetPassword', () => {
   };
 
   it('should call the resetPassword API on valid submit', () => {
-    const mockResponse = new HttpResponse<any>({ status: 200 });
+    const mockResponse = new HttpResponse<void>({ status: 200 });
     const resetPasswordSpy = vi.spyOn(authApi, 'resetPassword').mockReturnValue(of(mockResponse));
 
     fillValidForm();
@@ -73,7 +73,7 @@ describe('ResetPassword', () => {
 
   it('should set isSuccess to true and navigate on successful reset', async () => {
     vi.useFakeTimers();
-    const mockResponse = new HttpResponse<any>({ status: 200 });
+    const mockResponse = new HttpResponse<void>({ status: 200 });
     vi.spyOn(authApi, 'resetPassword').mockReturnValue(of(mockResponse));
     const router = TestBed.inject(Router);
     const routerSpy = vi.spyOn(router, 'navigate');

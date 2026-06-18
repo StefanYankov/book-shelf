@@ -4,7 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 import { VerifyEmail } from './verify-email';
 import { AuthenticationAPIService } from '../../../api';
 import { HttpResponse } from '@angular/common/http';
@@ -27,7 +27,7 @@ describe('VerifyEmail Component', () => {
           useValue: {
             snapshot: {
               queryParamMap: {
-                get: (key: string) => token
+                get: (_key: string) => token
               }
             }
           }
@@ -43,7 +43,7 @@ describe('VerifyEmail Component', () => {
   it('should show success message and redirect on valid token', async () => {
     setupTest('valid-token');
     vi.useFakeTimers();
-    const verifySpy = vi.spyOn(authApi, 'verifyEmail').mockReturnValue(of(new HttpResponse({ status: 200 })));
+    const verifySpy = vi.spyOn(authApi, 'verifyEmail').mockReturnValue(of(new HttpResponse<void>({ status: 200 })));
     const router = TestBed.inject(Router);
     const routerSpy = vi.spyOn(router, 'navigate');
 

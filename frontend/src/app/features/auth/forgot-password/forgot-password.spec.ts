@@ -35,7 +35,7 @@ describe('ForgotPassword', () => {
   });
 
   it('should call the forgotPassword API on valid submit', () => {
-    const mockResponse = new HttpResponse<any>({ status: 200 });
+    const mockResponse = new HttpResponse<void>({ status: 200 });
     const forgotPasswordSpy = vi.spyOn(authApi, 'forgotPassword').mockReturnValue(of(mockResponse));
     component.forgotPasswordForm.controls['email'].setValue('test@example.com');
     component.onSubmit();
@@ -44,7 +44,7 @@ describe('ForgotPassword', () => {
 
   it('should display success message and redirect on success', async () => {
     vi.useFakeTimers();
-    const mockResponse = new HttpResponse<any>({ status: 200 });
+    const mockResponse = new HttpResponse<void>({ status: 200 });
     vi.spyOn(authApi, 'forgotPassword').mockReturnValue(of(mockResponse));
     const router = TestBed.inject(Router);
     const routerSpy = vi.spyOn(router, 'navigate');
