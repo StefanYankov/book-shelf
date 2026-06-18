@@ -73,7 +73,12 @@ book-shelf/
 │   └── 📄 frontend-ci.yml
 │
 ├── 📂 frontend/                  # Angular Application
-│   ├── 📂 src/
+│   ├── 📂 src/app/
+│   │   ├── 📂 api/                # Auto-generated API client
+│   │   ├── 📂 core/               # Core services, guards, interceptors
+│   │   ├── 📂 features/           # Feature components (pages)
+│   │   ├── 📂 layout/             # Layout components (shells)
+│   │   └── 📂 shared/             # Reusable components, pipes, etc.
 │   └── 📄 angular.json
 │
 ├── 📂 src/                       # Spring Boot Application
@@ -98,6 +103,8 @@ book-shelf/
 
 ## Installation and Setup
 
+The application is designed to be run with Docker Compose for the database and local servers for the backend and frontend.
+
 1. **Infrastructure**:
     ```bash
     docker compose up -d
@@ -109,21 +116,22 @@ book-shelf/
     *   The backend will be available on `http://localhost:8080`.
     *   *Note: Flyway will automatically create the database schema on startup.*
 
-3. **Generate Frontend API Client**:
-    *   Navigate to the `frontend/` directory in your terminal.
+3.  **Run the Frontend**:
+    *   Navigate to the `frontend/` directory in a separate terminal.
     *   Run `npm install` to install dependencies.
-    *   **CRITICAL:** Run `npm run generate-api` to create the TypeScript API client from the running backend. This must be done whenever the backend API contract changes.
+    *   Run `npm start` (which is an alias for `ng serve`).
+    *   The frontend will be available on `http://localhost:4200`.
 
-4. **Run Frontend**:
-    *   Navigate to the `frontend/` directory in your terminal.
-    *   Run `npm start`.
-    *   Open your browser to `http://localhost:4200`.
-
-
-5. **Run Tests**:
+4. **Run Backend Tests**:
     *   To run the complete test suite, use the Gradle wrapper:
     ```bash
     ./gradlew test
+    ```
+
+4. **Run Frontend Tests**:
+     *   Navigate to the `frontend/` directory in a separate terminal.
+    ```bash
+    ng test
     ```
 
 ## API Documentation

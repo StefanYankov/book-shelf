@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.service.auth;
 
+import bg.softuni.bookshelf.config.ApplicationUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // TODO: store in in Vault or AWS Secrets Manager and load via @Value("${application.security.jwt.secret-key}
+    // TODO: store in in Vault or AWS Secrets Manager and load via @Value("${application.security.jwt.secret-key}")
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
@@ -35,7 +36,11 @@ public class JwtService {
      * @return The generated JWT.
      */
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> claims = new HashMap<>();
+        if (userDetails instanceof ApplicationUserDetails) {
+            claims.put("userId", ((ApplicationUserDetails) userDetails).getUser().getId());
+        }
+        return generateToken(claims, userDetails);
     }
 
     /**

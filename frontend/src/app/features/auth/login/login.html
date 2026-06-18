@@ -1,0 +1,56 @@
+<div class="login-container">
+  <h2>Welcome Back</h2>
+  <p class="subtitle">Enter your credentials to access your account</p>
+
+  @if (errorMessage) {
+    <div class="error-message">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input
+        id="username"
+        type="text"
+        formControlName="username"
+        placeholder="e.g. johndoe"
+        autocomplete="username"
+      />
+      @if (loginForm.get('username')?.invalid && loginForm.get('username')?.touched) {
+        <div class="validation-error">Username is required</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        formControlName="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+      />
+      @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+        <div class="validation-error">Password is required</div>
+      }
+    </div>
+
+    <div class="forgot-password-link">
+      <a routerLink="/forgot-password">Forgot Password?</a>
+    </div>
+
+    <button
+      type="submit"
+      [disabled]="loginForm.invalid || isLoading">
+      {{ isLoading ? 'Logging in...' : 'Sign In' }}
+    </button>
+
+  </form>
+
+  <div class="register-link">
+    <p>Don't have an account? <a routerLink="/register">Register here</a></p>
+  </div>
+</div>
