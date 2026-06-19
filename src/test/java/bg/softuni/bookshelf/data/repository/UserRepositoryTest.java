@@ -19,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,6 +49,35 @@ class UserRepositoryTest {
         applicationUser.setLastName("User");
 
         return applicationUser;
+    }
+
+    @Nested
+    @DisplayName("findById(UUID) Tests")
+    class FindByIdTests {
+
+        @Test
+        @DisplayName("Should find user when ID exists")
+        void shouldFindUserWhenIdExists() {
+            // Arrange
+            ApplicationUser savedUser = userRepository.saveAndFlush(createApplicationUserEntity("testuser", "test@example.com"));
+
+            // Act
+            Optional<User> result = userRepository.findById(savedUser.getId());
+
+            // Assert
+            assertThat(result).isPresent();
+            assertThat(result.get().getId()).isEqualTo(savedUser.getId());
+        }
+
+        @Test
+        @DisplayName("Should return empty when ID does not exist")
+        void shouldReturnEmptyWhenIdDoesNotExist() {
+            // Act
+            Optional<User> result = userRepository.findById(UUID.randomUUID());
+
+            // Assert
+            assertThat(result).isEmpty();
+        }
     }
 
     @Nested
