@@ -2,11 +2,17 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { firstValueFrom, of } from 'rxjs';
+import { asyncScheduler, firstValueFrom, of } from 'rxjs';
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import { BookList } from './book-list';
 import { BookService } from '../../../core/services/book.service';
 import { PageBookSummaryDto } from '../../../api';
+
+// Intercept the async scheduler for testing purposes globally across this spec file
+// This forces any delayed execution (like debounceTime) to fire immediately (0ms)
+vi.spyOn(asyncScheduler, 'schedule').mockImplementation(function (this: unknown, work, delay, state) {
+  return asyncScheduler.schedule.call(this, work, 0, state);
+});
 
 describe('BookList Component', () => {
   let component: BookList;
@@ -53,7 +59,8 @@ describe('BookList Component', () => {
 
     // Act
     fixture.detectChanges();
-    await firstValueFrom(component['books$']);
+    // With the scheduler mocked, firstValueFrom will resolve immediately
+    // without hitting the 5000ms timeout
     await firstValueFrom(component['books$']);
 
     // Assert
