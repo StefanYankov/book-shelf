@@ -66,6 +66,7 @@ export class OpenApiHttpParams {
     append(key: string, value: string, options?: ParamOptions): this {
         const entry = this.params.get(key);
         if (entry) {
+            // If new options provided, override the stored options for subsequent serialization
             if (options) {
                 entry.options = this.resolveOptions({...entry.options, ...options});
             }
@@ -110,6 +111,7 @@ export class OpenApiHttpParams {
             } else {
                 const encodedValues = entry.values.map((v) => this.encoder.encodeValue(v));
 
+                // join with the delimiter *unencoded*
                 parts[encodedKey] = encodedValues.join(entry.options.delimiter);
             }
         }
