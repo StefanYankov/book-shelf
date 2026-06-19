@@ -3,6 +3,7 @@ package bg.softuni.bookshelf.service.book;
 import bg.softuni.bookshelf.data.entity.*;
 import bg.softuni.bookshelf.data.entity.value.Image;
 import bg.softuni.bookshelf.data.repository.*;
+import bg.softuni.bookshelf.service.base.BaseService;
 import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BookServiceImpl implements BookService {
+public class BookServiceImpl extends BaseService implements BookService {
 
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
@@ -76,7 +77,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public BookDetailsDto getById(UUID id) {
         log.debug("Fetching book by ID: {}", id);
-        Book book = findBookOrThrow(id);
+        Book book = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
         return bookMapper.toBookDetailsDto(book);
     }
 
@@ -94,7 +95,7 @@ public class BookServiceImpl implements BookService {
         log.debug("Attempting to update shipment {}", id);
         Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
 
-        Book existingBook = findBookOrThrow(id);
+        Book existingBook = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
 
         if (updateDto.title() != null) {
             existingBook.setTitle(updateDto.title());
@@ -151,11 +152,10 @@ public class BookServiceImpl implements BookService {
         log.debug("Attempting to delete a book with ID: {}", id);
         Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);
 
-        Book bookToDelete = findBookOrThrow(id);
+        Book bookToDelete = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
         bookRepository.delete(bookToDelete);
 
         log.info("Successfully deleted book with ID: {}", id);
-
     }
 
     @Override
@@ -166,14 +166,15 @@ public class BookServiceImpl implements BookService {
                 .map(bookMapper::toBookSummaryDto);
     }
 
-    /**
-     * Centralized lookup and exception logic to DRY up the service methods.
-     */
-    private Book findBookOrThrow(UUID id) {
-        return bookRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.warn("Lookup failed. Book with ID [{}] not found.", id);
-                    return new BusinessException(ErrorCode.BOOK_NOT_FOUND);
-                });
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookSummaryDto> searchBooks(String query, Pageable pageable) {
+        if (query == null || query.isBlank()){
+            return bookRepository.findAll(pageable).map(bookMapper::toBookSummaryDto);
+        }
+
+        log.info("Searching books with query: '{}'", query);
+        return bookRepository.searchByTitleOrAuthor(query, pageable)
+                .map(bookMapper::toBookSummaryDto);
     }
 }

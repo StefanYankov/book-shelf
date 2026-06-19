@@ -1,20 +1,13 @@
-import { Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { AuthenticatedHeader } from '../../shared/ui/authenticated-header/authenticated-header';
+import { Footer } from '../../shared/ui/footer/footer';
 
 @Component({
   selector: 'app-app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, AuthenticatedHeader, Footer],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.css'
 })
-export class AppLayout {
-  private authService = inject(AuthService);
-  private router = inject(Router);
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
-  }
-}
+export class AppLayout {}

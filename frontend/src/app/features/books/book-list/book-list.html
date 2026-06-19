@@ -1,0 +1,36 @@
+<div class="book-list-container">
+  <h1>Explore the Book Shelf</h1>
+
+  <div class="search-bar">
+    <input type="text" [formControl]="searchControl" placeholder="Search by title or author...">
+  </div>
+
+  <!-- Read the value from the Signal -->
+  @if (books(); as page) {
+    @if (page.content && page.content.length > 0) {
+      <div class="book-grid">
+        @for (book of page.content; track book.id) {
+          <div class="book-card">
+            <a [routerLink]="['/books', book.id]">
+              <img [src]="book.coverImageUrl || 'assets/images/placeholder.png'" alt="Cover of {{ book.title }}">
+              <div class="book-info">
+                <h3 class="book-title">{{ book.title }}</h3>
+                <p class="book-author">{{ book.authorName }}</p>
+              </div>
+            </a>
+          </div>
+        }
+      </div>
+
+      @if (page.totalPages && page.totalPages > 1) {
+        <div class="pagination">
+          <span>Page {{ (page.number || 0) + 1 }} of {{ page.totalPages }}</span>
+        </div>
+      }
+    } @else {
+      <p>No books found.</p>
+    }
+  } @else {
+    <p>Loading books...</p>
+  }
+</div>

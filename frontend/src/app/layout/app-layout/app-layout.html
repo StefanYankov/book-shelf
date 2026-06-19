@@ -1,13 +1,9 @@
-<div class="app-layout">
-  <header class="app-header">
-    <nav>
-      <a routerLink="/home">Home</a>
-    </nav>
-    <div class="user-menu">
-      <button (click)="logout()">Logout</button>
-    </div>
-  </header>
-  <main>
+<div class="layout-container">
+  <app-authenticated-header></app-authenticated-header>
+
+  <main class="main-content">
     <router-outlet></router-outlet>
   </main>
+
+  <app-footer></app-footer>
 </div>

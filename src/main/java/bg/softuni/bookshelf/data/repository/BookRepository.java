@@ -1,10 +1,12 @@
 package bg.softuni.bookshelf.data.repository;
 
+import bg.softuni.bookshelf.data.entity.Author;
 import bg.softuni.bookshelf.data.entity.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
@@ -37,4 +39,20 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
      * @return A page of books by the specified author.
      */
     Page<Book> findAllByAuthorId(UUID authorId, Pageable pageable);
+
+    /**
+     * Performs a case-insensitive search for books by title or author name.
+     * <p>
+     * This method uses a {@code LEFT JOIN} to allow searching across the {@link Author} relationship,
+     * ensuring that the query is efficient and covers the domain-specific search requirements
+     * for the catalog.
+     *
+     * @param query    The search string (partial match) to look for in title or author name.
+     * @param pageable The pagination information to restrict the result size.
+     * @return A {@link Page} of {@link Book} entities matching the criteria.
+     */
+    @Query("SELECT b FROM Book b LEFT JOIN b.author a " +
+            "WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) " +
+            "OR LOWER(a.name) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Book> searchByTitleOrAuthor(@Param("query") String query, Pageable pageable);
 }

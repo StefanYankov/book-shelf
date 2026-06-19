@@ -1,9 +1,12 @@
 package bg.softuni.bookshelf.service.book;
 
+import bg.softuni.bookshelf.data.repository.BookRepository;
 import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.service.book.dto.BookUpdateDto;
+import bg.softuni.bookshelf.shared.exception.BusinessException;
+import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,11 +38,12 @@ public interface BookService {
      * Retrieves a single book by its unique ID.
      * <p>
      * The 'get' prefix implies a contract that a {@link BookDetailsDto} will be returned.
-     * If the book is not found, a business-specific exception (e.g., BookNotFoundException)
+     * If the book is not found, a BusinessException exception with the respective ErrorCode
      * will be thrown, which should be handled by a global exception handler.
      *
      * @param id The UUID of the book.
      * @return A detailed view DTO of the book.
+     * @throws BusinessException with {@link ErrorCode#BOOK_NOT_FOUND} if the book does not exist.
      */
     BookDetailsDto getById(UUID id);
 
@@ -78,4 +82,17 @@ public interface BookService {
      * @return A page of book summary DTOs for the specified author.
      */
     Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable);
+
+    /**
+     * Searches for books based on a title or author name query.
+     * <p>
+     * If the provided query is null or blank, this method defaults to returning
+     * all books in a paginated format. Otherwise, it filters the catalog
+     * using the {@link BookRepository#searchByTitleOrAuthor(String, Pageable)} query.
+     *
+     * @param query    The search string provided by the user.
+     * @param pageable The pagination information.
+     * @return A {@link Page} of {@link BookSummaryDto} objects containing the search results.
+     */
+    Page<BookSummaryDto> searchBooks(String query, Pageable pageable);
 }

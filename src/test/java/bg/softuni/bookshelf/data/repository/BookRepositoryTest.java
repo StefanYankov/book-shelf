@@ -6,6 +6,8 @@ import bg.softuni.bookshelf.data.enums.BookFormat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -136,6 +138,38 @@ class BookRepositoryTest {
             // Assert
             assertThat(tolkienBooksPage.getTotalElements()).isEqualTo(2);
             assertThat(tolkienBooksPage.getContent()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("searchByTitleOrAuthor(String, Pageable) Tests")
+    class SearchByTitleOrAuthorTests {
+
+        @ParameterizedTest(name = "Search query ''{0}'' should match {1} books")
+        @DisplayName("Boundary/Parameterized Search Tests")
+        @CsvSource({
+                "Hobbit, 1",      // Exact title match
+                "Tolkien, 2",     // Author match
+                "fantasy, 0",     // Summary is not in search criteria
+                "nonexistent, 0"  // No match
+        })
+        void shouldSearchCorrectly(String query, int expectedCount) {
+            // Arrange
+            Author tolkien = createAndSaveAuthor("J.R.R. Tolkien");
+            Author herbert = createAndSaveAuthor("Frank Herbert");
+            Language lang = createAndSaveLanguage("English");
+            Publisher pub = createAndSavePublisher("Allen & Unwin");
+
+            createAndSaveBook("The Hobbit", "978-0-345-33968-3", tolkien, lang, pub);
+            createAndSaveBook("Dune", "978-0-441-01359-3", herbert, lang, pub);
+            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", tolkien, lang, pub);
+            entityManager.clear();
+
+            // Act
+            Page<Book> results = bookRepository.searchByTitleOrAuthor(query, PageRequest.of(0, 10));
+
+            // Assert
+            assertThat(results.getTotalElements()).isEqualTo(expectedCount);
         }
     }
 }
