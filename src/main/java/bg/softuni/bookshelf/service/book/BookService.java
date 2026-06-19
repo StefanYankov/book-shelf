@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.service.book;
 
+import bg.softuni.bookshelf.data.repository.BookRepository;
 import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
@@ -81,4 +82,17 @@ public interface BookService {
      * @return A page of book summary DTOs for the specified author.
      */
     Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable);
+
+    /**
+     * Searches for books based on a title or author name query.
+     * <p>
+     * If the provided query is null or blank, this method defaults to returning
+     * all books in a paginated format. Otherwise, it filters the catalog
+     * using the {@link BookRepository#searchByTitleOrAuthor(String, Pageable)} query.
+     *
+     * @param query    The search string provided by the user.
+     * @param pageable The pagination information.
+     * @return A {@link Page} of {@link BookSummaryDto} objects containing the search results.
+     */
+    Page<BookSummaryDto> searchBooks(String query, Pageable pageable);
 }

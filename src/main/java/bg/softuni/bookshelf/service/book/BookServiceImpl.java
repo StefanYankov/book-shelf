@@ -165,4 +165,16 @@ public class BookServiceImpl extends BaseService implements BookService {
         return bookRepository.findAllByAuthorId(authorId, pageable)
                 .map(bookMapper::toBookSummaryDto);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookSummaryDto> searchBooks(String query, Pageable pageable) {
+        if (query == null || query.isBlank()){
+            return bookRepository.findAll(pageable).map(bookMapper::toBookSummaryDto);
+        }
+
+        log.info("Searching books with query: '{}'", query);
+        return bookRepository.searchByTitleOrAuthor(query, pageable)
+                .map(bookMapper::toBookSummaryDto);
+    }
 }

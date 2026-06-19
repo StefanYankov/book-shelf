@@ -382,4 +382,70 @@ class BookServiceImplTest {
             verify(bookRepository, never()).delete(any());
         }
     }
+
+    @Nested
+    @DisplayName("searchBooks(String, Pageable)")
+    class SearchBooksTests {
+
+        @Test
+        @DisplayName("Search: Should call findAll when query is null")
+        void shouldCallFindAllWhenQueryIsNull() {
+            // Arrange
+            Pageable p = PageRequest.of(0, 10);
+            given(bookRepository.findAll(p)).willReturn(Page.empty());
+
+            // Act
+            bookServiceImpl.searchBooks(null, p);
+
+            // Assert
+            verify(bookRepository).findAll(p);
+            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any());
+        }
+
+        @Test
+        @DisplayName("Search: Should call findAll when query is empty string")
+        void shouldCallFindAllWhenQueryIsEmpty() {
+            // Arrange
+            Pageable p = PageRequest.of(0, 10);
+            given(bookRepository.findAll(p)).willReturn(Page.empty());
+
+            // Act
+            bookServiceImpl.searchBooks("", p);
+
+            // Assert
+            verify(bookRepository).findAll(p);
+            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any());
+        }
+
+        @Test
+        @DisplayName("Search: Should call findAll when query is only whitespace")
+        void shouldCallFindAllWhenQueryIsBlank() {
+            // Arrange
+            Pageable p = PageRequest.of(0, 10);
+            given(bookRepository.findAll(p)).willReturn(Page.empty());
+
+            // Act
+            bookServiceImpl.searchBooks("   ", p);
+
+            // Assert
+            verify(bookRepository).findAll(p);
+            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any());
+        }
+
+        @Test
+        @DisplayName("Search: Should call searchByTitleOrAuthor when query is a valid string")
+        void shouldCallSearchWhenQueryIsValid() {
+            // Arrange
+            String query = "Tolkien";
+            Pageable p = PageRequest.of(0, 10);
+            given(bookRepository.searchByTitleOrAuthor(query, p)).willReturn(Page.empty());
+
+            // Act
+            bookServiceImpl.searchBooks(query, p);
+
+            // Assert
+            verify(bookRepository).searchByTitleOrAuthor(query, p);
+            verify(bookRepository, never()).findAll(any(Pageable.class));
+        }
+    }
 }
