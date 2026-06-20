@@ -6,6 +6,7 @@ import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.auth.AuthenticationService;
 import bg.softuni.bookshelf.service.auth.JwtService;
 import bg.softuni.bookshelf.service.book.BookService;
+import bg.softuni.bookshelf.service.bookshelf.BookshelfService;
 import bg.softuni.bookshelf.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,4 +44,7 @@ public abstract class AbstractControllerTestBase {
 
     @MockitoBean
     protected BookService bookService;
+
+    @MockitoBean
+    protected BookshelfService bookshelfService;
 }
