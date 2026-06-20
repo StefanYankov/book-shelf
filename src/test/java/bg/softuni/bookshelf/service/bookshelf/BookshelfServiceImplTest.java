@@ -175,12 +175,9 @@ class BookshelfServiceImplTest {
         void shouldReturnBooksInShelf() {
             // Arrange
             Pageable pageable = PageRequest.of(0, 10);
-            BookshelfBook entry = new BookshelfBook();
-            entry.setBook(testBook);
-            entry.setBookshelf(testShelf);
-            testShelf.setBooks(List.of(entry));
-
-            when(bookshelfRepository.findById(testShelf.getId())).thenReturn(Optional.of(testShelf));
+            Page<Book> bookPage = new PageImpl<>(List.of(testBook));
+            when(bookshelfRepository.existsById(testShelf.getId())).thenReturn(true);
+            when(bookshelfBookRepository.findBooksByBookshelfId(testShelf.getId(), pageable)).thenReturn(bookPage);
             when(bookMapper.toBookSummaryDto(testBook)).thenReturn(BookSummaryDto.builder().id(testBook.getId()).build());
 
             // Act
@@ -197,7 +194,7 @@ class BookshelfServiceImplTest {
         void shouldThrowWhenShelfNotFound() {
             // Arrange
             Pageable pageable = PageRequest.of(0, 10);
-            when(bookshelfRepository.findById(testShelf.getId())).thenReturn(Optional.empty());
+            when(bookshelfRepository.existsById(testShelf.getId())).thenReturn(false);
 
             // Act & Assert
             assertThatThrownBy(() -> bookshelfService.getBooksInShelf(testShelf.getId(), pageable))
