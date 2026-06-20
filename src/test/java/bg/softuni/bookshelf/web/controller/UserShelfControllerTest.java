@@ -138,4 +138,32 @@ class UserShelfControllerTest extends AbstractControllerTestBase {
                     .andExpect(status().isForbidden());
         }
     }
+
+    @Nested
+    @DisplayName("GET " + BASE_URL + "/{shelfId}/books")
+    class GetBooksInShelfTests {
+
+        @Test
+        @WithMockApplicationUser
+        @DisplayName("Should return 200 OK for authenticated user")
+        void shouldReturn200_forAuthenticatedUser() throws Exception {
+            // Arrange
+            UUID shelfId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(get(BASE_URL + "/{shelfId}/books", shelfId))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("Should return 403 Forbidden for anonymous user")
+        void shouldReturn403_forAnonymousUser() throws Exception {
+            // Arrange
+            UUID shelfId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(get(BASE_URL + "/{shelfId}/books", shelfId))
+                    .andExpect(status().isForbidden());
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package bg.softuni.bookshelf.web.controller;
 
 import bg.softuni.bookshelf.service.auth.CustomUserDetails;
+import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.service.bookshelf.BookshelfService;
 import bg.softuni.bookshelf.service.bookshelf.dto.*;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
@@ -75,6 +76,21 @@ public class UserShelfController {
     public ResponseEntity<BookshelfDetailsDto> getShelfById(@Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId) {
         BookshelfDetailsDto shelf = bookshelfService.getShelfById(shelfId);
         return ResponseEntity.ok(shelf);
+    }
+
+    @Operation(
+            operationId = "getBooksInShelf",
+            summary = "Get books in a specific shelf",
+            description = "Retrieves a paginated list of all books contained within a specific bookshelf."
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved books in shelf")
+    @GetMapping("/{shelfId}/books")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<BookSummaryDto>> getBooksInShelf(
+            @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
+            Pageable pageable) {
+        Page<BookSummaryDto> books = bookshelfService.getBooksInShelf(shelfId, pageable);
+        return ResponseEntity.ok(books);
     }
 
     @Operation(
