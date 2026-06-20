@@ -18,6 +18,13 @@ public final class ValidationConstants {
         public static final int MIN_LENGTH = 8;
     }
 
+    // Bookshelf-related constants
+    public static final class Bookshelf {
+        public static final int MIN_NAME_LENGTH = 3;
+        public static final int MAX_NAME_LENGTH = 100;
+        public static final int MAX_DESCRIPTION_LENGTH = 500;
+    }
+
     // Book-related constants
     public static final class Book {
         public static final int MAX_TITLE_LENGTH = 26000;
