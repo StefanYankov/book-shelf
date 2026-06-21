@@ -1,0 +1,55 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>My Shelves</h1>
+    <button class="btn btn-primary" (click)="toggleCreateForm()">
+      @if (isCreating()) {
+        <span>Cancel</span>
+      } @else {
+        <span>Create New Shelf</span>
+      }
+    </button>
+  </div>
+
+  @if (isCreating()) {
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Create a New Bookshelf</h5>
+        <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
+          <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" id="name" class="form-control" formControlName="name">
+            <!-- Basic validation messages -->
+            @if (createForm.controls.name.hasError('required') && createForm.controls.name.touched) {
+              <div class="text-danger small">Name is required.</div>
+            }
+            @if (createForm.controls.name.hasError('minlength') && createForm.controls.name.touched) {
+              <div class="text-danger small">Name must be at least 3 characters.</div>
+            }
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description (Optional)</label>
+            <textarea id="description" class="form-control" formControlName="description" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success" [disabled]="createForm.invalid">Save Shelf</button>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (shelves(); as shelfPage) {
+    <div class="list-group">
+      @for (shelf of shelfPage.content; track shelf.id) {
+        <a [routerLink]="['/app/shelves', shelf.id]" class="list-group-item list-group-item-action">
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ shelf.name }}</h5>
+            <small>{{ shelf.bookCount }} books</small>
+          </div>
+        </a>
+      } @empty {
+        <p class="text-center">You don't have any shelves yet. Create one to get started!</p>
+      }
+    </div>
+  } @else {
+    <p>Loading shelves...</p>
+  }
+</div>

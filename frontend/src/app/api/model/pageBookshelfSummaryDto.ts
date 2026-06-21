@@ -8,15 +8,15 @@
  * Do not edit the class manually.
  */
 import { PageableObject } from './pageableObject';
+import { BookshelfSummaryDto } from './bookshelfSummaryDto';
 import { SortObject } from './sortObject';
-import { BookSummaryDto } from './bookSummaryDto';
 
 
-export interface PageBookSummaryDto { 
+export interface PageBookshelfSummaryDto { 
     totalElements?: number;
     totalPages?: number;
     size?: number;
-    content?: Array<BookSummaryDto>;
+    content?: Array<BookshelfSummaryDto>;
     number?: number;
     sort?: SortObject;
     first?: boolean;

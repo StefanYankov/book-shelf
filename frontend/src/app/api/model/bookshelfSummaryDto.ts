@@ -9,9 +9,9 @@
  */
 
 
-export interface SortObject { 
-    empty?: boolean;
-    unsorted?: boolean;
-    sorted?: boolean;
+export interface BookshelfSummaryDto { 
+    id?: string;
+    name?: string;
+    bookCount?: number;
 }
 
