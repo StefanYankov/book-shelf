@@ -56,6 +56,21 @@ export const routes: Routes = [
         title: `${APP_TITLE} | Home`,
         loadComponent: () => import('./features/home/home').then(m => m.Home)
       },
+      {
+        path: 'books',
+        title: `${APP_TITLE} | Explore Books`,
+        loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList)
+      },
+      {
+        path: 'my-shelves',
+        title: `${APP_TITLE} | My Shelves`,
+        loadComponent: () => import('./features/shelves/my-shelves/my-shelves').then(m => m.MyShelves)
+      },
+      {
+        path: 'shelves/:id',
+        title: `${APP_TITLE} | Shelf Details`,
+        loadComponent: () => import('./features/shelves/shelf-detail/shelf-detail').then(m => m.ShelfDetail)
+      },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]
   },

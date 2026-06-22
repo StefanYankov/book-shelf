@@ -1,36 +1,51 @@
-<div class="book-list-container">
-  <h1>Explore the Book Shelf</h1>
-
-  <div class="search-bar">
-    <input type="text" [formControl]="searchControl" placeholder="Search by title or author...">
+<div class="container mt-4">
+  <div class="row mb-4">
+    <div class="col-md-6 offset-md-3">
+      <input type="text" class="form-control" placeholder="Search for books by title or author..." [formControl]="searchControl">
+    </div>
   </div>
 
-  <!-- Read the value from the Signal -->
-  @if (books(); as page) {
-    @if (page.content && page.content.length > 0) {
-      <div class="book-grid">
-        @for (book of page.content; track book.id) {
-          <div class="book-card">
-            <a [routerLink]="['/books', book.id]">
-              <img [src]="book.coverImageUrl || 'assets/images/placeholder.png'" alt="Cover of {{ book.title }}">
-              <div class="book-info">
-                <h3 class="book-title">{{ book.title }}</h3>
-                <p class="book-author">{{ book.authorName }}</p>
-              </div>
-            </a>
-          </div>
-        }
-      </div>
+  @if (books(); as bookPage) {
+    <div class="row">
+      @for (book of bookPage.content; track book.id) {
+        <div class="col-md-3 mb-4">
+          <div class="card h-100">
+            <img [src]="book.coverImageUrl || 'https://placehold.co/200x300'" class="card-img-top" alt="Cover of {{ book.title }}">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ book.title }}</h5>
+              <p class="card-text text-muted">{{ book.authorName }}</p>
+            </div>
 
-      @if (page.totalPages && page.totalPages > 1) {
-        <div class="pagination">
-          <span>Page {{ (page.number || 0) + 1 }} of {{ page.totalPages }}</span>
+            @if (authService.isLoggedIn()) {
+              <div class="card-footer">
+                <div class="dropdown">
+                  <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Add to Shelf
+                  </button>
+                  <ul class="dropdown-menu">
+                    @if (userShelves(); as shelfPage) {
+                      @for (shelf of shelfPage.content; track shelf.id) {
+                        <li>
+                          <a class="dropdown-item" href="#" (click)="$event.preventDefault(); addToShelf(book.id!, shelf.id!)">
+                            {{ shelf.name }}
+                          </a>
+                        </li>
+                      } @empty {
+                        <li><span class="dropdown-item-text">No shelves available.</span></li>
+                      }
+                    }
+                  </ul>
+                </div>
+              </div>
+            }
+
+          </div>
         </div>
+      } @empty {
+        <p class="text-center">No books found.</p>
       }
-    } @else {
-      <p>No books found.</p>
-    }
+    </div>
   } @else {
-    <p>Loading books...</p>
+    <p class="text-center">Loading books...</p>
   }
 </div>

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,18 +31,18 @@ public class AuthenticationController {
             description = "Creates a new user account in a pending (unverified) state and dispatches a verification email."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Successfully registered. A JWT is returned for immediate (but restricted) login."),
+            @ApiResponse(responseCode = "204", description = "Successfully registered. A verification email has been sent."),
             @ApiResponse(responseCode = "400", description = "Validation failed (e.g., missing or invalid fields)."),
             @ApiResponse(responseCode = "409", description = "Conflict - Username or email already exists.")
     })
     @ApiStandardResponses
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(
+    public ResponseEntity<Void> register(
             @Valid @RequestBody RegisterRequest request
     ) {
         log.info("API POST request to register new user: {}", request.username());
-        AuthenticationResponse response = authenticationService.register(request);
-        return ResponseEntity.ok(response);
+        authenticationService.register(request);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
@@ -54,7 +55,7 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials or inactive/unverified account.")
     })
     @ApiStandardResponses
-    @PostMapping("/login")
+    @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AuthenticationResponse> authenticate(
             @Valid @RequestBody AuthenticationRequest request
     ) {

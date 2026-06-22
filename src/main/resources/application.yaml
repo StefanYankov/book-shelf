@@ -3,13 +3,9 @@ spring:
     name: book-shelf
   main:
     banner-mode: off
-  docker:
-    compose:
-      enabled: true
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
   data:
     web:
       pageable:
@@ -19,23 +15,24 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+
 logging:
   pattern:
     console: "%d{HH:mm:ss} %-5p --- [%15.15t] %-40.40logger{39} : %m%n"
   file:
-    name: logs/logistics-company.log
+    name: logs/book-shelf.log
   logback:
     rollingpolicy:
       max-history: 7
       total-size-cap: 100MB
   level:
     root: INFO
-    bg.nbu.cscb532: DEBUG
+    bg.softuni.bookshelf: INFO
     org.springframework: WARN
-    org.hibernate.SQL: DEBUG
 
 application:
   security:
     jwt:
-      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      # This MUST be provided via an environment variable in production
+      secret-key: ${JWT_SECRET_KEY}
       expiration: 86400000 # 24 hours

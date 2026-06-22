@@ -20,6 +20,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - [Implemented Features](#implemented-features)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
+- [Test Credentials](#test-credentials)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 - [Repository](#repository)
@@ -48,6 +49,9 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Book Discovery**:
     -   Public-facing REST endpoints for searching and viewing books.
     -   A modern, Signal-based Angular UI for real-time book searching with debouncing.
+-   **Bookshelf Management**:
+    -   Custom user-defined bookshelf entities with database-level pagination tracking.
+    -   Dedicated controller endpoints for adding, listing, and removing items.
 
 ### Backend Application Structure and Features
 
@@ -80,7 +84,10 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `PublicLayout`: Provides a shared `PublicHeader` (with Login/Register links) and footer for unauthenticated users.
     -   `Login`, `Register`, `ForgotPassword`, `ResetPassword`: User authentication and account management forms.
 -   **Authenticated Zone (`layout/app-layout`):**
-    -   `AppLayout`: Provides a shared `AuthenticatedHeader` for logged-in users.
+    -   `AppLayout`: Provides a shared `AuthenticatedHeader` for logged-in users with component metadata configured through modern `styleUrls` array declarations.
+    -   `AuthenticatedHeader`: Implements absolute routing targets directing users directly to the `/app/books` interface.
+-   **Core Views & Components:**
+    -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
 
 ## Project Structure
 The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
@@ -111,7 +118,8 @@ book-shelf/
 │   │   │   └── 📂 web/                # Controllers and Exception Handling
 │   │   └── 📂 resources/
 │   │       ├── 📂 db/migration/       # Flyway SQL scripts
-│   │       └── 📄 application.yaml
+│   │       ├── 📄 application.yaml    # General fallback configuration
+│   │       └── 📄 application-dev.yaml# Development profile parameters
 │   │
 │   └── 📂 test/
 │
@@ -133,7 +141,7 @@ The application is designed to be run with Docker Compose for the database and l
     -   Open the project in IntelliJ IDEA.
     -   Run the `BookShelfApplication.java` file.
     -   The backend will be available on `http://localhost:8080`.
-    -   -Note: Flyway will automatically create the database schema on startup.-
+    -   -Note: Flyway will automatically create the database schema and seed development reference blocks using the application-dev profile parameters..-
 
 3.  **Run the Frontend**:
     -   Navigate to the `frontend/` directory in a separate terminal.
@@ -157,6 +165,16 @@ The application is designed to be run with Docker Compose for the database and l
 Once the application is running, the OpenAPI (Swagger UI) documentation is available at:
 
 http://localhost:8080/swagger-ui.html
+
+## Test Credentials
+
+The local configuration environment seeds the following testing user definitions automatically on application startup with the default password `password`:
+- **Admin**: `admin`
+- **Standard User 1**: `user1`
+- **Standard User 2**: `user2`
+
+> [!NOTE]
+> The seeded development database contains static password hashes that may not align with runtime encoder salts. The fallback credential value for these profiles is `password`. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
 
 ---
 

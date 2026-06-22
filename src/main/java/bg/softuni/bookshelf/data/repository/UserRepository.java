@@ -1,4 +1,4 @@
- package bg.softuni.bookshelf.data.repository;
+package bg.softuni.bookshelf.data.repository;
 import bg.softuni.bookshelf.data.entity.identity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -30,4 +30,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return an Optional containing the User if found, or empty if not
      */
     Optional<User> findByEmail(String email);
+
+    /**
+     * Finds a user by their unique ID.
+     * While provided by JpaRepository, explicitly declaring it makes the repository's
+     * capabilities clearer and aids in testing and mocking.
+     *
+     * @param id the UUID of the user
+     * @return an Optional containing the User if found, or empty if not
+     */
+    Optional<User> findById(UUID id);
 }

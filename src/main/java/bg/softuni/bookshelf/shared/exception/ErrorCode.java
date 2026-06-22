@@ -14,6 +14,7 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR("E0000", "An unexpected internal error occurred.", HttpStatus.INTERNAL_SERVER_ERROR),
     RESOURCE_NOT_FOUND("E0001", "The requested resource could not be found.", HttpStatus.NOT_FOUND),
     VALIDATION_FAILED("E0002", "Input validation failed.", HttpStatus.BAD_REQUEST),
+    ACCESS_DENIED("E0003", "You do not have permission to perform this action.", HttpStatus.FORBIDDEN),
 
     // --- Authentication (E1000 - E1099) ---
     USERNAME_ALREADY_EXISTS("E1000", "A user with this username already exists.", HttpStatus.CONFLICT),
@@ -25,6 +26,11 @@ public enum ErrorCode {
 
     // --- Book domain (E1100 - E1199) ----
     BOOK_NOT_FOUND("E1100", "Book not found.", HttpStatus.NOT_FOUND),
+
+    // --- Bookshelf domain (E1200 - E1299) ---
+    BOOKSHELF_NOT_FOUND("E1200", "Bookshelf not found.", HttpStatus.NOT_FOUND),
+    BOOK_ALREADY_IN_SHELF("E1201", "This book is already on this bookshelf.", HttpStatus.CONFLICT),
+    BOOK_NOT_IN_SHELF("E1202", "This book is not on this bookshelf.", HttpStatus.NOT_FOUND),
 
     // --- Language domain (E2000 - E2099) ---
     LANGUAGE_NOT_FOUND("E2000", "The selected language could not be found.", HttpStatus.NOT_FOUND),

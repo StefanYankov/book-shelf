@@ -1,0 +1,21 @@
+.toast-container {
+  z-index: 1055;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(15px); }
+}
+
+.enter-animation {
+  animation: fade-in 300ms ease-out forwards;
+}
+
+.leave-animation {
+  animation: fade-out 300ms ease-in forwards;
+}

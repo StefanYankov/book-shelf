@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    show-sql: true
+  docker:
+    compose:
+      enabled: true
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev-seed
+
+logging:
+  level:
+    bg.softuni.bookshelf: DEBUG
+    org.hibernate.SQL: DEBUG
+
+application:
+  security:
+    jwt:
+      # A default, non-production secret for local development convenience
+      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970

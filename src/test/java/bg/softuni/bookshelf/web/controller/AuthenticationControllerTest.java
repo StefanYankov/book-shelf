@@ -19,8 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,19 +35,19 @@ class AuthenticationControllerTest extends AbstractControllerTestBase {
     class RegisterTests {
 
         @Test
-        @DisplayName("Happy Path: Should return 200 OK with JWT when registration is successful")
-        void shouldReturn200_WhenRegistrationIsValid() throws Exception {
+        @DisplayName("Happy Path: Should return 204 No Content when registration is successful")
+        void shouldReturn204_WhenRegistrationIsValid() throws Exception {
             // Arrange
             RegisterRequest request = new RegisterRequest("John", "Doe", "john@example.com", "johndoe", "password123");
-            AuthenticationResponse authResponse = new AuthenticationResponse("fake-jwt-token");
-            given(authenticationService.register(any(RegisterRequest.class))).willReturn(authResponse);
+            AuthenticationResponse mockResponse = new AuthenticationResponse("mock-jwt-token-string");
+
+            willReturn(mockResponse).given(authenticationService).register(any(RegisterRequest.class));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").value("fake-jwt-token"));
+                    .andExpect(status().isNoContent());
 
             verify(authenticationService).register(any(RegisterRequest.class));
         }

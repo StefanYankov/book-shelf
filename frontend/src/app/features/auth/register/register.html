@@ -1,69 +1,66 @@
 <div class="register-container">
-  <h2>Create Your Account</h2>
+  <h2>Create an Account</h2>
+  <p class="subtitle">Join our community of book lovers</p>
 
   @if (isSuccess) {
     <div class="success-message">
-      <p>Registration successful!</p>
-      <p>Please check your email to verify your account and activate it.</p>
-      <a routerLink="/login">Go to Login</a>
+      Registration successful! You will be redirected to the login page shortly.
     </div>
-  } @else {
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-
-      <div class="form-row">
-        <div class="form-group half-width">
-          <label for="firstName">First Name</label>
-          <input id="firstName" type="text" formControlName="firstName" />
-          @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
-            <div class="validation-error">First name is required.</div>
-          }
-        </div>
-        <div class="form-group half-width">
-          <label for="lastName">Last Name</label>
-          <input id="lastName" type="text" formControlName="lastName" />
-          @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
-            <div class="validation-error">Last name is required.</div>
-          }
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input id="username" type="text" formControlName="username" />
-        @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
-          <div class="validation-error">Username must be at least 3 characters.</div>
-        }
-      </div>
-
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input id="email" type="email" formControlName="email" />
-        @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
-          <div class="validation-error">Please enter a valid email address.</div>
-        }
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input id="password" type="password" formControlName="password" />
-        @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
-          <div class="validation-error">Password must be at least 8 characters.</div>
-        }
-      </div>
-
-      @if (errorMessage) {
-        <div class="error-message">
-          {{ errorMessage }}
-        </div>
-      }
-
-      <button type="submit" [disabled]="registerForm.invalid || isLoading">
-        {{ isLoading ? 'Registering...' : 'Create Account' }}
-      </button>
-    </form>
-
-    <p class="login-link">
-      Already have an account? <a routerLink="/login">Login here</a>
-    </p>
   }
+
+  @if (errorMessage) {
+    <div class="error-message">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" [hidden]="isSuccess">
+    <div class="form-group">
+      <label for="firstName">First Name</label>
+      <input id="firstName" type="text" formControlName="firstName" placeholder="e.g. John">
+      @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
+        <div class="validation-error">First name is required</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="lastName">Last Name</label>
+      <input id="lastName" type="text" formControlName="lastName" placeholder="e.g. Doe">
+      @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
+        <div class="validation-error">Last name is required</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input id="username" type="text" formControlName="username" placeholder="e.g. johndoe">
+      @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
+        <div class="validation-error">Username is required (min 3 characters)</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" placeholder="e.g. john.doe@example.com">
+      @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+        <div class="validation-error">A valid email is required</div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" placeholder="Min 8 characters">
+      @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+        <div class="validation-error">Password is required (min 8 characters)</div>
+      }
+    </div>
+
+    <button type="submit" [disabled]="registerForm.invalid || isLoading">
+      {{ isLoading ? 'Registering...' : 'Create Account' }}
+    </button>
+  </form>
+
+  <div class="login-link" [hidden]="isSuccess">
+    <p>Already have an account? <a routerLink="/login">Sign in</a></p>
+  </div>
 </div>

@@ -85,7 +85,7 @@ describe('Login Component', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(component.errorMessage).toBe(errorDetail);
+    expect(component.errorMessage()).toBe(errorDetail);
     const errorDiv = fixture.nativeElement.querySelector('.error-message');
     expect(errorDiv.textContent).toContain(errorDetail);
   });
