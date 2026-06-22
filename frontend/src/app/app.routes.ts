@@ -57,6 +57,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/home').then(m => m.Home)
       },
       {
+        path: 'books',
+        title: `${APP_TITLE} | Explore Books`,
+        loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList)
+      },
+      {
         path: 'my-shelves',
         title: `${APP_TITLE} | My Shelves`,
         loadComponent: () => import('./features/shelves/my-shelves/my-shelves').then(m => m.MyShelves)

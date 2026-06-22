@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BookshelfService } from '../../../core/services/bookshelf.service';
@@ -8,9 +9,9 @@ import { switchMap, Subject, startWith, map } from 'rxjs';
 @Component({
   selector: 'app-shelf-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './shelf-detail.html',
-  styleUrl: './shelf-detail.css',
+  styleUrls: ['./shelf-detail.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ShelfDetail {

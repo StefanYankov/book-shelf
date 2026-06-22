@@ -2,23 +2,25 @@ import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, startWith, switchMap, of } from 'rxjs';
 import { BookService } from '../../../core/services/book.service';
 import { BookshelfService } from '../../../core/services/bookshelf.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { PageBookSummaryDto, AddBookToBookshelfDto } from '../../../api';
+import { AuthService } from '../../../core/services/auth.service';
+import { PageBookSummaryDto, AddBookToBookshelfDto, PageBookshelfSummaryDto } from '../../../api';
 
 @Component({
   selector: 'app-book-list',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './book-list.html',
-  styleUrl: './book-list.css'
+  styleUrls: ['./book-list.css']
 })
 export class BookList {
   private readonly bookService = inject(BookService);
   private readonly bookshelfService = inject(BookshelfService);
   private readonly toastService = inject(ToastService);
+  public readonly authService = inject(AuthService);
 
   // --- Book Search State ---
   searchControl = new FormControl('');
@@ -33,8 +35,11 @@ export class BookList {
   });
 
   // --- User Shelves State ---
+  // Only fetch shelves if the user is logged in
   userShelves = toSignal(
-    this.bookshelfService.getShelvesForUser({ page: 0, size: 100 }) // Assume max 100 shelves for dropdown
+    this.authService.isLoggedIn()
+      ? this.bookshelfService.getShelvesForUser({ page: 0, size: 100 })
+      : of({ content: [], totalPages: 0, number: 0, totalElements: 0 } as PageBookshelfSummaryDto)
   );
 
   /**

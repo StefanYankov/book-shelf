@@ -15,26 +15,30 @@
               <h5 class="card-title">{{ book.title }}</h5>
               <p class="card-text text-muted">{{ book.authorName }}</p>
             </div>
-            <div class="card-footer">
-              <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  Add to Shelf
-                </button>
-                <ul class="dropdown-menu">
-                  @if (userShelves(); as shelfPage) {
-                    @for (shelf of shelfPage.content; track shelf.id) {
-                      <li>
-                        <a class="dropdown-item" href="#" (click)="$event.preventDefault(); addToShelf(book.id!, shelf.id!)">
-                          {{ shelf.name }}
-                        </a>
-                      </li>
-                    } @empty {
-                      <li><span class="dropdown-item-text">No shelves available.</span></li>
+
+            @if (authService.isLoggedIn()) {
+              <div class="card-footer">
+                <div class="dropdown">
+                  <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Add to Shelf
+                  </button>
+                  <ul class="dropdown-menu">
+                    @if (userShelves(); as shelfPage) {
+                      @for (shelf of shelfPage.content; track shelf.id) {
+                        <li>
+                          <a class="dropdown-item" href="#" (click)="$event.preventDefault(); addToShelf(book.id!, shelf.id!)">
+                            {{ shelf.name }}
+                          </a>
+                        </li>
+                      } @empty {
+                        <li><span class="dropdown-item-text">No shelves available.</span></li>
+                      }
                     }
-                  }
-                </ul>
+                  </ul>
+                </div>
               </div>
-            </div>
+            }
+
           </div>
         </div>
       } @empty {

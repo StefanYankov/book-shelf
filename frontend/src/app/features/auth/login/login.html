@@ -2,9 +2,15 @@
   <h2>Welcome Back</h2>
   <p class="subtitle">Enter your credentials to access your account</p>
 
-  @if (errorMessage) {
+  @if (isAccountDisabled()) {
+    <div class="error-message prominent">
+      <h4>Account Disabled</h4>
+      <p>{{ errorMessage() }}</p>
+      <!-- TODO: Add a button/link to re-send verification email -->
+    </div>
+  } @else if (errorMessage()) {
     <div class="error-message">
-      {{ errorMessage }}
+      {{ errorMessage() }}
     </div>
   }
 
@@ -44,8 +50,8 @@
 
     <button
       type="submit"
-      [disabled]="loginForm.invalid || isLoading">
-      {{ isLoading ? 'Logging in...' : 'Sign In' }}
+      [disabled]="loginForm.invalid || isLoading()">
+      {{ isLoading() ? 'Logging in...' : 'Sign In' }}
     </button>
 
   </form>

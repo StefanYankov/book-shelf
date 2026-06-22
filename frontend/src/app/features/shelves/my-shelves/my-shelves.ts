@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,9 +11,9 @@ import { Subject, switchMap, startWith } from 'rxjs';
 @Component({
   selector: 'app-my-shelves',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule],
   templateUrl: './my-shelves.html',
-  styleUrl: './my-shelves.css',
+  styleUrls: ['./my-shelves.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MyShelves {

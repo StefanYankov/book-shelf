@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -22,26 +22,35 @@ export class Login {
     password: ['', Validators.required]
   });
 
-  errorMessage: string | null = null;
-  isLoading = false;
+  errorMessage = signal<string | null>(null);
+  isLoading = signal(false);
+  isAccountDisabled = signal(false);
 
   onSubmit(): void {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = null;
-
-      const credentials = this.loginForm.value as AuthenticationRequest;
-
-      this.authService.login(credentials).subscribe({
-        next: () => {
-          this.isLoading = false;
-          this.router.navigate(['/app/home']);
-        },
-        error: (err) => {
-          this.isLoading = false;
-          this.errorMessage = err.error?.detail || 'An unknown error occurred during login.';
-        }
-      });
+    if (this.loginForm.invalid) {
+      return;
     }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.isAccountDisabled.set(false);
+
+    const credentials = this.loginForm.value as AuthenticationRequest;
+
+    this.authService.login(credentials).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.router.navigate(['/app/home']);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        if (err.status === 403 && err.error?.type === 'urn:bookshelf:account-disabled') {
+          this.isAccountDisabled.set(true);
+          this.errorMessage.set(err.error.detail);
+        } else {
+          this.errorMessage.set(err.error?.detail || 'An unknown error occurred during login.');
+        }
+      }
+    });
   }
 }
