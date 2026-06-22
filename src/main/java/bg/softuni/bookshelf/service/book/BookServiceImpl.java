@@ -77,7 +77,7 @@ public class BookServiceImpl extends BaseService implements BookService {
     @Transactional(readOnly = true)
     public BookDetailsDto getById(UUID id) {
         log.debug("Fetching book by ID: {}", id);
-        Book book = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
+        Book book = findOrThrow(() -> bookRepository.findBookDetailsById(id), ErrorCode.BOOK_NOT_FOUND, id);
         return bookMapper.toBookDetailsDto(book);
     }
 

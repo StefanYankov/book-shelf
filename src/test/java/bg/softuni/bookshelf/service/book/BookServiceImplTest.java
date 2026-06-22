@@ -180,7 +180,7 @@ class BookServiceImplTest {
             Book mockBook = new Book();
             BookDetailsDto expectedDto = new BookDetailsDto(bookId, "Found Book", null, 0, 0, null, null, null, null, null, null, null);
 
-            given(bookRepository.findById(bookId)).willReturn(Optional.of(mockBook));
+            given(bookRepository.findBookDetailsById(bookId)).willReturn(Optional.of(mockBook));
             given(bookMapper.toBookDetailsDto(mockBook)).willReturn(expectedDto);
 
             // Act
@@ -195,7 +195,7 @@ class BookServiceImplTest {
         void getById_shouldThrowExceptionWhenBookNotFound() {
             // Arrange
             UUID bookId = UUID.randomUUID();
-            given(bookRepository.findById(bookId)).willReturn(Optional.empty());
+            given(bookRepository.findBookDetailsById(bookId)).willReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.getById(bookId))

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -55,4 +56,19 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
             "WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR LOWER(a.name) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<Book> searchByTitleOrAuthor(@Param("query") String query, Pageable pageable);
+
+    /**
+     * Fetches a single book by its ID, eagerly loading its core relationships (author, publisher, language)
+     * and its collection of genres to prevent N+1 queries when building a detailed view.
+     *
+     * @param id The UUID of the book.
+     * @return An Optional containing the fully initialized Book entity, or empty if not found.
+     */
+    @Query("SELECT b FROM Book b " +
+            "JOIN FETCH b.author " +
+            "JOIN FETCH b.publisher " +
+            "JOIN FETCH b.language " +
+            "LEFT JOIN FETCH b.genres " +
+            "WHERE b.id = :id")
+    Optional<Book> findBookDetailsById(@Param("id") UUID id);
 }
