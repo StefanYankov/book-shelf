@@ -170,7 +170,7 @@ public class BookServiceImpl extends BaseService implements BookService {
     @Transactional(readOnly = true)
     public Page<BookSummaryDto> searchBooks(String query, Pageable pageable) {
         if (query == null || query.isBlank()){
-            return bookRepository.findAll(pageable).map(bookMapper::toBookSummaryDto);
+            return bookRepository.findAllWithAuthors(pageable).map(bookMapper::toBookSummaryDto);
         }
 
         log.info("Searching books with query: '{}'", query);

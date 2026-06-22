@@ -43,15 +43,15 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     /**
      * Performs a case-insensitive search for books by title or author name.
      * <p>
-     * This method uses a {@code LEFT JOIN} to allow searching across the {@link Author} relationship,
-     * ensuring that the query is efficient and covers the domain-specific search requirements
-     * for the catalog.
+     * This method uses a {@code JOIN FETCH} to eagerly load the {@link Author} and a
+     * {@code LEFT JOIN} for the filtering criteria, ensuring that the query is efficient
+     * and solves the N+1 problem.
      *
      * @param query    The search string (partial match) to look for in title or author name.
      * @param pageable The pagination information to restrict the result size.
      * @return A {@link Page} of {@link Book} entities matching the criteria.
      */
-    @Query("SELECT b FROM Book b LEFT JOIN b.author a " +
+    @Query("SELECT b FROM Book b JOIN FETCH b.author a " +
             "WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR LOWER(a.name) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<Book> searchByTitleOrAuthor(@Param("query") String query, Pageable pageable);
