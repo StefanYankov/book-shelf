@@ -62,6 +62,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList)
       },
       {
+        path: 'books/:id',
+        title: `${APP_TITLE} | Book Details`,
+        loadComponent: () => import('./features/books/book-detail/book-detail').then(m => m.BookDetail)
+      },
+      {
         path: 'my-shelves',
         title: `${APP_TITLE} | My Shelves`,
         loadComponent: () => import('./features/shelves/my-shelves/my-shelves').then(m => m.MyShelves)

@@ -25,13 +25,15 @@ public interface BookshelfBookRepository extends JpaRepository<BookshelfBook, Bo
     /**
      * Finds all books contained within a specific bookshelf, with pagination and sorting.
      * <p>
-     * This query delegates the pagination and sorting logic to the database, which is highly
-     * efficient. It avoids loading the entire collection of books into memory.
+     * This query uses a {@code JOIN FETCH} to eagerly load the associated {@link Book#getAuthor()}
+     * for each book, preventing N+1 query problems. It also delegates pagination and sorting
+     * to the database, which is highly efficient.
      *
      * @param shelfId  The UUID of the bookshelf.
      * @param pageable The pagination and sorting information.
-     * @return A {@link Page} of {@link Book} entities.
+     * @return A {@link Page} of {@link Book} entities with their authors initialized.
      */
-    @Query("SELECT bb.book FROM BookshelfBook bb WHERE bb.bookshelf.id = :shelfId")
+    @Query(value = "SELECT bb.book FROM BookshelfBook bb JOIN FETCH bb.book.author WHERE bb.bookshelf.id = :shelfId",
+           countQuery = "SELECT COUNT(bb) FROM BookshelfBook bb WHERE bb.bookshelf.id = :shelfId")
     Page<Book> findBooksByBookshelfId(@Param("shelfId") UUID shelfId, Pageable pageable);
 }

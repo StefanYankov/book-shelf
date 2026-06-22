@@ -1,0 +1,63 @@
+<div class="container mt-5">
+  @if (book(); as bookDetails) {
+    <div class="row">
+      <div class="col-md-4">
+        <img [src]="bookDetails.coverImageUrl || 'https://placehold.co/300x450'" class="img-fluid rounded" alt="Cover of {{ bookDetails.title }}">
+      </div>
+      <div class="col-md-8">
+        <h1>{{ bookDetails.title }}</h1>
+        <h5 class="text-muted">by {{ bookDetails.author?.name }}</h5>
+        <hr>
+
+        @if (authService.isLoggedIn()) {
+          <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <div class="dropdown">
+              <button class="btn btn-primary dropdown-toggle" type="button" id="addToShelfDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                Add to Shelf
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="addToShelfDropdown">
+                @if (userShelves(); as shelfPage) {
+                  @for (shelf of shelfPage.content; track shelf.id) {
+                    <li>
+                      <a class="dropdown-item" href="#" (click)="$event.preventDefault(); addToShelf(bookDetails.id!, shelf.id!)">
+                        {{ shelf.name }}
+                      </a>
+                    </li>
+                  } @empty {
+                    <li><span class="dropdown-item-text">No shelves available.</span></li>
+                  }
+                }
+              </ul>
+            </div>
+          </div>
+        }
+
+        <p class="lead">{{ bookDetails.summary }}</p>
+
+        <div class="mt-4">
+          <h5>Details</h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Publisher:</strong> {{ bookDetails.publisher?.name }}</li>
+            <li class="list-group-item"><strong>Published:</strong> {{ bookDetails.yearPublished }}</li>
+            <li class="list-group-item"><strong>Pages:</strong> {{ bookDetails.pages }}</li>
+            <li class="list-group-item"><strong>Format:</strong> {{ bookDetails.format }}</li>
+            <li class="list-group-item"><strong>Language:</strong> {{ bookDetails.language?.name }}</li>
+            <li class="list-group-item"><strong>ISBN:</strong> {{ bookDetails.isbn }}</li>
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <h5>Genres</h5>
+          <div class="d-flex flex-wrap gap-2">
+            @for (genre of bookDetails.genres; track genre.id) {
+              <span class="badge bg-secondary">{{ genre.name }}</span>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  } @else {
+    <p>Loading book details...</p>
+  }
+</div>

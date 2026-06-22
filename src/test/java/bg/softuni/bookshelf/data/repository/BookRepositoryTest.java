@@ -22,6 +22,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.Optional;
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -61,19 +64,26 @@ class BookRepositoryTest {
         return entityManager.persistAndFlush(publisher);
     }
 
-    private void createAndSaveBook(String title, String isbn, Author author, Language lang, Publisher pub) {
+    private Genre createAndSaveGenre(String name) {
+        Genre genre = new Genre();
+        genre.setName(name);
+        return entityManager.persistAndFlush(genre);
+    }
+
+    private Book createAndSaveBook(String title, String isbn, Author author, Language lang, Publisher pub, Set<Genre> genres) {
         Book book = Book.builder()
                 .title(title)
                 .ISBN(isbn)
                 .author(author)
                 .language(lang)
                 .publisher(pub)
+                .genres(genres)
                 .format(BookFormat.PAPERBACK)
                 .pages(320)
                 .yearPublished(1937)
                 .summary("A fantasy novel.")
                 .build();
-        bookRepository.saveAndFlush(book);
+        return bookRepository.saveAndFlush(book);
     }
 
     @Nested
@@ -89,9 +99,9 @@ class BookRepositoryTest {
             Language lang = createAndSaveLanguage("English");
             Publisher pub = createAndSavePublisher("Allen & Unwin");
 
-            createAndSaveBook("The Hobbit", "978-0-345-33968-3", author1, lang, pub);
-            createAndSaveBook("Dune", "978-0-441-01359-3", author2, lang, pub);
-            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", author1, lang, pub);
+            createAndSaveBook("The Hobbit", "978-0-345-33968-3", author1, lang, pub, Set.of());
+            createAndSaveBook("Dune", "978-0-441-01359-3", author2, lang, pub, Set.of());
+            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", author1, lang, pub, Set.of());
             entityManager.clear();
 
             // Act
@@ -127,9 +137,9 @@ class BookRepositoryTest {
             Language lang = createAndSaveLanguage("English");
             Publisher pub = createAndSavePublisher("Allen & Unwin");
 
-            createAndSaveBook("The Hobbit", "978-0-345-33968-3", author1, lang, pub);
-            createAndSaveBook("Dune", "978-0-441-01359-3", author2, lang, pub);
-            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", author1, lang, pub);
+            createAndSaveBook("The Hobbit", "978-0-345-33968-3", author1, lang, pub, Set.of());
+            createAndSaveBook("Dune", "978-0-441-01359-3", author2, lang, pub, Set.of());
+            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", author1, lang, pub, Set.of());
             entityManager.clear();
 
             // Act
@@ -160,9 +170,9 @@ class BookRepositoryTest {
             Language lang = createAndSaveLanguage("English");
             Publisher pub = createAndSavePublisher("Allen & Unwin");
 
-            createAndSaveBook("The Hobbit", "978-0-345-33968-3", tolkien, lang, pub);
-            createAndSaveBook("Dune", "978-0-441-01359-3", herbert, lang, pub);
-            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", tolkien, lang, pub);
+            createAndSaveBook("The Hobbit", "978-0-345-33968-3", tolkien, lang, pub, Set.of());
+            createAndSaveBook("Dune", "978-0-441-01359-3", herbert, lang, pub, Set.of());
+            createAndSaveBook("The Lord of the Rings", "978-0-618-64015-7", tolkien, lang, pub, Set.of());
             entityManager.clear();
 
             // Act
@@ -170,6 +180,46 @@ class BookRepositoryTest {
 
             // Assert
             assertThat(results.getTotalElements()).isEqualTo(expectedCount);
+        }
+    }
+
+    @Nested
+    @DisplayName("findBookDetailsById(UUID) Tests")
+    class FindBookDetailsByIdTests {
+
+        @Test
+        @DisplayName("Should return book with all relations fetched when book exists")
+        void testFindBookDetailsById_WhenBookExists_ReturnsBookWithFetchedRelations() {
+            // Arrange
+            Author author = createAndSaveAuthor("J.R.R. Tolkien");
+            Language lang = createAndSaveLanguage("English");
+            Publisher pub = createAndSavePublisher("Allen & Unwin");
+            Genre genre1 = createAndSaveGenre("Fantasy");
+            Genre genre2 = createAndSaveGenre("Adventure");
+
+            Book book = createAndSaveBook("The Hobbit", "978-0-345-33968-3", author, lang, pub, Set.of(genre1, genre2));
+            entityManager.clear();
+
+            // Act
+            Optional<Book> result = bookRepository.findBookDetailsById(book.getId());
+
+            // Assert
+            assertThat(result).isPresent();
+            Book foundBook = result.get();
+            assertThat(foundBook.getAuthor().getName()).isEqualTo(author.getName());
+            assertThat(foundBook.getPublisher().getName()).isEqualTo(pub.getName());
+            assertThat(foundBook.getLanguage().getName()).isEqualTo(lang.getName());
+            assertThat(foundBook.getGenres()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("Should return empty Optional when book does not exist")
+        void testFindBookDetailsById_WhenBookDoesNotExist_ReturnsEmpty() {
+            // Act
+            Optional<Book> result = bookRepository.findBookDetailsById(java.util.UUID.randomUUID());
+
+            // Assert
+            assertThat(result).isNotPresent();
         }
     }
 }

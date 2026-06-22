@@ -49,6 +49,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Book Discovery**:
     -   Public-facing REST endpoints for searching and viewing books.
     -   A modern, Signal-based Angular UI for real-time book searching with debouncing.
+    -   A dedicated, routed component for viewing the full details of a single book.
 -   **Bookshelf Management**:
     -   Custom user-defined bookshelf entities with database-level pagination tracking.
     -   Dedicated controller endpoints for adding, listing, and removing items.
@@ -88,6 +89,7 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `AuthenticatedHeader`: Implements absolute routing targets directing users directly to the `/app/books` interface.
 -   **Core Views & Components:**
     -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
+    -   `BookDetail`: A dedicated page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality.
 
 ## Project Structure
 The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.

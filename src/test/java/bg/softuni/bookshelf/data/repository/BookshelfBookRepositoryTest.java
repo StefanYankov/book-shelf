@@ -56,9 +56,13 @@ class BookshelfBookRepositoryTest {
     @Autowired
     private PublisherRepository publisherRepository;
 
+    @Autowired
+    private AuthorRepository authorRepository;
+
     private ApplicationUser testUser;
     private Language testLang;
     private Publisher testPub;
+    private Author testAuthor;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +86,10 @@ class BookshelfBookRepositoryTest {
         testPub = new Publisher();
         testPub.setName("Allen & Unwin");
         publisherRepository.save(testPub);
+
+        testAuthor = new Author();
+        testAuthor.setName("J.R.R. Tolkien");
+        authorRepository.save(testAuthor);
     }
 
     // --- TEST DATA FACTORIES ---
@@ -93,9 +101,10 @@ class BookshelfBookRepositoryTest {
         return bookshelfRepository.save(shelf);
     }
 
-    private Book createAndSaveBook(String title, Language lang, Publisher pub) {
+    private Book createAndSaveBook(String title, Author author, Language lang, Publisher pub) {
         Book book = Book.builder()
                 .title(title)
+                .author(author)
                 .pages(100)
                 .yearPublished(2000)
                 .format(BookFormat.PAPERBACK)
@@ -124,7 +133,7 @@ class BookshelfBookRepositoryTest {
     void shouldPersistAndFindBookshelfBook() {
         // Arrange
         Bookshelf shelf = createAndSaveShelf("My Shelf", testUser);
-        Book book = createAndSaveBook("The Hobbit", testLang, testPub);
+        Book book = createAndSaveBook("The Hobbit", testAuthor, testLang, testPub);
         BookshelfBookId id = createBookshelfBook(shelf, book);
 
         // Act
@@ -146,9 +155,9 @@ class BookshelfBookRepositoryTest {
             Bookshelf shelf1 = createAndSaveShelf("Shelf 1", testUser);
             Bookshelf shelf2 = createAndSaveShelf("Shelf 2", testUser);
 
-            Book book1 = createAndSaveBook("Book A", testLang, testPub);
-            Book book2 = createAndSaveBook("Book B", testLang, testPub);
-            Book book3 = createAndSaveBook("Book C", testLang, testPub);
+            Book book1 = createAndSaveBook("Book A", testAuthor, testLang, testPub);
+            Book book2 = createAndSaveBook("Book B", testAuthor, testLang, testPub);
+            Book book3 = createAndSaveBook("Book C", testAuthor, testLang, testPub);
 
             createBookshelfBook(shelf1, book1);
             createBookshelfBook(shelf1, book2);
@@ -177,6 +186,24 @@ class BookshelfBookRepositoryTest {
 
             // Assert
             assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("JOIN FETCH: Should return books with authors eagerly loaded")
+        void shouldReturnBooksWithAuthorsFetched() {
+            // Arrange
+            Bookshelf shelf = createAndSaveShelf("Fantasy Shelf", testUser);
+            Book book1 = createAndSaveBook("Book 1", testAuthor, testLang, testPub);
+            Book book2 = createAndSaveBook("Book 2", testAuthor, testLang, testPub);
+            createBookshelfBook(shelf, book1);
+            createBookshelfBook(shelf, book2);
+
+            // Act
+            Page<Book> result = bookshelfBookRepository.findBooksByBookshelfId(shelf.getId(), PageRequest.of(0, 5));
+
+            // Assert
+            assertThat(result.getContent()).hasSize(2);
+            assertThat(result.getContent().getFirst().getAuthor().getName()).isEqualTo("J.R.R. Tolkien");
         }
     }
 }
