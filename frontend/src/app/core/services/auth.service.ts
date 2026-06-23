@@ -9,6 +9,7 @@ export interface DecodedToken {
   sub: string;
   iat: number;
   exp: number;
+  role: string;
 }
 
 @Injectable({
@@ -32,6 +33,10 @@ export class AuthService {
     const token = this.decodedToken();
     if (!token) return false;
     return token.exp * 1000 > Date.now();
+  });
+
+  public readonly userRole = computed(() => {
+    return this.decodedToken()?.role || null;
   });
 
   login(credentials: AuthenticationRequest): Observable<AuthenticationResponse> {

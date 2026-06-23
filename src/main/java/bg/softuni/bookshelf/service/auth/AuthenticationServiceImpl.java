@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,10 +42,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailService emailService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     @Transactional
-    public AuthenticationResponse register(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         Objects.requireNonNull(request, DeveloperErrors.DTO_NULL);
         log.debug("Attempting to register new user with username: {}", request.username());
 
@@ -68,11 +71,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setUsername(normalizedUsername);
         user.setEmail(normalizedEmail);
         user.setPassword(hashedPassword);
-        user.setActive(false);
+        user.setActive(true);
         user.setEmailVerified(false);
 
         ApplicationUser savedUser = userRepository.save(user);
-        log.info("User [{}] registered in pending state. ID: {}", normalizedUsername, savedUser.getId());
+        log.info("User [{}] registered successfully. ID: {}", normalizedUsername, savedUser.getId());
 
         verificationTokenRepository.findFirstByUser_IdAndTokenTypeOrderByCreatedAtDesc(
                 savedUser.getId(), TokenType.EMAIL_VERIFICATION
@@ -89,13 +92,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
 
         verificationTokenRepository.save(verificationToken);
-        log.info("Email verification token generated for user [{}]. Token ID: {}", normalizedUsername, verificationToken.getId());
+        log.info("Email verification token generated for user [{}].", normalizedUsername);
 
         emailService.sendVerificationEmail(savedUser.getEmail(), rawToken);
         log.info("Verification email sent to: {}", savedUser.getEmail());
-
-        String jwtToken = jwtService.generateToken(new bg.softuni.bookshelf.config.ApplicationUserDetails(savedUser));
-        return new AuthenticationResponse(jwtToken);
     }
 
     @Override
@@ -107,9 +107,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         request.password()
                 )
         );
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND)); // Should not happen if authenticate passes
-        String jwtToken = jwtService.generateToken(new bg.softuni.bookshelf.config.ApplicationUserDetails(user));
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.username());
+        String jwtToken = jwtService.generateToken(userDetails);
         return new AuthenticationResponse(jwtToken);
     }
 
@@ -144,9 +143,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User user = tokenEntity.getUser();
         if (user instanceof ApplicationUser appUser) {
             appUser.setEmailVerified(true);
-            appUser.setActive(true);
             userRepository.save(appUser);
-            log.info("Successfully verified email and activated user [{}]", user.getUsername());
+            log.info("Successfully verified email for user [{}]", user.getUsername());
         } else {
             log.warn("Email verification attempted for a non-application user [{}]. This should not happen.", user.getUsername());
         }
@@ -164,14 +162,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = userRepository.findByEmail(normalizedEmail).orElse(null);
 
-        // Security: Prevent User Enumeration. Do not throw an error if the email doesn't exist.
-        // We also explicitly restrict self-service resets to ApplicationUser roles only.
         if (user == null || !(user instanceof ApplicationUser)) {
             log.warn("Password reset ignored: Email [{}] not found or user is not an ApplicationUser.", normalizedEmail);
             return; 
         }
 
-        // Clean up any existing password reset tokens for this user
         verificationTokenRepository.findFirstByUser_IdAndTokenTypeOrderByCreatedAtDesc(
                 user.getId(), TokenType.PASSWORD_RESET
         ).ifPresent(verificationTokenRepository::delete);

@@ -31,7 +31,7 @@ public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
     class RegisterTests {
 
         @Test
-        @DisplayName("Happy Path: Should register user, send verification email, and return JWT")
+        @DisplayName("Happy Path: Should register user and send verification email")
         void shouldRegisterSuccessfully() {
             // Arrange
             RegisterRequest request = createValidRegisterRequest();
@@ -41,20 +41,15 @@ public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
             given(userRepository.findByEmail(request.email())).willReturn(Optional.empty());
             given(passwordEncoder.encode(request.password())).willReturn("hashedPassword");
             given(userRepository.save(any(ApplicationUser.class))).willReturn(savedUser);
-            given(jwtService.generateToken(any())).willReturn("mock-jwt");
 
             // Act
-            var response = authenticationService.register(request);
-
-            // Assert: API Result
-            assertThat(response).isNotNull();
-            assertThat(response.token()).isEqualTo("mock-jwt");
+            authenticationService.register(request);
 
             // Assert: User State Verification
             verify(userRepository).save(userCaptor.capture());
             ApplicationUser capturedUser = userCaptor.getValue();
             assertThat(capturedUser.getPassword()).isEqualTo("hashedPassword");
-            assertThat(capturedUser.isActive()).isFalse();
+            assertThat(capturedUser.isActive()).isTrue();
             assertThat(capturedUser.isEmailVerified()).isFalse();
 
             // Assert: Security Token Verification
@@ -67,6 +62,7 @@ public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
 
             // Assert: Infrastructure Side Effects
             verify(emailService).sendVerificationEmail(eq(request.email()), any(String.class));
+            verifyNoInteractions(jwtService);
         }
 
         @Test
@@ -108,27 +104,26 @@ public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
         void shouldNormalizeInputsBeforeProcessing() {
             // Arrange
             RegisterRequest dirtyRequest = new RegisterRequest(
-                    "  John  ", "  Doe  ", "  UPPER@Example.com  ", "  spacedUser  ", "password123"
+                    "  John  ", "  Doe  ", "  UPPER@Example.com  ", "johndoe", "password123"
             );
             ApplicationUser savedUser = createMockApplicationUser();
             savedUser.setEmail("upper@example.com");
 
-            given(userRepository.findByUsername("spacedUser")).willReturn(Optional.empty());
+            given(userRepository.findByUsername("johndoe")).willReturn(Optional.empty());
             given(userRepository.findByEmail("upper@example.com")).willReturn(Optional.empty());
             given(passwordEncoder.encode(anyString())).willReturn("hash");
             given(userRepository.save(any(ApplicationUser.class))).willReturn(savedUser);
-            given(jwtService.generateToken(any())).willReturn("mock-jwt");
 
             // Act
             authenticationService.register(dirtyRequest);
 
             // Assert
-            verify(userRepository).findByUsername("spacedUser");
+            verify(userRepository).findByUsername("johndoe");
             verify(userRepository).findByEmail("upper@example.com");
             verify(emailService).sendVerificationEmail(eq("upper@example.com"), any(String.class));
 
             verify(userRepository).save(userCaptor.capture());
-            assertThat(userCaptor.getValue().getUsername()).isEqualTo("spacedUser");
+            assertThat(userCaptor.getValue().getUsername()).isEqualTo("johndoe");
             assertThat(userCaptor.getValue().getEmail()).isEqualTo("upper@example.com");
             assertThat(userCaptor.getValue().getFirstName()).isEqualTo("John");
         }
