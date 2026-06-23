@@ -66,7 +66,7 @@ describe('AuthenticatedHeader Component Tests', () => {
     it('should invoke AuthService logout logic and redirect to login state on click', () => {
       // Arrange
       fixture.detectChanges();
-      const logoutButton = fixture.debugElement.query(By.css('button.dropdown-item'));
+      const logoutButton = fixture.debugElement.query(By.css('button.nav-link'));
 
       // Act
       logoutButton.nativeElement.click();
