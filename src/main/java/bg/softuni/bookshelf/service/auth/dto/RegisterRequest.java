@@ -24,7 +24,7 @@ public record RegisterRequest(
         String username,
 
         @NotBlank(message = "{validation.auth.password.notblank}")
-        @Size(min = ValidationConstants.Password.MIN_LENGTH, message = "{validation.auth.password.size}")
+        @Size(min = ValidationConstants.User.MIN_PASSWORD_LENGTH, max = ValidationConstants.User.MAX_PASSWORD_LENGTH, message = "{user.password.size}")
         String password
 ) {
 }
