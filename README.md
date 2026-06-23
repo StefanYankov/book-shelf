@@ -31,7 +31,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Database**: PostgreSQL 17
 - **Migrations**: Flyway
 - **Containerization**: Docker and Docker Compose
-- **Security**: Spring Security 6+ with stateless JWT authentication.
+- **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated entry point control.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
     - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ
@@ -46,6 +46,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Role-based access control (`USER`, `ADMIN`).
     -   Secure email verification and single-use password recovery tokens.
     -   Public self-registration endpoint for new users with proactive duplication checks.
+    -   Declarative test harness via customized @WithMockApplicationUser annotations supporting role slicing in unit tests.
 -   **Book Discovery**:
     -   Public-facing REST endpoints for searching and viewing books.
     -   A modern, Signal-based Angular UI for real-time book searching with debouncing.
@@ -58,6 +59,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 
 -   **System Foundation**:
     -   Centralized RFC 7807 `ProblemDetail` exception handling (`GlobalExceptionHandler`).
+    -   Standardized HTTP 401 Unauthorized response codes on unauthenticated filter attempts.
     -   JSR-380 input validation on all DTOs.
     -   Automated Flyway database migrations.
 -   **Domain Model**:
@@ -163,6 +165,32 @@ The application is designed to be run with Docker Compose for the database and l
     ng test
     ```
 
+## **User Registration & Email Verification**
+
+When registering a new user profile via the frontend application, the system generates a secure, one-time verification token. Since no physical mail server is configured locally, the verification details are printed directly to the **Backend Console Logs**.
+
+### **1. Locate the Verification Link**
+
+Upon submitting the registration form, watch your backend console for logs from the NoOpEmailServiceImpl block:
+
+```text
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Email verification token generated for user [syankov2].
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : \==========================================================================
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : 📧 MOCK EMAIL DISPATCHED
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Type: EMAIL VERIFICATION
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : To: syankoff3@gmail.com
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Action Required: Please click the following link to activate your account.
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Link: http://localhost:4200/verify?token=dc08bf4b-700e-40a6-a186-e1bc3ea819fd
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : \==========================================================================
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Verification email sent to: syankoff3@gmail.com
+```
+
+### **2. Verify Your Account**
+
+1. Copy the link provided in the console log (e.g., http://localhost:4200/verify?token=dc08bf4b...).
+2. Paste this URL into your web browser.
+3. The frontend application will capture the token parameters and make a request to /api/auth/verify-email to activate your account.
+
 ## API Documentation
 Once the application is running, the OpenAPI (Swagger UI) documentation is available at:
 
@@ -177,6 +205,20 @@ The local configuration environment seeds the following testing user definitions
 
 > [!NOTE]
 > The seeded development database contains static password hashes that may not align with runtime encoder salts. The fallback credential value for these profiles is `password`. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
+
+#### **Resolving Pre-seeded Login Failures:**
+
+If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
+
+1. Navigate to the **Forgot Password** page in the UI.
+2. Enter the email address of the pre-seeded account you wish to access (e.g., admin@example.com or user1@example.com).
+3. Open your backend console to locate the dispatched reset link:
+   📧 MOCK EMAIL DISPATCHED
+   Type: PASSWORD RESET
+   Link: http://localhost:4200/reset-password?token=some-reset-token-uuid
+
+4. Copy the link, paste it into your browser, and set a new password (e.g., password).
+5. This saves a freshly hashed password using the current runtime salt configuration, allowing you to log in successfully.
 
 ---
 
