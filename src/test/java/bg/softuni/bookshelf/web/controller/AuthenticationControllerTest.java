@@ -38,11 +38,8 @@ class AuthenticationControllerTest extends AbstractControllerTestBase {
         @DisplayName("Happy Path: Should return 204 No Content when registration is successful")
         void shouldReturn204_WhenRegistrationIsValid() throws Exception {
             // Arrange
-            RegisterRequest request = new RegisterRequest("John", "Doe", "john@example.com", "johndoe", "password123");
-            AuthenticationResponse mockResponse = new AuthenticationResponse("mock-jwt-token-string");
-
-            willReturn(mockResponse).given(authenticationService).register(any(RegisterRequest.class));
-
+            RegisterRequest request = new RegisterRequest("John", "Doe","john@example.com", "johndoe",  "password123");
+            
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -54,16 +51,16 @@ class AuthenticationControllerTest extends AbstractControllerTestBase {
 
         @ParameterizedTest
         @CsvSource({
-                ", Doe, john@doe.com, johndoe, password123", // Blank first name
-                "John, , john@doe.com, johndoe, password123", // Blank last name
-                "John, Doe, not-an-email, johndoe, password123", // Invalid email
-                "John, Doe, john@doe.com, jd, password123", // Short username
-                "John, Doe, john@doe.com, johndoe, short" // Short password
+                ", Doe, johndoe, john@doe.com, password123", // Blank first name
+                "John, , johndoe, john@doe.com, password123", // Blank last name
+                "John, Doe, jd, john@doe.com, password123", // Short username
+                "John, Doe, johndoe, not-an-email, password123", // Invalid email
+                "John, Doe, johndoe, john@doe.com, short" // Short password
         })
         @DisplayName("Validation Error: Should return 400 Bad Request for invalid registration data")
-        void shouldReturn400_WhenRegistrationIsInvalid(String firstName, String lastName, String email, String username, String password) throws Exception {
+        void shouldReturn400_WhenRegistrationIsInvalid(String firstName, String lastName, String username, String email, String password) throws Exception {
             // Arrange
-            RegisterRequest request = new RegisterRequest(firstName, lastName, email, username, password);
+            RegisterRequest request = new RegisterRequest(firstName, lastName, username, email, password);
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/register")
@@ -79,9 +76,9 @@ class AuthenticationControllerTest extends AbstractControllerTestBase {
         @DisplayName("Business Logic Error: Should return 409 Conflict when username is a duplicate")
         void shouldReturn409_WhenUsernameIsDuplicate() throws Exception {
             // Arrange
-            RegisterRequest request = new RegisterRequest("John", "Doe", "john@example.com", "johndoe", "password123");
-            given(authenticationService.register(any(RegisterRequest.class)))
-                    .willThrow(new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS));
+            RegisterRequest request = new RegisterRequest("John", "Doe","john@example.com",  "johndoe", "password123");
+            willThrow(new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS))
+                    .given(authenticationService).register(any(RegisterRequest.class));
 
             // Act & Assert
             mockMvc.perform(post(BASE_URL + "/register")

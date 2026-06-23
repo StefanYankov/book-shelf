@@ -12,12 +12,12 @@ import bg.softuni.bookshelf.service.auth.dto.ResetPasswordRequest;
 public interface AuthenticationService {
 
     /**
-     * Registers a new user in the system in an inactive state and sends a verification email.
+     * Registers a new user in the system, sets them as active, and sends a verification email.
+     * This method does not log the user in.
      *
      * @param request The registration request containing user details.
-     * @return An AuthenticationResponse containing a JWT if registration is successful.
      */
-    AuthenticationResponse register(RegisterRequest request);
+    void register(RegisterRequest request);
 
     /**
      * Authenticates an existing user and generates a JWT.

@@ -12,6 +12,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
@@ -38,13 +41,13 @@ public class AuthSecurityTests extends AbstractAuthUnitTestBase {
     class VerifyEmailTests {
 
         @Test
-        @DisplayName("Happy Path: Should successfully verify email, activate user, and consume token")
+        @DisplayName("Happy Path: Should successfully verify email and consume token")
         void shouldVerifyEmailSuccessfully() {
             // Arrange
             String rawToken = UUID.randomUUID().toString();
             String hashedToken = SecurityUtils.hashSha256(rawToken);
             ApplicationUser unverifiedUser = createMockApplicationUser();
-            unverifiedUser.setActive(false);
+            unverifiedUser.setActive(true);
             unverifiedUser.setEmailVerified(false);
 
             VerificationToken validToken = VerificationToken.builder()
@@ -68,10 +71,13 @@ public class AuthSecurityTests extends AbstractAuthUnitTestBase {
             verify(verificationTokenRepository).delete(validToken);
         }
 
-        @Test
-        @DisplayName("Validation Error: Should throw BusinessException when token is null or blank")
-        void shouldThrowWhenTokenIsBlank() {
-            assertThatThrownBy(() -> authenticationService.verifyEmail("   "))
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"   ", "\t", "\n"})
+        @DisplayName("Validation Error: Should fail immediately with validation error for empty boundaries")
+        void shouldThrowWhenTokenIsBlank(String invalidToken) {
+            // Act / Assert
+            assertThatThrownBy(() -> authenticationService.verifyEmail(invalidToken))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.VALIDATION_FAILED);
