@@ -206,20 +206,6 @@ The local configuration environment seeds the following testing user definitions
 > [!NOTE]
 > The seeded development database contains static password hashes that may not align with runtime encoder salts. The fallback credential value for these profiles is `password`. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
 
-#### **Resolving Pre-seeded Login Failures:**
-
-If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
-
-1. Navigate to the **Forgot Password** page in the UI.    
-2. Enter the email address of the pre-seeded account you wish to access (e.g., admin@example.com or user1@example.com).
-3. Open your backend console to locate the dispatched reset link:
-   📧 MOCK EMAIL DISPATCHED
-   Type: PASSWORD RESET
-   Link: http://localhost:4200/reset-password?token=some-reset-token-uuid
-
-4. Copy the link, paste it into your browser, and set a new password (e.g., password).
-5. This saves a freshly hashed password using the current runtime salt configuration, allowing you to log in successfully.
-
 ---
 
 ## License
