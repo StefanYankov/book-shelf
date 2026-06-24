@@ -13,8 +13,7 @@ if (typeof globalThis.localStorage === 'undefined') {
     setItem: (key: string, value: string) => { store[key] = value; },
     removeItem: (key: string) => { delete store[key]; },
     clear: () => { store = {}; },
-    length: 0,
-    key: (index: number) => null
+    length: 0
   };
   Object.defineProperty(globalThis, 'localStorage', {
     value: mockStorage,

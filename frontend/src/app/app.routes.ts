@@ -76,6 +76,11 @@ export const routes: Routes = [
         title: `${APP_TITLE} | Shelf Details`,
         loadComponent: () => import('./features/shelves/shelf-detail/shelf-detail').then(m => m.ShelfDetail)
       },
+      {
+        path: 'profile',
+        title: `${APP_TITLE} | My Profile`,
+        loadComponent: () => import('./features/profile/profile').then(m => m.Profile)
+      },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
