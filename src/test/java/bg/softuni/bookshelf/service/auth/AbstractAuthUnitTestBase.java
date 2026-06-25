@@ -10,7 +10,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
@@ -23,8 +22,6 @@ public abstract class AbstractAuthUnitTestBase {
     protected PasswordEncoder passwordEncoder;
     @Mock
     protected JwtService jwtService;
-    @Mock
-    protected AuthenticationManager authenticationManager;
     @Mock
     protected VerificationTokenRepository verificationTokenRepository;
     @Mock
