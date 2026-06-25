@@ -6,7 +6,6 @@ import bg.softuni.bookshelf.data.enums.StatusEventType;
 import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.base.BaseService;
-import bg.softuni.bookshelf.service.user.dto.AdminUpdateUserDto;
 import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
