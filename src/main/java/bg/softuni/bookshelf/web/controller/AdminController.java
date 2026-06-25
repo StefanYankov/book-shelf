@@ -1,0 +1,77 @@
+package bg.softuni.bookshelf.web.controller;
+
+import bg.softuni.bookshelf.service.auth.CustomUserDetails;
+import bg.softuni.bookshelf.service.user.UserService;
+import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
+import bg.softuni.bookshelf.service.user.dto.LockUserRequestDto;
+import bg.softuni.bookshelf.web.ApiStandardResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/admin")
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('ROLE_ADMIN')")
+@Tag(name = "Admin API", description = "Endpoints for administrative operations.")
+public class AdminController {
+
+    private final UserService userService;
+
+    @Operation(
+            operationId = "getAllUsers",
+            summary = "Get all users",
+            description = "Retrieves a paginated list of all users in the system."
+    )
+    @ApiStandardResponses
+    @GetMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Page<AdminUserViewDto>> getAllUsers(Pageable pageable) {
+        log.info("API GET request to retrieve all users for admin.");
+        return ResponseEntity.ok(userService.getAllUsers(pageable));
+    }
+
+    @Operation(
+            operationId = "lockUser",
+            summary = "Lock a user account",
+            description = "Locks a user's account, preventing them from logging in."
+    )
+    @ApiStandardResponses
+    @PostMapping("/users/{userId}/lock")
+    public ResponseEntity<Void> lockUser(
+            @Parameter(description = "The UUID of the user to lock.") @PathVariable UUID userId,
+            @Valid @RequestBody LockUserRequestDto dto,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        log.info("API POST request to lock user {} by admin {}.", userId, principal.getUsername());
+        userService.lockUser(userId, dto.reason(), principal.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            operationId = "unlockUser",
+            summary = "Unlock a user account",
+            description = "Unlocks a previously locked user account."
+    )
+    @ApiStandardResponses
+    @PostMapping("/users/{userId}/unlock")
+    public ResponseEntity<Void> unlockUser(
+            @Parameter(description = "The UUID of the user to unlock.") @PathVariable UUID userId,
+            @Valid @RequestBody LockUserRequestDto dto,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        log.info("API POST request to unlock user {} by admin {}.", userId, principal.getUsername());
+        userService.unlockUser(userId, dto.reason(), principal.getId());
+        return ResponseEntity.noContent().build();
+    }
+}

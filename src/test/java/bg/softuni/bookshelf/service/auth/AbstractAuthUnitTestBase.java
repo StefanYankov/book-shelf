@@ -57,7 +57,6 @@ public abstract class AbstractAuthUnitTestBase {
         user.setPassword("hashedPassword");
         user.setFirstName("John");
         user.setLastName("Doe");
-        user.setActive(false);
         user.setEmailVerified(false);
         return user;
     }

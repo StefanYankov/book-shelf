@@ -1,8 +1,12 @@
 package bg.softuni.bookshelf.service.user;
 
+import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
 import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
 
@@ -38,4 +42,33 @@ public interface UserService {
      *                                                                 or if the provided current password is incorrect.
      */
     void changePassword(UUID userId, ChangePasswordDto dto);
+
+    /**
+     * Retrieves a paginated list of all users for administrative purposes.
+     *
+     * @param pageable The pagination information.
+     * @return A {@link Page} of {@link AdminUserViewDto} objects.
+     */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    Page<AdminUserViewDto> getAllUsers(Pageable pageable);
+
+    /**
+     * Creates a new {@link bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent} to lock a user's account.
+     *
+     * @param userId  The UUID of the user to lock.
+     * @param reason  The administrative reason for the action.
+     * @param actorId The UUID of the administrator performing the action.
+     */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    void lockUser(UUID userId, String reason, UUID actorId);
+
+    /**
+     * Creates a new {@link bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent} to unlock a user's account.
+     *
+     * @param userId  The UUID of the user to unlock.
+     * @param reason  The administrative reason for the action.
+     * @param actorId The UUID of the administrator performing the action.
+     */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    void unlockUser(UUID userId, String reason, UUID actorId);
 }

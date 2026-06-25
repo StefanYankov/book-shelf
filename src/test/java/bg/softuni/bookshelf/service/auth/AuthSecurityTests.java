@@ -47,7 +47,6 @@ public class AuthSecurityTests extends AbstractAuthUnitTestBase {
             String rawToken = UUID.randomUUID().toString();
             String hashedToken = SecurityUtils.hashSha256(rawToken);
             ApplicationUser unverifiedUser = createMockApplicationUser();
-            unverifiedUser.setActive(true);
             unverifiedUser.setEmailVerified(false);
 
             VerificationToken validToken = VerificationToken.builder()
@@ -65,7 +64,6 @@ public class AuthSecurityTests extends AbstractAuthUnitTestBase {
 
             // Assert
             verify(userRepository).save(userCaptor.capture());
-            assertThat(userCaptor.getValue().isActive()).isTrue();
             assertThat(userCaptor.getValue().isEmailVerified()).isTrue();
 
             verify(verificationTokenRepository).delete(validToken);

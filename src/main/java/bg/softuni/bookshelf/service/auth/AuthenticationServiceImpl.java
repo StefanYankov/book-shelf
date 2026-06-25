@@ -71,7 +71,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setUsername(normalizedUsername);
         user.setEmail(normalizedEmail);
         user.setPassword(hashedPassword);
-        user.setActive(true);
         user.setEmailVerified(false);
 
         ApplicationUser savedUser = userRepository.save(user);
