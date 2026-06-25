@@ -5,8 +5,6 @@ import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
 import bg.softuni.bookshelf.data.entity.identity.User;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.user.AccountStatusService;
-import bg.softuni.bookshelf.shared.exception.BusinessException;
-import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -69,7 +67,7 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
             role = "ROLE_USER";
             isEnabled = accountStatusService.isUserActive(user.getId());
         } else {
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unknown user type: " + user.getClass().getSimpleName());
+            throw new IllegalStateException("Unknown user type: " + user.getClass().getSimpleName());
         }
 
         return new CustomUserDetails(
@@ -77,7 +75,6 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
                 user.getUsername(),
                 user.getPassword(),
                 isEnabled,
-                user.isPasswordChangeRequired(),
                 Collections.singletonList(new SimpleGrantedAuthority(role))
         );
     }
