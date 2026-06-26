@@ -17,3 +17,4 @@ application:
     jwt:
       # A default, non-production secret for local development convenience
       secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    auto-seed-admin: true

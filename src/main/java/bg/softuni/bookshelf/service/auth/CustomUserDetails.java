@@ -17,15 +17,18 @@ import java.util.UUID;
 public class CustomUserDetails extends User {
 
     private final UUID id;
+    private final boolean passwordChangeRequired;
 
     public CustomUserDetails(
             UUID id,
             String username,
             String password,
-            boolean isActive,
+            boolean isEnabled,
+            boolean passwordChangeRequired,
             Collection<? extends GrantedAuthority> authorities) {
 
-        super(username, password, isActive, true, true, true, authorities);
+        super(username, password, isEnabled, true, true, true, authorities);
         this.id = id;
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 }

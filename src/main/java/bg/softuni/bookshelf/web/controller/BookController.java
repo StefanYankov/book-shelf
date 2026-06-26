@@ -3,6 +3,7 @@ package bg.softuni.bookshelf.web.controller;
 import bg.softuni.bookshelf.service.book.BookService;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,9 +40,10 @@ public class BookController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of books")
     @GetMapping
-    public ResponseEntity<Page<BookSummaryDto>> getAllBooks(Pageable pageable) {
+    public ResponseEntity<PagedResponse<BookSummaryDto>> getAllBooks(Pageable pageable) {
         log.info("API GET request for all books, pageable: {}", pageable);
-        return ResponseEntity.ok(bookService.getAll(pageable));
+        Page<BookSummaryDto> bookPage = bookService.getAll(pageable);
+        return ResponseEntity.ok(PagedResponse.from(bookPage));
     }
 
     @Operation(
@@ -71,11 +73,12 @@ public class BookController {
             @ApiResponse(responseCode = "200", description = "Search results retrieved")
     })
     @GetMapping("/search")
-    public ResponseEntity<Page<BookSummaryDto>> searchBooks(
+    public ResponseEntity<PagedResponse<BookSummaryDto>> searchBooks(
             @RequestParam(required = false) String query,
             Pageable pageable
     ) {
         log.info("API GET request to search books with query: {}", query);
-        return ResponseEntity.ok(bookService.searchBooks(query, pageable));
+        Page<BookSummaryDto> bookPage = bookService.searchBooks(query, pageable);
+        return ResponseEntity.ok(PagedResponse.from(bookPage));
     }
 }

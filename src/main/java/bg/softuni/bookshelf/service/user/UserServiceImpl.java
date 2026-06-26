@@ -56,6 +56,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(dto.newPassword()));
+        user.setPasswordChangeRequired(false);
         userRepository.save(user);
     }
 

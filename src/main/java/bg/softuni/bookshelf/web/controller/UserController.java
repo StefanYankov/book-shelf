@@ -1,6 +1,8 @@
 package bg.softuni.bookshelf.web.controller;
 
 import bg.softuni.bookshelf.service.auth.CustomUserDetails;
+import bg.softuni.bookshelf.service.auth.JwtService;
+import bg.softuni.bookshelf.service.auth.dto.AuthenticationResponse;
 import bg.softuni.bookshelf.service.user.UserService;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
@@ -8,6 +10,7 @@ import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final JwtService jwtService;
 
     @Operation(
             operationId = "getMyProfile",
@@ -57,16 +61,25 @@ public class UserController {
     @Operation(
             operationId = "changeMyPassword",
             summary = "Change current user password",
-            description = "Changes the password for the currently authenticated user after verifying their current password."
+            description = "Changes the password for the currently authenticated user and returns a fresh JWT."
     )
-    @ApiResponse(responseCode = "204", description = "Password changed successfully.")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Password changed successfully. Returns updated stateless token context."
+            )
+    })
     @ApiStandardResponses
     @PutMapping("/me/password")
-    public ResponseEntity<Void> changeMyPassword(
+    public ResponseEntity<AuthenticationResponse> changeMyPassword(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody ChangePasswordDto dto) {
         log.info("API PUT request to change password for user {}", principal.getUsername());
+        
         userService.changePassword(principal.getId(), dto);
-        return ResponseEntity.noContent().build();
+        
+        String freshToken = jwtService.generateToken(principal);
+        
+        return ResponseEntity.ok(new AuthenticationResponse(freshToken));
     }
 }

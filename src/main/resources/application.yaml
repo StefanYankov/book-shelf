@@ -36,3 +36,4 @@ application:
       # This MUST be provided via an environment variable in production
       secret-key: ${JWT_SECRET_KEY}
       expiration: 86400000 # 24 hours
+    auto-seed-admin: false
