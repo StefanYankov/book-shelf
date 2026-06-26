@@ -7,15 +7,15 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { SortObject } from './sortObject';
+import { BookSummaryDto } from './bookSummaryDto';
 
 
-export interface PageableObject { 
-    offset?: number;
-    sort?: SortObject;
+export interface PagedResponseBookSummaryDto { 
+    content?: Array<BookSummaryDto>;
     pageNumber?: number;
     pageSize?: number;
-    paged?: boolean;
-    unpaged?: boolean;
+    totalElements?: number;
+    totalPages?: number;
+    isLast?: boolean;
 }
 
