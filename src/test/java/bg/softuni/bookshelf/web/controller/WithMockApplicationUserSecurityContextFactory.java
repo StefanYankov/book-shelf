@@ -29,6 +29,7 @@ public class WithMockApplicationUserSecurityContextFactory implements WithSecuri
                 annotation.username(),
                 "password",
                 true,
+                false,
                 authorities
         );
 

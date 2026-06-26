@@ -32,10 +32,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("UserServiceImpl Unit Tests")
 class UserServiceImplTest {
 
     @Mock
@@ -55,6 +57,20 @@ class UserServiceImplTest {
     @Captor
     private ArgumentCaptor<ApplicationUser> userCaptor;
 
+    // --- Object Mother Centralized Factories ---
+
+    private ApplicationUser createSampleUser(UUID id) {
+        ApplicationUser user = new ApplicationUser();
+        user.setId(id);
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setPassword("encodedOld");
+        user.setPasswordChangeRequired(true);
+        return user;
+    }
+
     @Nested
     @DisplayName("getProfile Tests")
     class GetProfileTests {
@@ -63,7 +79,7 @@ class UserServiceImplTest {
         void shouldReturnUserProfileDto() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            ApplicationUser user = new ApplicationUser();
+            ApplicationUser user = createSampleUser(userId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // Act
@@ -95,8 +111,8 @@ class UserServiceImplTest {
         void shouldUpdateFirstAndLastName() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            UpdateProfileDto dto = UpdateProfileDto.builder().firstName("New").lastName("User").build();
-            ApplicationUser user = new ApplicationUser();
+            UpdateProfileDto dto = new UpdateProfileDto("New", "User");
+            ApplicationUser user = createSampleUser(userId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // Act
@@ -113,7 +129,7 @@ class UserServiceImplTest {
         void shouldThrow_WhenUserNotFound() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            UpdateProfileDto dto = UpdateProfileDto.builder().firstName("New").lastName("User").build();
+            UpdateProfileDto dto = new UpdateProfileDto("New", "User");
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // Act & Assert
@@ -127,13 +143,13 @@ class UserServiceImplTest {
     @DisplayName("changePassword Tests")
     class ChangePasswordTests {
         @Test
-        @DisplayName("Happy Path: Should change password when current password is correct")
+        @DisplayName("Happy Path: Should change password and flip change required status flag to false")
         void shouldChangePassword_WhenCurrentPasswordIsCorrect() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            ChangePasswordDto dto = ChangePasswordDto.builder().currentPassword("old").newPassword("new").build();
-            ApplicationUser user = new ApplicationUser();
-            user.setPassword("encodedOld");
+            ChangePasswordDto dto = new ChangePasswordDto("old", "new");
+            ApplicationUser user = createSampleUser(userId);
+
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(passwordEncoder.matches("old", "encodedOld")).willReturn(true);
             given(passwordEncoder.encode("new")).willReturn("encodedNew");
@@ -143,17 +159,19 @@ class UserServiceImplTest {
 
             // Assert
             verify(userRepository).save(userCaptor.capture());
-            assertThat(userCaptor.getValue().getPassword()).isEqualTo("encodedNew");
+            ApplicationUser updatedUser = userCaptor.getValue();
+            assertThat(updatedUser.getPassword()).isEqualTo("encodedNew");
+            assertThat(updatedUser.isPasswordChangeRequired()).isFalse(); // Core fix verification
         }
 
         @Test
-        @DisplayName("Error Case: Should throw when current password is incorrect")
+        @DisplayName("Error Case: Should throw and skip save interactions when current password is incorrect")
         void shouldThrow_WhenCurrentPasswordIsIncorrect() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            ChangePasswordDto dto = ChangePasswordDto.builder().currentPassword("wrong").newPassword("new").build();
-            ApplicationUser user = new ApplicationUser();
-            user.setPassword("encodedOld");
+            ChangePasswordDto dto = new ChangePasswordDto("wrong", "new");
+            ApplicationUser user = createSampleUser(userId);
+
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(passwordEncoder.matches("wrong", "encodedOld")).willReturn(false);
 
@@ -161,21 +179,25 @@ class UserServiceImplTest {
             assertThatThrownBy(() -> userService.changePassword(userId, dto))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
+
+            verify(userRepository, never()).save(any(User.class)); // Defense in depth fix
         }
 
         @Test
-        @DisplayName("Error Case: Should throw when user not found")
+        @DisplayName("Error Case: Should fail fast and protect engine dependencies when user not found")
         void shouldThrow_WhenUserNotFound() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            ChangePasswordDto dto = ChangePasswordDto.builder().currentPassword("old").newPassword("new").build();
+            ChangePasswordDto dto = new ChangePasswordDto("old", "new");
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> userService.changePassword(userId, dto))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+
             verifyNoInteractions(passwordEncoder);
+            verify(userRepository, never()).save(any(User.class)); // Defense in depth fix
         }
     }
 
@@ -187,7 +209,7 @@ class UserServiceImplTest {
         void shouldReturnPagedAdminUserViewDtos() {
             // Arrange
             PageRequest pageable = PageRequest.of(0, 10);
-            Page<User> userPage = new PageImpl<>(Collections.singletonList(new ApplicationUser()), pageable, 1);
+            Page<User> userPage = new PageImpl<>(Collections.singletonList(createSampleUser(UUID.randomUUID())), pageable, 1);
             given(userRepository.findAll(pageable)).willReturn(userPage);
 
             // Act
@@ -223,8 +245,8 @@ class UserServiceImplTest {
             // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
-            ApplicationUser user = new ApplicationUser();
-            ApplicationUser actor = new ApplicationUser();
+            ApplicationUser user = createSampleUser(userId);
+            ApplicationUser actor = createSampleUser(actorId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
 
@@ -246,8 +268,8 @@ class UserServiceImplTest {
             // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
-            ApplicationUser user = new ApplicationUser();
-            ApplicationUser actor = new ApplicationUser();
+            ApplicationUser user = createSampleUser(userId);
+            ApplicationUser actor = createSampleUser(actorId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
 
@@ -282,7 +304,7 @@ class UserServiceImplTest {
             // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
-            ApplicationUser user = new ApplicationUser();
+            ApplicationUser user = createSampleUser(userId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.findById(actorId)).willReturn(Optional.empty());
 
