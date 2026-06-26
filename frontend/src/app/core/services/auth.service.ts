@@ -10,6 +10,7 @@ export interface DecodedToken {
   iat: number;
   exp: number;
   role: string;
+  pwd_chg_req: boolean;
 }
 
 @Injectable({
@@ -37,6 +38,10 @@ export class AuthService {
 
   public readonly userRole = computed(() => {
     return this.decodedToken()?.role || null;
+  });
+
+  public readonly isPasswordChangeRequired = computed(() => {
+    return this.decodedToken()?.pwd_chg_req || false;
   });
 
   login(credentials: AuthenticationRequest): Observable<AuthenticationResponse> {

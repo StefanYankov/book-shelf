@@ -16,7 +16,7 @@ public class UserInitializationSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         userRepository.findByUsername("admin").ifPresent(admin -> {
             if (admin.getPassword().equals("{noop}__ADMIN_DEFAULT__")) {
                 admin.setPassword(passwordEncoder.encode("admin"));
