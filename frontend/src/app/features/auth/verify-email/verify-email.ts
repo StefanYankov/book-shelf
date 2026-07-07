@@ -1,7 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, of, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthenticationAPIService } from '../../../api';
 
 @Component({
@@ -12,35 +12,41 @@ import { AuthenticationAPIService } from '../../../api';
   styleUrl: './verify-email.css'
 })
 export class VerifyEmail implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private authApi = inject(AuthenticationAPIService);
-
-  isLoading = true;
-  isSuccess = false;
-  errorMessage: string | null = null;
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authApi = inject(AuthenticationAPIService);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly isLoading = signal(true);
+  protected readonly isSuccess = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
     const token = this.route.snapshot.queryParamMap.get('token');
 
     if (!token) {
-      this.isLoading = false;
-      this.errorMessage = 'No verification token found.';
+      this.isLoading.set(false);
+      this.errorMessage.set('No verification token found.');
       return;
     }
 
-    this.authApi.verifyEmail(token).pipe(
-      tap(() => {
-        this.isLoading = false;
-        this.isSuccess = true;
-        setTimeout(() => this.router.navigate(['/login']), 5000);
-      }),
-      catchError(err => {
-        this.isLoading = false;
-        this.isSuccess = false;
-        this.errorMessage = err.error?.detail || 'Failed to verify email. The link may be invalid or expired.';
-        return of(null);
-      })
-    ).subscribe();
+    this.authApi.verifyEmail(token)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.isSuccess.set(true);
+
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 5000);
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.isSuccess.set(false);
+          this.errorMessage.set(
+            err.error?.detail || 'Failed to verify email. The link may be invalid or expired.'
+          );
+        }
+      });
   }
 }

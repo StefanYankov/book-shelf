@@ -1,7 +1,7 @@
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { authInterceptor } from '../auth.interceptor';
+import { authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';

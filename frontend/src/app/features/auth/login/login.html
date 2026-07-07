@@ -6,7 +6,6 @@
     <div class="error-message prominent">
       <h4>Account Disabled</h4>
       <p>{{ errorMessage() }}</p>
-      <!-- TODO: Add a button/link to re-send verification email -->
     </div>
   } @else if (errorMessage()) {
     <div class="error-message">
@@ -50,7 +49,7 @@
 
     <button
       type="submit"
-      [disabled]="loginForm.invalid || isLoading()">
+      [disabled]="isLoading()">
       {{ isLoading() ? 'Logging in...' : 'Sign In' }}
     </button>
 

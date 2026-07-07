@@ -1,8 +1,8 @@
 <div class="verify-email-container">
-  @if (isLoading) {
+  @if (isLoading()) {
     <p>Verifying your email, please wait...</p>
   } @else {
-    @if (isSuccess) {
+    @if (isSuccess()) {
       <div class="success-message">
         <h2>Email Verified!</h2>
         <p>Your account has been successfully activated.</p>
@@ -10,10 +10,10 @@
         <a routerLink="/login">Go to Login Now</a>
       </div>
     }
-    @if (errorMessage) {
+    @if (errorMessage()) {
       <div class="error-message">
         <h2>Verification Failed</h2>
-        <p>{{ errorMessage }}</p>
+        <p>{{ errorMessage() }}</p>
         <a routerLink="/login">Return to Login</a>
       </div>
     }
