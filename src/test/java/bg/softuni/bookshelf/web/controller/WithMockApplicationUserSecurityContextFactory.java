@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Security context factory that instantiates CustomUserDetails dynamically
+ * using values declared on the WithMockApplicationUser annotation.
+ */
 public class WithMockApplicationUserSecurityContextFactory implements WithSecurityContextFactory<WithMockApplicationUser> {
 
     @Override
@@ -29,7 +33,7 @@ public class WithMockApplicationUserSecurityContextFactory implements WithSecuri
                 annotation.username(),
                 "password",
                 true,
-                false,
+                annotation.passwordChangeRequired(),
                 authorities
         );
 

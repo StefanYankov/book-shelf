@@ -19,4 +19,6 @@ public @interface WithMockApplicationUser {
     String email() default "test@example.com";
 
     String[] roles() default {"USER"};
+
+    boolean passwordChangeRequired() default false;
 }

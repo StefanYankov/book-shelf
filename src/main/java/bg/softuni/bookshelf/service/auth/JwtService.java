@@ -6,13 +6,16 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -73,6 +76,30 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    /**
+     * Reconstructs a CustomUserDetails object directly from the claims of a verified JWT.
+     * This avoids a database call on every request for a stateless authentication model.
+     *
+     * @param token The verified JWT.
+     * @return An in-memory CustomUserDetails principal.
+     */
+    public CustomUserDetails extractUserDetails(String token) {
+        Claims claims = extractAllClaims(token);
+        String userId = claims.get("userId", String.class);
+        String role = claims.get("role", String.class);
+        boolean passwordChangeRequired = claims.get("pwd_chg_req", Boolean.class);
+
+        // Password is not needed for in-memory principal
+        CustomUserDetails customUserDetails = new CustomUserDetails(
+                UUID.fromString(userId),
+                claims.getSubject(),
+                "",
+                true,
+                passwordChangeRequired,
+                Collections.singletonList(new SimpleGrantedAuthority(role))
+        );
+        return customUserDetails;
+    }
 
     /**
      * Generates a JWT with extra claims for a user.
