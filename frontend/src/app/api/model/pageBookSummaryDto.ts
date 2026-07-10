@@ -13,8 +13,8 @@ import { BookSummaryDto } from './bookSummaryDto';
 
 
 export interface PageBookSummaryDto { 
-    totalElements?: number;
     totalPages?: number;
+    totalElements?: number;
     size?: number;
     content?: Array<BookSummaryDto>;
     number?: number;

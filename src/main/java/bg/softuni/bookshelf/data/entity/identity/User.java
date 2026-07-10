@@ -29,9 +29,9 @@ public abstract class User extends BaseUUIDEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name", nullable = false, length = ValidationConstants.User.MAX_NAME_LENGTH)
+    @Column(name = "first_name", nullable = false, length = ValidationConstants.User.MAX_FIRST_NAME_LENGTH)
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = ValidationConstants.User.MAX_NAME_LENGTH)
+    @Column(name = "last_name", nullable = false, length = ValidationConstants.User.MAX_LAST_NAME_LENGTH)
     private String lastName;
 }

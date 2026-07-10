@@ -1,0 +1,45 @@
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <h2>My Profile</h2>
+      <hr>
+
+      <!-- Profile Information Form -->
+      <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" id="username" class="form-control" formControlName="username">
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" formControlName="email">
+        </div>
+        <div class="mb-3">
+          <label for="firstName" class="form-label">First Name</label>
+          <input type="text" id="firstName" class="form-control" formControlName="firstName">
+        </div>
+        <div class="mb-3">
+          <label for="lastName" class="form-label">Last Name</label>
+          <input type="text" id="lastName" class="form-control" formControlName="lastName">
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Update Profile</button>
+      </form>
+
+      <h4 class="mt-5">Change Password</h4>
+      <hr>
+
+      <!-- Change Password Form -->
+      <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
+        <div class="mb-3">
+          <label for="currentPassword" class="form-label">Current Password</label>
+          <input type="password" id="currentPassword" class="form-control" formControlName="currentPassword">
+        </div>
+        <div class="mb-3">
+          <label for="newPassword" class="form-label">New Password</label>
+          <input type="password" id="newPassword" class="form-control" formControlName="newPassword">
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid">Change Password</button>
+      </form>
+    </div>
+  </div>
+</div>

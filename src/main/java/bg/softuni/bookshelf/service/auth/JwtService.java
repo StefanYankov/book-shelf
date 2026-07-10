@@ -1,11 +1,11 @@
 package bg.softuni.bookshelf.service.auth;
 
-import bg.softuni.bookshelf.config.ApplicationUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +22,6 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // TODO: store in in Vault or AWS Secrets Manager and load via @Value("${application.security.jwt.secret-key}")
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
@@ -30,16 +29,23 @@ public class JwtService {
     private long jwtExpiration;
 
     /**
-     * Generates a JWT for a user details.
+     * Generates a JWT for a user details object, including custom claims for user ID and role.
      *
-     * @param userDetails The user details.
-     * @return The generated JWT.
+     * @param userDetails The user details from Spring Security.
+     * @return The generated JWT string.
      */
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        if (userDetails instanceof ApplicationUserDetails) {
-            claims.put("userId", ((ApplicationUserDetails) userDetails).getUser().getId());
+        if (userDetails instanceof CustomUserDetails customUserDetails) {
+            claims.put("userId", customUserDetails.getId());
         }
+        // Add the user's role to the claims
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("");
+        claims.put("role", role);
+
         return generateToken(claims, userDetails);
     }
 

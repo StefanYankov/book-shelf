@@ -5,6 +5,7 @@ api.module.ts
 api/api.ts
 api/authenticationAPI.service.ts
 api/bookAPI.service.ts
+api/userAPI.service.ts
 api/userShelfAPI.service.ts
 configuration.ts
 encoder.ts
@@ -20,6 +21,7 @@ model/bookshelfCreateDto.ts
 model/bookshelfDetailsDto.ts
 model/bookshelfSummaryDto.ts
 model/bookshelfUpdateDto.ts
+model/changePasswordDto.ts
 model/forgotPasswordRequest.ts
 model/genreDto.ts
 model/languageDto.ts
@@ -33,6 +35,7 @@ model/publisherDto.ts
 model/registerRequest.ts
 model/resetPasswordRequest.ts
 model/sortObject.ts
+model/updateProfileDto.ts
 param.ts
 provide-api.ts
 query.params.ts

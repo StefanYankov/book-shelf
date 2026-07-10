@@ -8,14 +8,15 @@ public final class ValidationConstants {
 
     // User-related constants
     public static final class User {
+        public static final int MIN_USERNAME_LENGTH = 3;
         public static final int MAX_USERNAME_LENGTH = 50;
         public static final int MAX_EMAIL_LENGTH = 100;
-        public static final int MAX_NAME_LENGTH = 50;
-        public static final int MIN_USERNAME_LENGTH = 3;
-    }
-
-    public static final class Password {
-        public static final int MIN_LENGTH = 8;
+        public static final int MIN_FIRST_NAME_LENGTH = 2;
+        public static final int MAX_FIRST_NAME_LENGTH = 50;
+        public static final int MIN_LAST_NAME_LENGTH = 2;
+        public static final int MAX_LAST_NAME_LENGTH = 50;
+        public static final int MIN_PASSWORD_LENGTH = 8;
+        public static final int MAX_PASSWORD_LENGTH = 100;
     }
 
     // Bookshelf-related constants
