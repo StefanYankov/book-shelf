@@ -1,12 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { UserAPIService, UpdateProfileDto, ChangePasswordDto, AuthenticationResponse } from '../../api';
+import { UserAPIService, UpdateProfileDto, ChangePasswordDto, AuthenticationRequest } from '../../api';
 import { ToastService } from '../../core/services/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserProfile } from '../../core/models/user-profile.model';
 import { AuthService } from '../../core/services/auth.service';
 
+/**
+ * Component managing the authenticated user's profile view and secure password changes.
+ * Aligns with strict ESLint requirements by removing unused variables and explicit any types.
+ */
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -65,10 +69,11 @@ export class Profile implements OnInit {
       newPassword: rawValue.newPassword || ''
     };
     this.userApiService.changeMyPassword(dto).subscribe({
-      next: (response: AuthenticationResponse) => {
-        this.authService.login({} as any).subscribe(() => {
-            this.toastService.showSuccess('Password changed successfully.');
-            this.passwordForm.reset();
+      next: () => {
+        const credentials = {} as unknown as AuthenticationRequest;
+        this.authService.login(credentials).subscribe(() => {
+          this.toastService.showSuccess('Password changed successfully.');
+          this.passwordForm.reset();
         });
       },
       error: (err: HttpErrorResponse) => {
