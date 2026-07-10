@@ -1,26 +1,19 @@
 package bg.softuni.bookshelf.web.controller;
 
-import bg.softuni.bookshelf.service.auth.CustomUserDetails;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Function;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -50,68 +43,49 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
     class JwtFilterTests {
 
         @Test
-        @DisplayName("Should allow request to proceed when token is valid and password change is not required")
-        void shouldAllowAccess_WhenTokenIsValid() throws Exception {
-            // Arrange
-            String token = "valid-admin-jwt";
-            String username = "adminUser";
-            CustomUserDetails principal = new CustomUserDetails(
-                    UUID.randomUUID(), username, "password", true, false,
-                    List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-            );
-
-            given(jwtService.extractUsername(token)).willReturn(username);
-            given(jwtService.isTokenValid(eq(token), any(UserDetails.class))).willReturn(true);
-            given(userDetailsService.loadUserByUsername(username)).willReturn(principal);
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(false);
-
-            // Act
-            ResultActions result = mockMvc.perform(get("/api/test/admin-only")
-                    .header("Authorization", "Bearer " + token));
+        @WithMockApplicationUser(roles = "ADMIN")
+        @DisplayName("Should allow admin user to access admin-only endpoint")
+        void shouldAllowAdminToAccessProtectedResource() throws Exception {
+            // Act:
+            ResultActions result = mockMvc.perform(get("/api/test/admin-only"));
 
             // Assert
             result.andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("Should return 403 Forbidden when password change is required")
-        void shouldReturn403_WhenPasswordChangeIsRequired() throws Exception {
-            // Arrange
-            String token = "valid-user-jwt";
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(true);
-
-            // Act
-            ResultActions result = mockMvc.perform(get("/api/test/user-only")
-                    .header("Authorization", "Bearer " + token));
+        @WithMockApplicationUser(roles = "USER")
+        @DisplayName("Should forbid standard user from accessing admin-only endpoint")
+        void shouldForbidUserFromAdminEndpoint() throws Exception {
+            // Act:
+            ResultActions result = mockMvc.perform(get("/api/test/admin-only"));
 
             // Assert
-            result.andExpect(status().isForbidden())
-                  .andExpect(jsonPath("$.type").value("urn:bookshelf:password-change-required"));
+            result.andExpect(status().isForbidden());
         }
 
         @Test
+        @WithMockApplicationUser(roles = "USER", passwordChangeRequired = true)
+        @DisplayName("Should return 403 Forbidden when password change is required")
+        void shouldReturn403_WhenPasswordChangeIsRequired() throws Exception {
+            // Act:
+            ResultActions result = mockMvc.perform(get("/api/test/user-only"));
+
+            // Assert
+            result.andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.type").value("urn:bookshelf:password-change-required"));
+        }
+
+        @Test
+        @WithMockApplicationUser(roles = "USER", passwordChangeRequired = true)
         @DisplayName("Should allow access to password change endpoint when password change is required")
         void shouldAllowAccessToPasswordChangeEndpoint() throws Exception {
-            // Arrange
-            String token = "valid-user-jwt";
-            String username = "testUser";
-            CustomUserDetails principal = new CustomUserDetails(
-                    UUID.randomUUID(), username, "password", true, true,
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
-            );
-
-            given(jwtService.extractUsername(token)).willReturn(username);
-            given(jwtService.isTokenValid(eq(token), any(UserDetails.class))).willReturn(true);
-            given(userDetailsService.loadUserByUsername(username)).willReturn(principal);
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(true);
-
-            // Act
+            // Act:
             ResultActions result = mockMvc.perform(put("/api/users/me/password")
-                    .header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"currentPassword\":\"a\",\"newPassword\":\"b\"}"));
 
-            // Assert
+            // Assert:
             result.andExpect(status().isBadRequest());
         }
 
@@ -123,7 +97,37 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
 
             // Assert
             result.andExpect(status().isUnauthorized());
-            verifyNoInteractions(jwtService, userDetailsService);
+            verifyNoInteractions(jwtService);
+        }
+
+        @Test
+        @DisplayName("Should return 401 Unauthorized when token is expired")
+        void shouldReturn401_WhenTokenIsExpired() throws Exception {
+            // Arrange
+            String token = "expired-jwt";
+            given(jwtService.extractUsername(token)).willThrow(new ExpiredJwtException(null, null, "Expired"));
+
+            // Act
+            ResultActions result = mockMvc.perform(get("/api/test/user-only")
+                    .header("Authorization", "Bearer " + token));
+
+            // Assert
+            result.andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Should return 401 Unauthorized when token signature is invalid")
+        void shouldReturn401_WhenTokenSignatureIsInvalid() throws Exception {
+            // Arrange
+            String token = "invalid-signature-jwt";
+            given(jwtService.extractUsername(token)).willThrow(new SignatureException("Invalid signature"));
+
+            // Act
+            ResultActions result = mockMvc.perform(get("/api/test/user-only")
+                    .header("Authorization", "Bearer " + token));
+
+            // Assert
+            result.andExpect(status().isUnauthorized());
         }
     }
 }

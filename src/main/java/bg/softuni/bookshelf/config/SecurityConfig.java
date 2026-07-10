@@ -1,6 +1,5 @@
 package bg.softuni.bookshelf.config;
 
-import bg.softuni.bookshelf.service.auth.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,6 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;
-    private final JwtService jwtService;
 
     /**
      * Configures the security filter chain that processes HTTP requests.
@@ -65,7 +63,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(new PasswordChangeFilter(objectMapper, jwtService), JwtAuthenticationFilter.class);
+                .addFilterAfter(new PasswordChangeFilter(objectMapper), JwtAuthenticationFilter.class);
 
         return http.build();
     }

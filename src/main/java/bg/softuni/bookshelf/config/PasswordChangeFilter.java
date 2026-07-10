@@ -1,54 +1,63 @@
 package bg.softuni.bookshelf.config;
 
-import bg.softuni.bookshelf.service.auth.JwtService;
+import bg.softuni.bookshelf.service.auth.CustomUserDetails;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.net.URI;
 
+/**
+ * Filter that intercepts incoming HTTP requests to enforce mandatory password rotation.
+ * Decoupled from direct JWT validation by leveraging the SecurityContext authentication principal.
+ */
+@RequiredArgsConstructor
 public class PasswordChangeFilter extends OncePerRequestFilter {
 
     private final ObjectMapper objectMapper;
-    private final JwtService jwtService;
 
-    public PasswordChangeFilter(ObjectMapper objectMapper, JwtService jwtService) {
-        this.objectMapper = objectMapper;
-        this.jwtService = jwtService;
-    }
-
-    @Override
     @SuppressWarnings("NullableProblems")
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        final String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserDetails userDetails) {
+            if (userDetails.isPasswordChangeRequired()) {
+                String path = request.getRequestURI();
+                String method = request.getMethod();
 
-        final String jwt = authHeader.substring(7);
-        boolean passwordChangeRequired = jwtService.extractClaim(jwt, claims -> claims.get("pwd_chg_req", Boolean.class));
+                // Exclude the profile password update route to allow users to complete the password rotation flow
+                boolean isPasswordChangeRequest = "PUT".equalsIgnoreCase(method) && path.endsWith("/api/users/me/password");
 
-        if (passwordChangeRequired && !request.getRequestURI().equals("/api/users/me/password")) {
-            ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
-            problemDetail.setTitle("Password Change Required");
-            problemDetail.setDetail("You must change your password before you can perform other actions.");
-            problemDetail.setInstance(URI.create(request.getRequestURI()));
-            problemDetail.setType(URI.create("urn:bookshelf:password-change-required"));
+                if (!isPasswordChangeRequest) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-            response.setStatus(HttpStatus.FORBIDDEN.value());
-            response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-            response.getWriter().write(objectMapper.writeValueAsString(problemDetail));
-            return;
+                    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                            HttpStatus.FORBIDDEN,
+                            "A password change is required before accessing this resource."
+                    );
+                    problemDetail.setType(URI.create("urn:bookshelf:password-change-required"));
+                    problemDetail.setTitle("Password Change Required");
+
+                    objectMapper.writeValue(response.getWriter(), problemDetail);
+                    return;
+                }
+            }
         }
 
         filterChain.doFilter(request, response);
