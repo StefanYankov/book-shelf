@@ -17,15 +17,8 @@ import java.util.Set;
 @Table(name = "application_users")
 @Getter
 @Setter
-@ToString(exclude = {"reviews", "libraryEntries", "bookshelves"})
+@ToString(exclude = {"reviews", "libraryEntries", "bookshelves", "statusEvents"})
 public class ApplicationUser extends User {
-
-    /**
-     * Soft-delete flag used by Spring Security.
-     * If false, the user cannot authenticate.
-     */
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;
 
     /**
      * Indicates whether the user has verified their email address.
@@ -41,4 +34,12 @@ public class ApplicationUser extends User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Bookshelf> bookshelves = new ArrayList<>();
+
+    /**
+     * A chronological log of all status-changing events for this user's account.
+     * The user's current active/locked/banned status is derived from the most recent event in this list.
+     * This provides a full audit trail for administrative actions.
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AccountStatusEvent> statusEvents = new ArrayList<>();
 }

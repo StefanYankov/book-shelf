@@ -1,3 +1,5 @@
+export * from './adminAPI.service';
+import { AdminAPIService } from './adminAPI.service';
 export * from './authenticationAPI.service';
 import { AuthenticationAPIService } from './authenticationAPI.service';
 export * from './bookAPI.service';

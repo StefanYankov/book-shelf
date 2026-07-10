@@ -1,20 +1,20 @@
 -- 1. BASE USERS TABLE
-INSERT INTO users (id, version, username, email, password, first_name, last_name, created_at, updated_at)
+INSERT INTO users (id, version, username, email, password, first_name, last_name, created_at, updated_at, password_change_required)
 VALUES
-    ('11111111-0000-0000-0000-000000000001', 0, 'admin', 'admin@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'System', 'Administrator', NOW(), NOW()),
-    ('22222222-0000-0000-0000-000000000001', 0, 'user1', 'user1@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Alice', 'Reader', NOW(), NOW()),
-    ('22222222-0000-0000-0000-000000000002', 0, 'user2', 'user2@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Bob', 'Bookworm', NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+    ('11111111-0000-0000-0000-000000000001', 0, 'admin', 'admin@bookshelf.com', '{noop}__ADMIN_DEFAULT__', 'System', 'Administrator', NOW(), NOW(), false),
+    ('22222222-0000-0000-0000-000000000001', 0, 'user1', 'user1@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Alice', 'Reader', NOW(), NOW(), false),
+    ('22222222-0000-0000-0000-000000000002', 0, 'user2', 'user2@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Bob', 'Bookworm', NOW(), NOW(), false)
+ON CONFLICT (username) DO NOTHING;
 
 -- 2. ROLE REALIZATION VIA JOINED TABLES
 INSERT INTO admin_users (id)
 VALUES ('11111111-0000-0000-0000-000000000001')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO application_users (id, is_active, email_verified)
+INSERT INTO application_users (id, email_verified)
 VALUES
-    ('22222222-0000-0000-0000-000000000001', true, true),
-    ('22222222-0000-0000-0000-000000000002', true, true)
+    ('22222222-0000-0000-0000-000000000001', true),
+    ('22222222-0000-0000-0000-000000000002', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Languages
@@ -125,9 +125,39 @@ INSERT INTO user_books (id, version, user_id, book_id, status, is_favorite, crea
 ON CONFLICT (id) DO NOTHING;
 
 -- Reviews
-INSERT INTO reviews (id, version, title, comment, rating, book_id, user_id, created_at, updated_at)
+INSERT INTO reviews (id, version, title, comment, rating, user_id, book_id, created_at, updated_at)
 VALUES
-    ('99999999-0000-0000-0000-000000000001', 0, 'Masterpiece', lo_from_bytea(0, 'A masterpiece of science fiction that is incredibly relevant today.'::bytea), 5, '77777777-0000-0000-0000-000000000001', '22222222-0000-0000-0000-000000000001', NOW(), NOW()),
-    ('99999999-0000-0000-0000-000000000002', 0, 'Fun Adventure', lo_from_bytea(0, 'A fun and engaging adventure.'::bytea), 4, '77777777-0000-0000-0000-000000000002', '22222222-0000-0000-0000-000000000002', NOW(), NOW()),
-    ('99999999-0000-0000-0000-000000000003', 0, 'Essential Read', lo_from_bytea(0, 'An essential epic read detailing foundational elements of cultural preservation and resilience.'::bytea), 5, '77777777-0000-0000-0000-000000000006', '22222222-0000-0000-0000-000000000001', NOW(), NOW())
+    (
+        '99999999-0000-0000-0000-000000000001',
+        0,
+        'Masterpiece',
+        lo_from_bytea(0, 'A masterpiece of science fiction that is incredibly relevant today.'::bytea),
+        5, -- rating
+        '22222222-0000-0000-0000-000000000001',
+        '77777777-0000-0000-0000-000000000001',
+        NOW(),
+        NOW()
+    ),
+    (
+        '99999999-0000-0000-0000-000000000002',
+        0,
+        'Fun Adventure',
+        lo_from_bytea(0, 'A fun and engaging adventure.'::bytea),
+        5, -- rating
+        '22222222-0000-0000-0000-000000000002',
+        '77777777-0000-0000-0000-000000000002',
+        NOW(),
+        NOW()
+    ),
+    (
+        '99999999-0000-0000-0000-000000000003',
+        0,
+        'Essential Read',
+        lo_from_bytea(0, 'An essential epic read detailing foundational elements of cultural preservation and resilience.'::bytea),
+        5, -- rating
+        '22222222-0000-0000-0000-000000000001',
+        '77777777-0000-0000-0000-000000000006',
+        NOW(),
+        NOW()
+    )
 ON CONFLICT (id) DO NOTHING;

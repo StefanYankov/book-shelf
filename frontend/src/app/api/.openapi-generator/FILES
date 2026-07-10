@@ -2,6 +2,7 @@
 README.md
 api.base.service.ts
 api.module.ts
+api/adminAPI.service.ts
 api/api.ts
 api/authenticationAPI.service.ts
 api/bookAPI.service.ts
@@ -12,6 +13,7 @@ encoder.ts
 git_push.sh
 index.ts
 model/addBookToBookshelfDto.ts
+model/adminUserViewDto.ts
 model/authenticationRequest.ts
 model/authenticationResponse.ts
 model/authorDto.ts
@@ -25,11 +27,14 @@ model/changePasswordDto.ts
 model/forgotPasswordRequest.ts
 model/genreDto.ts
 model/languageDto.ts
+model/lockUserRequestDto.ts
 model/models.ts
 model/pageBookSummaryDto.ts
 model/pageBookshelfSummaryDto.ts
 model/pageable.ts
 model/pageableObject.ts
+model/pagedResponseAdminUserViewDto.ts
+model/pagedResponseBookSummaryDto.ts
 model/problemDetail.ts
 model/publisherDto.ts
 model/registerRequest.ts

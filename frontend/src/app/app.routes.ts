@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
 import { authGuard } from './core/auth.guard';
+import { adminGuard } from './core/admin.guard';
 import { APP_TITLE } from './core/constants';
 
 export const routes: Routes = [

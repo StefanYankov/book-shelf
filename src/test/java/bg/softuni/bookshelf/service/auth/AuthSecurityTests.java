@@ -65,7 +65,6 @@ public class AuthSecurityTests extends AbstractAuthUnitTestBase {
 
             // Assert
             verify(userRepository).save(userCaptor.capture());
-            assertThat(userCaptor.getValue().isActive()).isTrue();
             assertThat(userCaptor.getValue().isEmailVerified()).isTrue();
 
             verify(verificationTokenRepository).delete(validToken);

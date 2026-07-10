@@ -17,11 +17,11 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
-import { BookDetailsDto } from '../model/bookDetailsDto';
+import { LockUserRequestDto } from '../model/lockUserRequestDto';
 // @ts-ignore
 import { Pageable } from '../model/pageable';
 // @ts-ignore
-import { PagedResponseBookSummaryDto } from '../model/pagedResponseBookSummaryDto';
+import { PagedResponseAdminUserViewDto } from '../model/pagedResponseAdminUserViewDto';
 // @ts-ignore
 import { ProblemDetail } from '../model/problemDetail';
 
@@ -35,27 +35,27 @@ import { BaseService } from '../api.base.service';
 @Injectable({
   providedIn: 'root'
 })
-export class BookAPIService extends BaseService {
+export class AdminAPIService extends BaseService {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
     }
 
     /**
-     * Get all books
-     * Retrieves a paginated list of all books.
-     * @endpoint get /api/books
+     * Get all users
+     * Retrieves a paginated list of all users in the system.
+     * @endpoint get /api/admin/users
      * @param pageable 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getAllBooks(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public getAllBooks(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public getAllBooks(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public getAllBooks(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getAllUsers(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseAdminUserViewDto>;
+    public getAllUsers(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseAdminUserViewDto>>;
+    public getAllUsers(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseAdminUserViewDto>>;
+    public getAllUsers(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling getAllBooks.');
+            throw new Error('Required parameter pageable was null or undefined when calling getAllUsers.');
         }
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
@@ -94,9 +94,9 @@ export class BookAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/books`;
+        let localVarPath = `/api/admin/users`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PagedResponseBookSummaryDto>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<PagedResponseAdminUserViewDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 params: localVarQueryParameters.toHttpParams(),
@@ -111,20 +111,24 @@ export class BookAPIService extends BaseService {
     }
 
     /**
-     * Get book by ID
-     * Retrieves a specific book.
-     * @endpoint get /api/books/{id}
-     * @param id The UUID of the book
+     * Lock a user account
+     * Locks a user\&#39;s account, preventing them from logging in.
+     * @endpoint post /api/admin/users/{userId}/lock
+     * @param userId The UUID of the user to lock.
+     * @param lockUserRequestDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getBookById(id: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<BookDetailsDto>;
-    public getBookById(id: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<BookDetailsDto>>;
-    public getBookById(id: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<BookDetailsDto>>;
-    public getBookById(id: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling getBookById.');
+    public lockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public lockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public lockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public lockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (userId === null || userId === undefined) {
+            throw new Error('Required parameter userId was null or undefined when calling lockUser.');
+        }
+        if (lockUserRequestDto === null || lockUserRequestDto === undefined) {
+            throw new Error('Required parameter lockUserRequestDto was null or undefined when calling lockUser.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -141,6 +145,15 @@ export class BookAPIService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
         let responseType_: 'text' | 'json' | 'blob' = 'json';
         if (localVarHttpHeaderAcceptSelected) {
             if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
@@ -152,11 +165,12 @@ export class BookAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/books/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
+        let localVarPath = `/api/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/lock`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<BookDetailsDto>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                body: lockUserRequestDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -168,42 +182,25 @@ export class BookAPIService extends BaseService {
     }
 
     /**
-     * Search books
-     * Search by title or author name.
-     * @endpoint get /api/books/search
-     * @param pageable 
-     * @param query 
+     * Unlock a user account
+     * Unlocks a previously locked user account.
+     * @endpoint post /api/admin/users/{userId}/unlock
+     * @param userId The UUID of the user to unlock.
+     * @param lockUserRequestDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling searchBooks.');
+    public unlockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public unlockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public unlockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public unlockUser(userId: string, lockUserRequestDto: LockUserRequestDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (userId === null || userId === undefined) {
+            throw new Error('Required parameter userId was null or undefined when calling unlockUser.');
         }
-
-        let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
-
-        localVarQueryParameters = this.addToHttpParams(
-            localVarQueryParameters,
-            'query',
-            <any>query,
-            QueryParamStyle.Form,
-            true,
-        );
-
-
-        localVarQueryParameters = this.addToHttpParams(
-            localVarQueryParameters,
-            'pageable',
-            <any>pageable,
-            QueryParamStyle.Form,
-            true,
-        );
-
+        if (lockUserRequestDto === null || lockUserRequestDto === undefined) {
+            throw new Error('Required parameter lockUserRequestDto was null or undefined when calling unlockUser.');
+        }
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -219,6 +216,15 @@ export class BookAPIService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
         let responseType_: 'text' | 'json' | 'blob' = 'json';
         if (localVarHttpHeaderAcceptSelected) {
             if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
@@ -230,12 +236,12 @@ export class BookAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/books/search`;
+        let localVarPath = `/api/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/unlock`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PagedResponseBookSummaryDto>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                params: localVarQueryParameters.toHttpParams(),
+                body: lockUserRequestDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

@@ -4,6 +4,9 @@ import bg.softuni.bookshelf.data.entity.identity.AdminUser;
 import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
 import bg.softuni.bookshelf.data.entity.identity.User;
 import bg.softuni.bookshelf.data.repository.UserRepository;
+import bg.softuni.bookshelf.service.user.AccountStatusService;
+import bg.softuni.bookshelf.shared.exception.BusinessException;
+import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,6 +30,7 @@ import java.util.Collections;
 public class CustomUserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final AccountStatusService accountStatusService;
 
     /**
      * Loads a user from the database by their unique username.
@@ -61,13 +65,11 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
         if (user instanceof AdminUser) {
             role = "ROLE_ADMIN";
             isEnabled = true; // Admins are always enabled
-        } else if (user instanceof ApplicationUser appUser) {
+        } else if (user instanceof ApplicationUser) {
             role = "ROLE_USER";
-            // A user is considered enabled for login purposes if their account is active,
-            // even if their email is not yet verified.
-            isEnabled = appUser.isActive();
+            isEnabled = accountStatusService.isUserActive(user.getId());
         } else {
-            throw new IllegalStateException("Unknown user type: " + user.getClass().getSimpleName());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unknown user type: " + user.getClass().getSimpleName());
         }
 
         return new CustomUserDetails(
@@ -75,6 +77,7 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
                 user.getUsername(),
                 user.getPassword(),
                 isEnabled,
+                user.isPasswordChangeRequired(),
                 Collections.singletonList(new SimpleGrantedAuthority(role))
         );
     }

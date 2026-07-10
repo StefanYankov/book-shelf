@@ -51,7 +51,6 @@ class VerificationTokenRepositoryTest {
         user.setPassword("hashed-password");
         user.setFirstName("Test");
         user.setLastName("User");
-        user.setActive(true);
         user.setEmailVerified(false);
         return userRepository.saveAndFlush(user);
     }

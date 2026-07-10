@@ -210,7 +210,7 @@ The local configuration environment seeds the following testing user definitions
 
 If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
 
-1. Navigate to the **Forgot Password** page in the UI.
+1. Navigate to the **Forgot Password** page in the UI.    
 2. Enter the email address of the pre-seeded account you wish to access (e.g., admin@example.com or user1@example.com).
 3. Open your backend console to locate the dispatched reset link:
    📧 MOCK EMAIL DISPATCHED
