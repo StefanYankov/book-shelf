@@ -18,6 +18,7 @@ import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfCreateDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfSummaryDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfUpdateDto;
 import bg.softuni.bookshelf.shared.DeveloperErrors;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -63,10 +64,11 @@ public class BookshelfServiceImpl extends BaseService implements BookshelfServic
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookshelfSummaryDto> getShelvesForUser(UUID userId, Pageable pageable) {
+    public PagedResponse<BookshelfSummaryDto> getShelvesForUser(UUID userId, Pageable pageable) {
         log.debug("Fetching shelves for user {}", userId);
-        return bookshelfRepository.findAllByUser_Id(userId, pageable)
+        Page<BookshelfSummaryDto> mappedPage = bookshelfRepository.findAllByUser_Id(userId, pageable)
                 .map(bookshelfMapper::toShelfSummaryDto);
+        return PagedResponse.from(mappedPage);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class BookshelfServiceImpl extends BaseService implements BookshelfServic
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookSummaryDto> getBooksInShelf(UUID shelfId, Pageable pageable) {
+    public PagedResponse<BookSummaryDto> getBooksInShelf(UUID shelfId, Pageable pageable) {
         log.debug("Fetching books in shelf {}", shelfId);
 
         if (!bookshelfRepository.existsById(shelfId)) {
@@ -87,7 +89,7 @@ public class BookshelfServiceImpl extends BaseService implements BookshelfServic
         }
 
         Page<Book> books = bookshelfBookRepository.findBooksByBookshelfId(shelfId, pageable);
-        return books.map(bookMapper::toBookSummaryDto);
+        return PagedResponse.from(books.map(bookMapper::toBookSummaryDto));
     }
 
     @Override

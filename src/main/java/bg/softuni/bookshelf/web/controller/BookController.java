@@ -2,6 +2,7 @@ package bg.softuni.bookshelf.web.controller;
 
 import bg.softuni.bookshelf.service.book.BookService;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
+import bg.softuni.bookshelf.service.book.dto.BookSearchFilters;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
@@ -10,8 +11,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -66,19 +69,18 @@ public class BookController {
 
     @Operation(
             operationId = "searchBooks",
-            summary = "Search books",
-            description = "Search by title or author name."
+            summary = "Advanced book search",
+            description = "Performs a faceted search across the book catalog."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Search results retrieved")
     })
     @GetMapping("/search")
     public ResponseEntity<PagedResponse<BookSummaryDto>> searchBooks(
-            @RequestParam(required = false) String query,
+            @ParameterObject @Valid BookSearchFilters filters,
             Pageable pageable
     ) {
-        log.info("API GET request to search books with query: {}", query);
-        Page<BookSummaryDto> bookPage = bookService.searchBooks(query, pageable);
-        return ResponseEntity.ok(PagedResponse.from(bookPage));
+        log.info("Faceted catalog search request. Filters: {}", filters);
+        return ResponseEntity.ok(bookService.searchBooks(filters, pageable));
     }
 }

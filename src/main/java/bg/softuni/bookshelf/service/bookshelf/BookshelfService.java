@@ -2,7 +2,7 @@ package bg.softuni.bookshelf.service.bookshelf;
 
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.*;
-import org.springframework.data.domain.Page;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
@@ -33,9 +33,9 @@ public interface BookshelfService {
      *
      * @param userId   The UUID of the user.
      * @param pageable The pagination and sorting information.
-     * @return A {@link Page} of {@link BookshelfSummaryDto} objects.
+     * @return A {@link PagedResponse} of {@link BookshelfSummaryDto} objects.
      */
-    Page<BookshelfSummaryDto> getShelvesForUser(UUID userId, Pageable pageable);
+    PagedResponse<BookshelfSummaryDto> getShelvesForUser(UUID userId, Pageable pageable);
 
     /**
      * Retrieves the detailed view of a single bookshelf, including a paginated list of its books.
@@ -50,9 +50,9 @@ public interface BookshelfService {
      *
      * @param shelfId  The UUID of the bookshelf.
      * @param pageable The pagination and sorting information for the books.
-     * @return A {@link Page} of {@link BookSummaryDto} objects.
+     * @return A {@link PagedResponse} of {@link BookSummaryDto} objects.
      */
-    Page<BookSummaryDto> getBooksInShelf(UUID shelfId, Pageable pageable);
+    PagedResponse<BookSummaryDto> getBooksInShelf(UUID shelfId, Pageable pageable);
 
     /**
      * Updates the details (e.g., name, description) of an existing bookshelf.

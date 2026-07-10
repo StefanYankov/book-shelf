@@ -4,11 +4,9 @@ import bg.softuni.bookshelf.data.entity.*;
 import bg.softuni.bookshelf.data.entity.value.Image;
 import bg.softuni.bookshelf.data.repository.*;
 import bg.softuni.bookshelf.service.base.BaseService;
-import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
-import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
-import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
-import bg.softuni.bookshelf.service.book.dto.BookUpdateDto;
+import bg.softuni.bookshelf.service.book.dto.*;
 import bg.softuni.bookshelf.shared.DeveloperErrors;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
@@ -17,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -168,13 +167,14 @@ public class BookServiceImpl extends BaseService implements BookService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookSummaryDto> searchBooks(String query, Pageable pageable) {
-        if (query == null || query.isBlank()){
-            return bookRepository.findAllWithAuthors(pageable).map(bookMapper::toBookSummaryDto);
-        }
+    public PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable) {
+        log.info("Faceted catalog search initialization. Filters: {}", filters);
 
-        log.info("Searching books with query: '{}'", query);
-        return bookRepository.searchByTitleOrAuthor(query, pageable)
-                .map(bookMapper::toBookSummaryDto);
+        Specification<Book> spec = BookSpecification.filterCatalog(filters);
+        Page<Book> matchingBooks = bookRepository.findAll(spec, pageable);
+
+        log.debug("Found {} database records matching current catalog search parameters", matchingBooks.getTotalElements());
+
+        return PagedResponse.from(matchingBooks.map(bookMapper::toBookSummaryDto));
     }
 }

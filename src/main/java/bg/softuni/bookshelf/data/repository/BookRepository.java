@@ -5,6 +5,7 @@ import bg.softuni.bookshelf.data.entity.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,9 +15,10 @@ import java.util.UUID;
 
 /**
  * Spring Data JPA repository for the {@link Book} entity.
+ * Extends JpaSpecificationExecutor to process composite runtime criteria query predicates.
  */
 @Repository
-public interface BookRepository extends JpaRepository<Book, UUID> {
+public interface BookRepository extends JpaRepository<Book, UUID>, JpaSpecificationExecutor<Book> {
 
     /**
      * Fetches a paginated list of books from the database and eagerly loads their associated

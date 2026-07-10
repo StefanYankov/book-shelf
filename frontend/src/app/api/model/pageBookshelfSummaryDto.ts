@@ -13,8 +13,8 @@ import { SortObject } from './sortObject';
 
 
 export interface PageBookshelfSummaryDto { 
-    totalElements?: number;
     totalPages?: number;
+    totalElements?: number;
     size?: number;
     content?: Array<BookshelfSummaryDto>;
     number?: number;

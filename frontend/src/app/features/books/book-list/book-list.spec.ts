@@ -2,24 +2,21 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { asyncScheduler, firstValueFrom, of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import { BookList } from './book-list';
-import { BookService } from '../../../core/services/book.service';
+import { BookAPIService, PageBookSummaryDto } from '../../../api';
 import { BookshelfService } from '../../../core/services/bookshelf.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { PageBookSummaryDto } from '../../../api';
+import { AuthService } from '../../../core/services/auth.service';
 
-vi.spyOn(asyncScheduler, 'schedule').mockImplementation(function (this: unknown, work, delay, state) {
-  return asyncScheduler.schedule.call(this, work, 0, state);
-});
-
-describe('BookList Component', () => {
+describe('BookList Component Unit Tests', () => {
   let component: BookList;
   let fixture: ComponentFixture<BookList>;
-  let mockBookService: { searchBooks: Mock };
+  let mockBookApiService: { searchBooks: Mock };
   let mockBookshelfService: { getShelvesForUser: Mock; addBookToShelf: Mock };
   let mockToastService: { showSuccess: Mock; showError: Mock };
+  let mockAuthService: { isLoggedIn: Mock };
 
   const mockEmptyPage: PageBookSummaryDto = {
     content: [],
@@ -29,8 +26,10 @@ describe('BookList Component', () => {
   };
 
   beforeEach(async () => {
-    mockBookService = {
-      searchBooks: vi.fn()
+    vi.useFakeTimers();
+
+    mockBookApiService = {
+      searchBooks: vi.fn().mockReturnValue(of(mockEmptyPage))
     };
     mockBookshelfService = {
       getShelvesForUser: vi.fn().mockReturnValue(of({ content: [] })),
@@ -40,6 +39,9 @@ describe('BookList Component', () => {
       showSuccess: vi.fn(),
       showError: vi.fn()
     };
+    mockAuthService = {
+      isLoggedIn: vi.fn().mockReturnValue(true)
+    };
 
     await TestBed.configureTestingModule({
       imports: [BookList],
@@ -47,9 +49,10 @@ describe('BookList Component', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: BookService, useValue: mockBookService },
+        { provide: BookAPIService, useValue: mockBookApiService },
         { provide: BookshelfService, useValue: mockBookshelfService },
-        { provide: ToastService, useValue: mockToastService }
+        { provide: ToastService, useValue: mockToastService },
+        { provide: AuthService, useValue: mockAuthService }
       ]
     }).compileComponents();
 
@@ -59,22 +62,30 @@ describe('BookList Component', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
-  it('should create', () => {
+  it('should create cleanly', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should call searchBooks on init with empty query', async () => {
-    mockBookService.searchBooks.mockReturnValue(of(mockEmptyPage));
+  it('should call searchBooks on init with default criteria', () => {
+    mockBookApiService.searchBooks.mockReturnValue(of(mockEmptyPage));
 
     fixture.detectChanges();
-    await firstValueFrom(component['books$']);
+    vi.advanceTimersByTime(300);
 
-    expect(mockBookService.searchBooks).toHaveBeenCalledWith('', 0, 20);
+    expect(mockBookApiService.searchBooks).toHaveBeenCalledWith(
+      { page: 0, size: 20 },
+      undefined,
+      expect.any(Set),
+      undefined,
+      undefined,
+      undefined
+    );
   });
 
-  it('should display books from the service when data arrives', async () => {
+  it('should display books from the service when data arrives', () => {
     // Arrange
     const mockBookPage: PageBookSummaryDto = {
       content: [
@@ -85,10 +96,12 @@ describe('BookList Component', () => {
       number: 0,
       totalElements: 2
     };
-    mockBookService.searchBooks.mockReturnValue(of(mockBookPage));
+    mockBookApiService.searchBooks.mockReturnValue(of(mockBookPage));
 
+    component['searchForm'].patchValue({ query: 'Hobbit' });
     fixture.detectChanges();
-    await firstValueFrom(component['books$']);
+
+    vi.advanceTimersByTime(300);
     fixture.detectChanges();
 
     // Act
@@ -99,17 +112,30 @@ describe('BookList Component', () => {
     expect(fixture.nativeElement.querySelector('.card-title').textContent).toContain('The Hobbit');
   });
 
-  it('should call searchBooks with query after user types in search bar', async () => {
+  it('should call searchBooks with query after user types in search bar', () => {
     // Act
-    mockBookService.searchBooks.mockReturnValue(of(mockEmptyPage));
+    mockBookApiService.searchBooks.mockReturnValue(of(mockEmptyPage));
     fixture.detectChanges();
-    await firstValueFrom(component['books$']);
-    mockBookService.searchBooks.mockClear();
-    component.searchControl.setValue('The Hobbit');
-    await firstValueFrom(component['books$']);
+    vi.advanceTimersByTime(300);
+
+    mockBookApiService.searchBooks.mockClear();
+    component['searchForm'].patchValue({ query: 'The Hobbit' });
+
+    fixture.detectChanges();
+
+    expect(mockBookApiService.searchBooks).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(300);
 
     // Assert
-    expect(mockBookService.searchBooks).toHaveBeenCalledWith('The Hobbit', 0, 20);
+    expect(mockBookApiService.searchBooks).toHaveBeenCalledWith(
+      { page: 0, size: 20 },
+      'The Hobbit',
+      expect.any(Set),
+      undefined,
+      undefined,
+      undefined
+    );
   });
 
   describe('addToShelf', () => {

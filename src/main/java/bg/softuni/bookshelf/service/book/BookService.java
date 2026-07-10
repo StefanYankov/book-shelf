@@ -1,10 +1,7 @@
 package bg.softuni.bookshelf.service.book;
 
-import bg.softuni.bookshelf.data.repository.BookRepository;
-import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
-import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
-import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
-import bg.softuni.bookshelf.service.book.dto.BookUpdateDto;
+import bg.softuni.bookshelf.service.book.dto.*;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.springframework.data.domain.Page;
@@ -84,15 +81,11 @@ public interface BookService {
     Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable);
 
     /**
-     * Searches for books based on a title or author name query.
-     * <p>
-     * If the provided query is null or blank, this method defaults to returning
-     * all books in a paginated format. Otherwise, it filters the catalog
-     * using the {@link BookRepository#searchByTitleOrAuthor(String, Pageable)} query.
+     * Executes a dynamic, faceted query search across the aggregate book collection.
      *
-     * @param query    The search string provided by the user.
-     * @param pageable The pagination information.
-     * @return A {@link Page} of {@link BookSummaryDto} objects containing the search results.
+     * @param filters   An object containing all nullable search criteria. See {@link BookSearchFilters} for detailed fields.
+     * @param pageable  The target pagination constraints.
+     * @return          An immutable PagedResponse containing summaries of the matched books.
      */
-    Page<BookSummaryDto> searchBooks(String query, Pageable pageable);
+    PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable);
 }

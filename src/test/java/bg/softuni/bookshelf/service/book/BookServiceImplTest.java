@@ -6,10 +6,8 @@ import bg.softuni.bookshelf.data.entity.Genre;
 import bg.softuni.bookshelf.data.entity.Language;
 import bg.softuni.bookshelf.data.entity.Publisher;
 import bg.softuni.bookshelf.data.repository.*;
-import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
-import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
-import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
-import bg.softuni.bookshelf.service.book.dto.BookUpdateDto;
+import bg.softuni.bookshelf.service.book.dto.*;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
@@ -27,12 +25,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -380,91 +376,95 @@ class BookServiceImplTest {
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.BOOK_NOT_FOUND);
 
-            verify(bookRepository, never()).delete(any());
+            // Explicitly target the delete(Book) signature to resolve compiler ambiguity
+            verify(bookRepository, never()).delete(any(Book.class));
         }
     }
 
     @Nested
-    @DisplayName("searchBooks(String, Pageable)")
+    @DisplayName("searchBooks(BookSearchFilters, Pageable) Tests")
     class SearchBooksTests {
 
+        @SuppressWarnings("unchecked")
         @Test
         @DisplayName("Search: Should call findAll when query is null")
         void shouldCallFindAllWhenQueryIsNull() {
             // Arrange
-            String query = null;
+            BookSearchFilters filters = new BookSearchFilters(null, Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()));
-            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "http://example.com/image.jpg");
+            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
+            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "https://example.com/image.jpg");
 
-            when(bookRepository.findAllWithAuthors(any(Pageable.class))).thenReturn(mockBookPage);
+            when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
             // Act
-            Page<BookSummaryDto> result = bookServiceImpl.searchBooks(query, pageable);
+            PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
             // Assert
-            assertNotNull(result);
-            verify(bookRepository).findAllWithAuthors(pageable);
-            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any(Pageable.class));
+            assertThat(result).isNotNull();
+            verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
 
+        @SuppressWarnings("unchecked")
         @Test
         @DisplayName("Search: Should call findAll when query is empty string")
         void shouldCallFindAllWhenQueryIsEmpty() {
             // Arrange
-            String query = "";
+            BookSearchFilters filters = new BookSearchFilters("", Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()));
-            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "http://example.com/image.jpg");
+            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
+            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "https://example.com/image.jpg");
 
-            when(bookRepository.findAllWithAuthors(any(Pageable.class))).thenReturn(mockBookPage);
+            when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
             // Act
-            Page<BookSummaryDto> result = bookServiceImpl.searchBooks(query, pageable);
+            PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
             // Assert
-            assertNotNull(result);
-            verify(bookRepository).findAllWithAuthors(pageable);
-            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any(Pageable.class));
+            assertThat(result).isNotNull();
+            verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
 
         @Test
         @DisplayName("Search: Should call findAll when query is only whitespace")
         void shouldCallFindAllWhenQueryIsBlank() {
             // Arrange
-            String query = "   ";
+            BookSearchFilters filters = new BookSearchFilters("   ", Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()));
-            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "http://example.com/image.jpg");
+            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
+            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "Title", "Author", "https://example.com/image.jpg");
 
-            when(bookRepository.findAllWithAuthors(any(Pageable.class))).thenReturn(mockBookPage);
+            when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
             // Act
-            Page<BookSummaryDto> result = bookServiceImpl.searchBooks(query, pageable);
+            PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
             // Assert
-            assertNotNull(result);
-            verify(bookRepository).findAllWithAuthors(pageable);
-            verify(bookRepository, never()).searchByTitleOrAuthor(anyString(), any(Pageable.class));
+            assertThat(result).isNotNull();
+            verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
 
         @Test
-        @DisplayName("Search: Should call searchByTitleOrAuthor when query is a valid string")
+        @DisplayName("Search: Should call findAll when query is a valid string")
         void shouldCallSearchWhenQueryIsValid() {
             // Arrange
-            String query = "Tolkien";
-            Pageable p = PageRequest.of(0, 10);
-            given(bookRepository.searchByTitleOrAuthor(query, p)).willReturn(Page.empty());
+            BookSearchFilters filters = new BookSearchFilters("Tolkien", Collections.emptySet(), null, null, null);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
+            BookSummaryDto mockDto = new BookSummaryDto(UUID.randomUUID(), "The Hobbit", "J.R.R. Tolkien", "https://example.com/image.jpg");
+
+            when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
+            when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
             // Act
-            bookServiceImpl.searchBooks(query, p);
+            PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
             // Assert
-            verify(bookRepository).searchByTitleOrAuthor(query, p);
-            verify(bookRepository, never()).findAll(any(Pageable.class));
+            assertThat(result).isNotNull();
+            verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
     }
 }

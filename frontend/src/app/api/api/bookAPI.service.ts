@@ -168,19 +168,23 @@ export class BookAPIService extends BaseService {
     }
 
     /**
-     * Search books
-     * Search by title or author name.
+     * Advanced book search
+     * Performs a faceted search across the book catalog.
      * @endpoint get /api/books/search
      * @param pageable 
      * @param query 
+     * @param genres 
+     * @param format 
+     * @param yearMin 
+     * @param yearMax 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
+    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
+    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
+    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (pageable === null || pageable === undefined) {
             throw new Error('Required parameter pageable was null or undefined when calling searchBooks.');
         }
@@ -191,6 +195,42 @@ export class BookAPIService extends BaseService {
             localVarQueryParameters,
             'query',
             <any>query,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'genres',
+            <any>genres,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'format',
+            <any>format,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'yearMin',
+            <any>yearMin,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'yearMax',
+            <any>yearMax,
             QueryParamStyle.Form,
             true,
         );

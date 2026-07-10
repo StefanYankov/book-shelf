@@ -12,3 +12,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+# NOTE: This is a shared test profile. Changes here may have side effects on other tests.
+# For isolated properties, consider using @TestPropertySource on the specific test class.
+application:
+  security:
+    jwt:
+      secret-key: "test_secret_key_of_at_least_256_bits_for_signing_purposes_123456"
+      expiration: 60000
