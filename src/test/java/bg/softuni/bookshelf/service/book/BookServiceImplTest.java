@@ -426,6 +426,7 @@ class BookServiceImplTest {
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
 
+        @SuppressWarnings("unchecked")
         @Test
         @DisplayName("Search: Should call findAll when query is only whitespace")
         void shouldCallFindAllWhenQueryIsBlank() {
@@ -446,6 +447,7 @@ class BookServiceImplTest {
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
 
+        @SuppressWarnings("unchecked")
         @Test
         @DisplayName("Search: Should call findAll when query is a valid string")
         void shouldCallSearchWhenQueryIsValid() {
