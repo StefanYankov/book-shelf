@@ -38,9 +38,8 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         if (userDetails instanceof CustomUserDetails customUserDetails) {
             claims.put("userId", customUserDetails.getId());
-            claims.put("pwd_chg_req", customUserDetails.isPasswordChangeRequired());
         }
-        
+        // Add the user's role to the claims
         String role = userDetails.getAuthorities().stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)

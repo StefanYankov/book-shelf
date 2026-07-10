@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,18 +14,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {SecurityFilterChainIntegrationTest.SecuredTestController.class, UserController.class})
+@WebMvcTest(controllers = SecurityFilterChainIntegrationTest.SecuredTestController.class)
 @DisplayName("Security Filter Chain Integration Tests")
 class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
 
@@ -50,20 +46,22 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
     class JwtFilterTests {
 
         @Test
-        @DisplayName("Should allow request to proceed when token is valid and password change is not required")
-        void shouldAllowAccess_WhenTokenIsValid() throws Exception {
+        @DisplayName("Should allow request to proceed to admin endpoint when token claims extract ROLE_ADMIN")
+        void shouldAllowAdminToAccessProtectedResource() throws Exception {
             // Arrange
             String token = "valid-admin-jwt";
             String username = "adminUser";
             CustomUserDetails principal = new CustomUserDetails(
-                    UUID.randomUUID(), username, "password", true, false,
+                    UUID.randomUUID(),
+                    username,
+                    "password",
+                    true,
                     List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
             );
 
             given(jwtService.extractUsername(token)).willReturn(username);
             given(jwtService.isTokenValid(eq(token), any(UserDetails.class))).willReturn(true);
             given(userDetailsService.loadUserByUsername(username)).willReturn(principal);
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(false);
 
             // Act
             ResultActions result = mockMvc.perform(get("/api/test/admin-only")
@@ -71,53 +69,40 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
 
             // Assert
             result.andExpect(status().isOk());
+            verify(jwtService, times(1)).extractUsername(token);
+            verify(jwtService, times(1)).isTokenValid(eq(token), any(UserDetails.class));
+            verify(userDetailsService, times(1)).loadUserByUsername(username);
         }
 
         @Test
-        @DisplayName("Should return 403 Forbidden when password change is required")
-        void shouldReturn403_WhenPasswordChangeIsRequired() throws Exception {
+        @DisplayName("Should return 403 Forbidden on admin endpoint when token claims contain only ROLE_USER")
+        void shouldBlockNormalUserFromAdminEndpoint() throws Exception {
             // Arrange
             String token = "valid-user-jwt";
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(true);
-
-            // Act
-            ResultActions result = mockMvc.perform(get("/api/test/user-only")
-                    .header("Authorization", "Bearer " + token));
-
-            // Assert
-            result.andExpect(status().isForbidden())
-                  .andExpect(jsonPath("$.type").value("urn:bookshelf:password-change-required"));
-        }
-
-        @Test
-        @DisplayName("Should allow access to password change endpoint when password change is required")
-        void shouldAllowAccessToPasswordChangeEndpoint() throws Exception {
-            // Arrange
-            String token = "valid-user-jwt";
-            String username = "testUser";
+            String username = "normalUser";
             CustomUserDetails principal = new CustomUserDetails(
-                    UUID.randomUUID(), username, "password", true, true,
+                    UUID.randomUUID(),
+                    username,
+                    "password",
+                    true,
                     List.of(new SimpleGrantedAuthority("ROLE_USER"))
             );
 
             given(jwtService.extractUsername(token)).willReturn(username);
             given(jwtService.isTokenValid(eq(token), any(UserDetails.class))).willReturn(true);
             given(userDetailsService.loadUserByUsername(username)).willReturn(principal);
-            given(jwtService.extractClaim(eq(token), any(Function.class))).willReturn(true);
 
             // Act
-            ResultActions result = mockMvc.perform(put("/api/users/me/password")
-                    .header("Authorization", "Bearer " + token)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"currentPassword\":\"a\",\"newPassword\":\"b\"}"));
+            ResultActions result = mockMvc.perform(get("/api/test/admin-only")
+                    .header("Authorization", "Bearer " + token));
 
             // Assert
-            result.andExpect(status().isBadRequest());
+            result.andExpect(status().isForbidden());
         }
 
         @Test
-        @DisplayName("Should return 401 Unauthorized for secured endpoint without a token")
-        void shouldRejectAnonymousRequests() throws Exception {
+        @DisplayName("Should return 401 Unauthorized when requesting a secured endpoint without a token")
+        void shouldRejectAnonymousRequestsOnProtectedResources() throws Exception {
             // Act
             ResultActions result = mockMvc.perform(get("/api/test/admin-only"));
 

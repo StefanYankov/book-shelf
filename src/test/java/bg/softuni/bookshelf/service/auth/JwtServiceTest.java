@@ -51,7 +51,7 @@ class JwtServiceTest {
     class GenerateTokenTests {
 
         @Test
-        @DisplayName("Should include username and role claim when generating token with standard UserDetails and omit pwd_chg_req")
+        @DisplayName("Should include username and role claim when generating token with standard UserDetails")
         void shouldGenerateTokenWithRoleClaim() {
             // Arrange
             String username = "standardUser";
@@ -73,17 +73,13 @@ class JwtServiceTest {
             Object extractedUserId = jwtService.extractClaim(token, claims -> claims.get("userId"));
             assertThat(extractedUserId).isNull();
 
-            // Guard assertion: standard Spring Security UserDetails should not receive this claim
-            Object extractedPwdChgReq = jwtService.extractClaim(token, claims -> claims.get("pwd_chg_req"));
-            assertThat(extractedPwdChgReq).isNull();
-
             verify(userDetails, times(1)).getUsername();
             verify(userDetails, times(1)).getAuthorities();
         }
 
         @Test
-        @DisplayName("Should include custom userId, role, and true pwd_chg_req claims when CustomUserDetails requires a password change")
-        void shouldGenerateTokenWithCustomClaimsTrue() {
+        @DisplayName("Should include custom userId and role claims when CustomUserDetails is provided")
+        void shouldGenerateTokenWithCustomClaims() {
             // Arrange
             UUID userId = UUID.randomUUID();
             String username = "customUser";
@@ -91,7 +87,6 @@ class JwtServiceTest {
 
             when(customUserDetails.getId()).thenReturn(userId);
             when(customUserDetails.getUsername()).thenReturn(username);
-            when(customUserDetails.isPasswordChangeRequired()).thenReturn(true);
             doReturn(authorities).when(customUserDetails).getAuthorities();
 
             // Act
@@ -107,38 +102,9 @@ class JwtServiceTest {
             String extractedUserId = jwtService.extractClaim(token, claims -> claims.get("userId", String.class));
             assertThat(extractedUserId).isEqualTo(userId.toString());
 
-            Boolean extractedPwdChgReq = jwtService.extractClaim(token, claims -> claims.get("pwd_chg_req", Boolean.class));
-            assertThat(extractedPwdChgReq).isTrue();
-
             verify(customUserDetails, times(1)).getId();
-            verify(customUserDetails, times(1)).isPasswordChangeRequired();
             verify(customUserDetails, times(1)).getUsername();
             verify(customUserDetails, times(1)).getAuthorities();
-        }
-
-        @Test
-        @DisplayName("Should include false pwd_chg_req claim when CustomUserDetails does not require a password change")
-        void shouldGenerateTokenWithCustomClaimsFalse() {
-            // Arrange
-            UUID userId = UUID.randomUUID();
-            String username = "cleanUser";
-            Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-
-            when(customUserDetails.getId()).thenReturn(userId);
-            when(customUserDetails.getUsername()).thenReturn(username);
-            when(customUserDetails.isPasswordChangeRequired()).thenReturn(false);
-            doReturn(authorities).when(customUserDetails).getAuthorities();
-
-            // Act
-            String token = jwtService.generateToken(customUserDetails);
-
-            // Assert
-            assertThat(token).isNotBlank();
-            Boolean extractedPwdChgReq = jwtService.extractClaim(token, claims -> claims.get("pwd_chg_req", Boolean.class));
-            assertThat(extractedPwdChgReq).isFalse();
-
-            verify(customUserDetails, times(1)).getId();
-            verify(customUserDetails, times(1)).isPasswordChangeRequired();
         }
 
         @Test
@@ -196,7 +162,7 @@ class JwtServiceTest {
         @DisplayName("Should throw ExpiredJwtException when parsing expired token sequences")
         void shouldThrowWhenTokenIsExpired() {
             // Arrange
-            ReflectionTestUtils.setField(jwtService, "jwtExpiration", -1000L);
+            ReflectionTestUtils.setField(jwtService, "jwtExpiration", -1000L); // Set negative expiration limit
             when(userDetails.getUsername()).thenReturn("expiredUser");
             doReturn(Collections.emptyList()).when(userDetails).getAuthorities();
 

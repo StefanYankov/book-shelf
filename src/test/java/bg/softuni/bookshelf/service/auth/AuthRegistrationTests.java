@@ -49,6 +49,7 @@ public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
             verify(userRepository).save(userCaptor.capture());
             ApplicationUser capturedUser = userCaptor.getValue();
             assertThat(capturedUser.getPassword()).isEqualTo("hashedPassword");
+            assertThat(capturedUser.isActive()).isTrue();
             assertThat(capturedUser.isEmailVerified()).isFalse();
 
             // Assert: Security Token Verification

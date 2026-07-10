@@ -1,13 +1,10 @@
 <div class="container mt-5">
-  @if (authService.isPasswordChangeRequired()) {
-    <div class="alert alert-warning" role="alert">
-      <strong>Action Required:</strong> You must change your password before you can access other parts of the application.
-    </div>
-  }
-
   <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-8 offset-md-2">
       <h2>My Profile</h2>
+      <hr>
+
+      <!-- Profile Information Form -->
       <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
         <div class="mb-3">
           <label for="username" class="form-label">Username</label>
@@ -27,9 +24,11 @@
         </div>
         <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Update Profile</button>
       </form>
-    </div>
-    <div class="col-md-6">
-      <h2>Change Password</h2>
+
+      <h4 class="mt-5">Change Password</h4>
+      <hr>
+
+      <!-- Change Password Form -->
       <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
         <div class="mb-3">
           <label for="currentPassword" class="form-label">Current Password</label>

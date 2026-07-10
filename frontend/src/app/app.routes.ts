@@ -82,11 +82,6 @@ export const routes: Routes = [
         title: `${APP_TITLE} | My Profile`,
         loadComponent: () => import('./features/profile/profile').then(m => m.Profile)
       },
-      {
-        path: 'admin',
-        canActivate: [adminGuard],
-        loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
-      },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
