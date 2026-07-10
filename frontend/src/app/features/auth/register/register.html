@@ -2,33 +2,36 @@
   <h2>Create an Account</h2>
   <p class="subtitle">Join our community of book lovers</p>
 
-  @if (isSuccess) {
+  @if (isSuccess()) {
     <div class="success-message">
       Registration successful! You will be redirected to the login page shortly.
     </div>
   }
 
-  @if (errorMessage) {
+  @if (errorMessage()) {
     <div class="error-message">
-      {{ errorMessage }}
+      {{ errorMessage() }}
     </div>
   }
 
-  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" [hidden]="isSuccess">
-    <div class="form-group">
-      <label for="firstName">First Name</label>
-      <input id="firstName" type="text" formControlName="firstName" placeholder="e.g. John">
-      @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
-        <div class="validation-error">First name is required</div>
-      }
-    </div>
+  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" [hidden]="isSuccess()">
 
-    <div class="form-group">
-      <label for="lastName">Last Name</label>
-      <input id="lastName" type="text" formControlName="lastName" placeholder="e.g. Doe">
-      @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
-        <div class="validation-error">Last name is required</div>
-      }
+    <div class="form-row">
+      <div class="form-group half-width">
+        <label for="firstName">First Name</label>
+        <input id="firstName" type="text" formControlName="firstName" placeholder="e.g. John">
+        @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
+          <div class="validation-error">First name is required</div>
+        }
+      </div>
+
+      <div class="form-group half-width">
+        <label for="lastName">Last Name</label>
+        <input id="lastName" type="text" formControlName="lastName" placeholder="e.g. Doe">
+        @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
+          <div class="validation-error">Last name is required</div>
+        }
+      </div>
     </div>
 
     <div class="form-group">
@@ -55,12 +58,12 @@
       }
     </div>
 
-    <button type="submit" [disabled]="registerForm.invalid || isLoading">
-      {{ isLoading ? 'Registering...' : 'Create Account' }}
+    <button type="submit" [disabled]="isLoading()">
+      {{ isLoading() ? 'Registering...' : 'Create Account' }}
     </button>
   </form>
 
-  <div class="login-link" [hidden]="isSuccess">
+  <div class="login-link" [hidden]="isSuccess()">
     <p>Already have an account? <a routerLink="/login">Sign in</a></p>
   </div>
 </div>

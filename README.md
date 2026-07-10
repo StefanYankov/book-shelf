@@ -210,7 +210,7 @@ The local configuration environment seeds the following testing user definitions
 
 If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
 
-1. Navigate to the **Forgot Password** page in the UI.    
+1. Navigate to the **Forgot Password** page in the UI.
 2. Enter the email address of the pre-seeded account you wish to access (e.g., admin@example.com or user1@example.com).
 3. Open your backend console to locate the dispatched reset link:
    📧 MOCK EMAIL DISPATCHED
@@ -219,6 +219,25 @@ If you cannot authenticate using the default credentials, use the **Password Res
 
 4. Copy the link, paste it into your browser, and set a new password (e.g., password).
 5. This saves a freshly hashed password using the current runtime salt configuration, allowing you to log in successfully.
+
+## Admin Recovery CLI
+
+In a production environment, if the primary administrator is locked out, a privileged user with SSH access to the server can perform an emergency password reset.
+
+1.  **Access the Server**: Securely connect to the server where the application `.jar` is running.
+2.  **Run the Command**: Execute the following command to force a password reset for the specified user.
+
+    ```bash
+    java -jar app.jar --spring.shell.command.script.enabled=true force-password-reset <username>
+    ```
+
+3.  **Retrieve Temporary Password**: The command will output a new, secure, one-time password to the console.
+
+    ```text
+    Password for user 'admin' has been reset to: aBcDeFg12345
+    ```
+
+4.  **Securely Transmit**: Securely provide this temporary password to the administrator. Upon their next login, they will be required to change it immediately.
 
 ---
 

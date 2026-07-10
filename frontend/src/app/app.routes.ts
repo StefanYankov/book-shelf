@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
 import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
-import { authGuard } from './core/auth.guard';
-import { adminGuard } from './core/admin.guard';
+import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
 import { APP_TITLE } from './core/constants';
 
 export const routes: Routes = [
@@ -81,6 +81,11 @@ export const routes: Routes = [
         path: 'profile',
         title: `${APP_TITLE} | My Profile`,
         loadComponent: () => import('./features/profile/profile').then(m => m.Profile)
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
       },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]

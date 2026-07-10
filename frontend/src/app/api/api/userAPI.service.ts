@@ -17,6 +17,8 @@ import { Observable }                                        from 'rxjs';
 import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 
 // @ts-ignore
+import { AuthenticationResponse } from '../model/authenticationResponse';
+// @ts-ignore
 import { ChangePasswordDto } from '../model/changePasswordDto';
 // @ts-ignore
 import { ProblemDetail } from '../model/problemDetail';
@@ -41,16 +43,16 @@ export class UserAPIService extends BaseService {
 
     /**
      * Change current user password
-     * Changes the password for the currently authenticated user after verifying their current password.
+     * Changes the password for the currently authenticated user and returns a fresh JWT.
      * @endpoint put /api/users/me/password
      * @param changePasswordDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AuthenticationResponse>;
+    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AuthenticationResponse>>;
+    public changeMyPassword(changePasswordDto: ChangePasswordDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AuthenticationResponse>>;
     public changeMyPassword(changePasswordDto: ChangePasswordDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (changePasswordDto === null || changePasswordDto === undefined) {
             throw new Error('Required parameter changePasswordDto was null or undefined when calling changeMyPassword.');
@@ -92,7 +94,7 @@ export class UserAPIService extends BaseService {
 
         let localVarPath = `/api/users/me/password`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<any>('put', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AuthenticationResponse>('put', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 body: changePasswordDto,

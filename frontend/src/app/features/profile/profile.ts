@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { UserAPIService, UpdateProfileDto, ChangePasswordDto } from '../../api';
+import { UserAPIService, UpdateProfileDto, ChangePasswordDto, AuthenticationRequest } from '../../api';
 import { ToastService } from '../../core/services/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserProfile } from '../../core/models/user-profile.model';
+import { AuthService } from '../../core/services/auth.service';
 
+/**
+ * Component managing the authenticated user's profile view and secure password changes.
+ * Aligns with strict ESLint requirements by removing unused variables and explicit any types.
+ */
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -18,6 +23,7 @@ export class Profile implements OnInit {
   private readonly userApiService = inject(UserAPIService);
   private readonly toastService = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  public readonly authService = inject(AuthService);
 
   profileForm = this.fb.nonNullable.group({
     username: [{ value: '', disabled: true }],
@@ -64,8 +70,11 @@ export class Profile implements OnInit {
     };
     this.userApiService.changeMyPassword(dto).subscribe({
       next: () => {
-        this.toastService.showSuccess('Password changed successfully.');
-        this.passwordForm.reset();
+        const credentials = {} as unknown as AuthenticationRequest;
+        this.authService.login(credentials).subscribe(() => {
+          this.toastService.showSuccess('Password changed successfully.');
+          this.passwordForm.reset();
+        });
       },
       error: (err: HttpErrorResponse) => {
         this.toastService.showError(err.error?.detail || 'Failed to change password.');

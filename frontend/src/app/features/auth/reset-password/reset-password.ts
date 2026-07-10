@@ -1,9 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, tap } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthenticationAPIService } from '../../../api';
 import { ResetPasswordRequest } from '../../../api';
 import { matchPasswordValidator } from '../../../shared/validators/match-password.validator';
@@ -16,59 +15,66 @@ import { matchPasswordValidator } from '../../../shared/validators/match-passwor
   styleUrl: './reset-password.css'
 })
 export class ResetPassword {
-  private authApi = inject(AuthenticationAPIService);
-  private fb = inject(FormBuilder);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-
-  resetPasswordForm = this.fb.group({
+  private readonly authApi = inject(AuthenticationAPIService);
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly resetPasswordForm = this.fb.nonNullable.group({
     token: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', Validators.required]
   }, {
     validators: matchPasswordValidator('newPassword', 'confirmPassword')
   });
-
-  errorMessage: string | null = null;
-  isLoading = false;
-  isSuccess = false;
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly isLoading = signal(false);
+  protected readonly isSuccess = signal(false);
 
   constructor() {
-    this.route.queryParams.subscribe(params => {
-      if (params['token']) {
-        this.resetPasswordForm.controls['token'].setValue(params['token']);
-      }
-    });
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        if (params['token']) {
+          this.resetPasswordForm.controls.token.setValue(params['token']);
+        }
+      });
   }
 
   onSubmit(): void {
-    if (this.resetPasswordForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = null;
+    if (this.resetPasswordForm.invalid) {
+      this.resetPasswordForm.markAllAsTouched();
+      return;
+    }
 
-      const request: ResetPasswordRequest = {
-        token: this.resetPasswordForm.value.token!,
-        newPassword: this.resetPasswordForm.value.newPassword!
-      };
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
 
-      this.authApi.resetPassword(request).pipe(
-        tap(() => {
-          this.isLoading = false;
-          this.isSuccess = true;
+    const formValues = this.resetPasswordForm.getRawValue();
+    const request: ResetPasswordRequest = {
+      token: formValues.token,
+      newPassword: formValues.newPassword
+    };
+
+    this.authApi.resetPassword(request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.isSuccess.set(true);
+
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 3000);
-        }),
-        catchError(err => {
-          this.isLoading = false;
+        },
+        error: (err) => {
+          this.isLoading.set(false);
           if (err.status === 400) {
-            this.errorMessage = err.error?.detail || 'Invalid or expired token.';
+            this.errorMessage.set(err.error?.detail || 'Invalid or expired token.');
           } else {
-            this.errorMessage = 'An unexpected error occurred. Please try again.';
+            this.errorMessage.set('An unexpected error occurred. Please try again.');
           }
-          return of(null);
-        })
-      ).subscribe();
-    }
+        }
+      });
   }
 }

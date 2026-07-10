@@ -1,11 +1,9 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { catchError, tap } from 'rxjs/operators';
-import { of } from 'rxjs';
-import { AuthService } from '../../../core/services/auth.service';
-import { RegisterRequest } from '../../../api';
+import {Component, inject, signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {Router, RouterLink} from '@angular/router';
+import {AuthService} from '../../../core/services/auth.service';
+import {RegisterRequest} from '../../../api';
 
 @Component({
   selector: 'app-register',
@@ -15,10 +13,10 @@ import { RegisterRequest } from '../../../api';
   styleUrl: './register.css'
 })
 export class Register {
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
-  registerForm = inject(FormBuilder).group({
+  protected readonly registerForm = inject(FormBuilder).group({
     firstName: ['', [Validators.required]],
     lastName: ['', [Validators.required]],
     username: ['', [Validators.required, Validators.minLength(3)]],
@@ -26,38 +24,38 @@ export class Register {
     password: ['', [Validators.required, Validators.minLength(8)]]
   });
 
-  errorMessage: string | null = null;
-  isLoading = false;
-  isSuccess = false;
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly isLoading = signal(false);
+  protected readonly isSuccess = signal(false);
 
   onSubmit(): void {
-    if (this.registerForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = null;
-
-      const request: RegisterRequest = this.registerForm.value as RegisterRequest;
-
-      this.authService.register(request).pipe(
-        tap(() => {
-          this.isLoading = false;
-          this.isSuccess = true;
-
-          setTimeout(() => {
-            this.router.navigate(['/login']);
-          }, 4000);
-        }),
-        catchError(err => {
-          this.isLoading = false;
-          if (err.status === 409) {
-            this.errorMessage = err.error.detail || 'Username or email is already taken.';
-          } else {
-            this.errorMessage = 'An unexpected error occurred. Please try again.';
-          }
-          return of(null);
-        })
-      ).subscribe();
-    } else {
+    if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
+      return;
     }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    const request: RegisterRequest = this.registerForm.value as RegisterRequest;
+
+    this.authService.register(request).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.isSuccess.set(true);
+
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 4000);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        if (err.status === 409) {
+          this.errorMessage.set(err.error?.detail || 'Username or email is already taken.');
+        } else {
+          this.errorMessage.set('An unexpected error occurred. Please try again.');
+        }
+      }
+    });
   }
 }

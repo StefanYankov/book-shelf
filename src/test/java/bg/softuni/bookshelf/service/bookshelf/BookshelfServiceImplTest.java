@@ -16,6 +16,7 @@ import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfDetailsDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfSummaryDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfCreateDto;
 import bg.softuni.bookshelf.service.bookshelf.dto.BookshelfUpdateDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,11 +128,11 @@ class BookshelfServiceImplTest {
             when(bookshelfMapper.toShelfSummaryDto(any(Bookshelf.class))).thenReturn(BookshelfSummaryDto.builder().build());
 
             // Act
-            Page<BookshelfSummaryDto> result = bookshelfService.getShelvesForUser(testUser.getId(), pageable);
+            PagedResponse<BookshelfSummaryDto> result = bookshelfService.getShelvesForUser(testUser.getId(), pageable);
 
             // Assert
             assertThat(result).isNotNull();
-            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.totalElements()).isEqualTo(1);
             verify(bookshelfRepository).findAllByUser_Id(testUser.getId(), pageable);
         }
     }
@@ -181,12 +182,12 @@ class BookshelfServiceImplTest {
             when(bookMapper.toBookSummaryDto(testBook)).thenReturn(BookSummaryDto.builder().id(testBook.getId()).build());
 
             // Act
-            Page<BookSummaryDto> result = bookshelfService.getBooksInShelf(testShelf.getId(), pageable);
+            PagedResponse<BookSummaryDto> result = bookshelfService.getBooksInShelf(testShelf.getId(), pageable);
 
             // Assert
             assertThat(result).isNotNull();
-            assertThat(result.getTotalElements()).isEqualTo(1);
-            assertThat(result.getContent().getFirst().id()).isEqualTo(testBook.getId());
+            assertThat(result.totalElements()).isEqualTo(1);
+            assertThat(result.content().getFirst().id()).isEqualTo(testBook.getId());
         }
 
         @Test
@@ -341,7 +342,7 @@ class BookshelfServiceImplTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BOOK_NOT_FOUND);
         }
     }
-    
+
     @Nested
     @DisplayName("removeBookFromShelf Tests")
     class RemoveBookFromShelfTests {
@@ -353,10 +354,10 @@ class BookshelfServiceImplTest {
             BookshelfBookId id = new BookshelfBookId();
             id.setBookshelfId(testShelf.getId());
             id.setBookId(testBook.getId());
-            
+
             BookshelfBook entry = new BookshelfBook();
             entry.setId(id);
-            
+
             when(bookshelfBookRepository.findById(id)).thenReturn(Optional.of(entry));
 
             // Act
@@ -373,7 +374,7 @@ class BookshelfServiceImplTest {
             BookshelfBookId id = new BookshelfBookId();
             id.setBookshelfId(testShelf.getId());
             id.setBookId(testBook.getId());
-            
+
             when(bookshelfBookRepository.findById(id)).thenReturn(Optional.empty());
 
             // Act & Assert

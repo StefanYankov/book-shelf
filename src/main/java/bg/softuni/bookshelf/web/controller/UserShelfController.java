@@ -4,6 +4,7 @@ import bg.softuni.bookshelf.service.auth.CustomUserDetails;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
 import bg.softuni.bookshelf.service.bookshelf.BookshelfService;
 import bg.softuni.bookshelf.service.bookshelf.dto.*;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,10 +42,10 @@ public class UserShelfController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved user's shelves")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Page<BookshelfSummaryDto>> getUserShelves(
+    public ResponseEntity<PagedResponse<BookshelfSummaryDto>> getUserShelves(
             @AuthenticationPrincipal CustomUserDetails principal,
             Pageable pageable) {
-        Page<BookshelfSummaryDto> shelves = bookshelfService.getShelvesForUser(principal.getId(), pageable);
+        PagedResponse<BookshelfSummaryDto> shelves = bookshelfService.getShelvesForUser(principal.getId(), pageable);
         return ResponseEntity.ok(shelves);
     }
 
@@ -86,10 +86,10 @@ public class UserShelfController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved books in shelf")
     @GetMapping("/{shelfId}/books")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Page<BookSummaryDto>> getBooksInShelf(
+    public ResponseEntity<PagedResponse<BookSummaryDto>> getBooksInShelf(
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
             Pageable pageable) {
-        Page<BookSummaryDto> books = bookshelfService.getBooksInShelf(shelfId, pageable);
+        PagedResponse<BookSummaryDto> books = bookshelfService.getBooksInShelf(shelfId, pageable);
         return ResponseEntity.ok(books);
     }
 

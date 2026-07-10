@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import {Component, DestroyRef, inject, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthenticationRequest } from '../../../api';
 
@@ -13,21 +14,22 @@ import { AuthenticationRequest } from '../../../api';
   styleUrl: './login.css'
 })
 export class Login {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  loginForm = this.fb.group({
-    username: ['', Validators.required],
-    password: ['', Validators.required]
+  protected readonly loginForm = inject(FormBuilder).nonNullable.group({
+    username: ['', [Validators.required, Validators.minLength(3)]],
+    password: ['', [Validators.required]]
   });
 
-  errorMessage = signal<string | null>(null);
-  isLoading = signal(false);
-  isAccountDisabled = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly isLoading = signal(false);
+  protected readonly isAccountDisabled = signal(false);
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
       return;
     }
 
@@ -35,22 +37,24 @@ export class Login {
     this.errorMessage.set(null);
     this.isAccountDisabled.set(false);
 
-    const credentials = this.loginForm.value as AuthenticationRequest;
+    const credentials: AuthenticationRequest = this.loginForm.getRawValue();
 
-    this.authService.login(credentials).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.router.navigate(['/app/home']);
-      },
-      error: (err) => {
-        this.isLoading.set(false);
-        if (err.status === 403 && err.error?.type === 'urn:bookshelf:account-disabled') {
-          this.isAccountDisabled.set(true);
-          this.errorMessage.set(err.error.detail);
-        } else {
-          this.errorMessage.set(err.error?.detail || 'An unknown error occurred during login.');
+    this.authService.login(credentials)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.router.navigate(['/app/home']);
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          if (err.status === 403 && err.error?.type === 'urn:bookshelf:account-disabled') {
+            this.isAccountDisabled.set(true);
+            this.errorMessage.set(err.error.detail);
+          } else {
+            this.errorMessage.set(err.error?.detail || 'An unknown error occurred during login.');
+          }
         }
-      }
-    });
+      });
   }
 }

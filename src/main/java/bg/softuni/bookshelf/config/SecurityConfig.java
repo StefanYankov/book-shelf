@@ -1,5 +1,7 @@
 package bg.softuni.bookshelf.config;
 
+import bg.softuni.bookshelf.service.auth.JwtService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

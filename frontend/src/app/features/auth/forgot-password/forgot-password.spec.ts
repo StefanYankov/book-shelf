@@ -1,62 +1,86 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { ForgotPassword } from './forgot-password';
 import { AuthenticationAPIService } from '../../../api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { of } from 'rxjs';
-import { HttpResponse } from '@angular/common/http';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { of, throwError } from 'rxjs';
 
-describe('ForgotPassword', () => {
+describe('ForgotPassword Component', () => {
   let component: ForgotPassword;
   let fixture: ComponentFixture<ForgotPassword>;
-  let authApi: AuthenticationAPIService;
+  let mockAuthApi: { forgotPassword: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    mockAuthApi = {
+      forgotPassword: vi.fn()
+    };
+
     await TestBed.configureTestingModule({
       imports: [ForgotPassword],
       providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
         provideRouter([]),
-        AuthenticationAPIService
+        { provide: AuthenticationAPIService, useValue: mockAuthApi }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ForgotPassword);
     component = fixture.componentInstance;
-    authApi = TestBed.inject(AuthenticationAPIService);
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('should create cleanly', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should call the forgotPassword API on valid submit', () => {
-    const mockResponse = new HttpResponse<void>({ status: 200 });
-    const forgotPasswordSpy = vi.spyOn(authApi, 'forgotPassword').mockReturnValue(of(mockResponse));
-    component.forgotPasswordForm.controls['email'].setValue('test@example.com');
+  it('should trigger control marking validation highlights on invalid blank form submissions', () => {
     component.onSubmit();
-    expect(forgotPasswordSpy).toHaveBeenCalledWith({ email: 'test@example.com' });
+    fixture.detectChanges();
+
+    expect(component['forgotPasswordForm'].get('email')?.touched).toBeTruthy();
+    const validationError = fixture.nativeElement.querySelector('.validation-error');
+    expect(validationError).toBeTruthy();
   });
 
-  it('should display success message and redirect on success', async () => {
+  it('should call the forgotPassword API on valid submit', () => {
+    mockAuthApi.forgotPassword.mockReturnValue(of(null));
+
+    component['forgotPasswordForm'].controls['email'].setValue('test@example.com');
+    component.onSubmit();
+
+    expect(mockAuthApi.forgotPassword).toHaveBeenCalledWith({ email: 'test@example.com' });
+  });
+
+  it('should display success message and redirect on success via fake timer loops', () => {
     vi.useFakeTimers();
-    const mockResponse = new HttpResponse<void>({ status: 200 });
-    vi.spyOn(authApi, 'forgotPassword').mockReturnValue(of(mockResponse));
+    mockAuthApi.forgotPassword.mockReturnValue(of(null));
     const router = TestBed.inject(Router);
     const routerSpy = vi.spyOn(router, 'navigate');
 
-    component.forgotPasswordForm.controls['email'].setValue('test@example.com');
+    component['forgotPasswordForm'].controls['email'].setValue('test@example.com');
     component.onSubmit();
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    expect(component.isSuccess).toBe(true);
+    expect(component['isSuccess']()).toBe(true);
 
     vi.advanceTimersByTime(4000);
     expect(routerSpy).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('should capture failure payloads and map them to error messages safely', () => {
+    const errorMsg = 'Invalid domain target.';
+    mockAuthApi.forgotPassword.mockReturnValue(throwError(() => ({ error: { detail: errorMsg } })));
+
+    component['forgotPasswordForm'].controls['email'].setValue('test@example.com');
+    component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component['errorMessage']()).toBe(errorMsg);
+    const errorDiv = fixture.nativeElement.querySelector('.error-message');
+    expect(errorDiv.textContent).toContain(errorMsg);
   });
 });

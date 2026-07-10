@@ -2,6 +2,7 @@ package bg.softuni.bookshelf.web.controller;
 
 import bg.softuni.bookshelf.data.enums.BookFormat;
 import bg.softuni.bookshelf.service.book.dto.*;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -147,8 +148,9 @@ class BookControllerTest extends AbstractControllerTestBase {
         void shouldReturn200AndPagedResponse() throws Exception {
             // Arrange
             UUID bookId = UUID.randomUUID();
-            Page<BookSummaryDto> page = new PageImpl<>(List.of(createMockBookSummaryDto(bookId, "The Hobbit")));
-            given(bookService.searchBooks(any(), any())).willReturn(page);
+            List<BookSummaryDto> content = List.of(createMockBookSummaryDto(bookId, "The Hobbit"));
+            PagedResponse<BookSummaryDto> response = new PagedResponse<>(content, 0, 10, 1L, 1, true);
+            given(bookService.searchBooks(any(), any())).willReturn(response);
 
             // Act
             ResultActions result = mockMvc.perform(get(BASE_URL + "/search")
@@ -169,8 +171,8 @@ class BookControllerTest extends AbstractControllerTestBase {
         @DisplayName("Edge Case: Should process empty fallback parsing conditions cleanly without triggering core engine interrupts")
         void shouldHandleNullOrBlankQuery(String query) throws Exception {
             // Arrange
-            Page<BookSummaryDto> page = new PageImpl<>(Collections.emptyList());
-            given(bookService.searchBooks(any(), any())).willReturn(page);
+            PagedResponse<BookSummaryDto> response = new PagedResponse<>(Collections.emptyList(), 0, 10, 0L, 0, true);
+            given(bookService.searchBooks(any(), any())).willReturn(response);
 
             // Act
             ResultActions result = mockMvc.perform(get(BASE_URL + "/search")

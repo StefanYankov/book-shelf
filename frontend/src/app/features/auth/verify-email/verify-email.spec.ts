@@ -1,27 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter, Router } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { provideRouter, Router, ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, afterEach } from 'vitest';
 import { VerifyEmail } from './verify-email';
 import { AuthenticationAPIService } from '../../../api';
-import { HttpResponse } from '@angular/common/http';
 
 describe('VerifyEmail Component', () => {
   let component: VerifyEmail;
   let fixture: ComponentFixture<VerifyEmail>;
-  let authApi: AuthenticationAPIService;
+  let mockAuthApi: { verifyEmail: ReturnType<typeof vi.fn> };
 
   const setupTest = (token: string | null) => {
+    mockAuthApi = {
+      verifyEmail: vi.fn()
+    };
+
     TestBed.configureTestingModule({
       imports: [VerifyEmail],
       providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        provideRouter([]),
-        AuthenticationAPIService,
+        provideRouter([{ path: 'login', redirectTo: '' }]),
+        { provide: AuthenticationAPIService, useValue: mockAuthApi },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -37,21 +35,26 @@ describe('VerifyEmail Component', () => {
 
     fixture = TestBed.createComponent(VerifyEmail);
     component = fixture.componentInstance;
-    authApi = TestBed.inject(AuthenticationAPIService);
   };
 
-  it('should show success message and redirect on valid token', async () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('should show success message and redirect on valid token using isolated fake timers', () => {
     setupTest('valid-token');
     vi.useFakeTimers();
-    const verifySpy = vi.spyOn(authApi, 'verifyEmail').mockReturnValue(of(new HttpResponse<void>({ status: 200 })));
+    mockAuthApi.verifyEmail.mockReturnValue(of(null));
+
     const router = TestBed.inject(Router);
     const routerSpy = vi.spyOn(router, 'navigate');
 
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    expect(verifySpy).toHaveBeenCalledWith('valid-token');
-    expect(component.isSuccess).toBe(true);
+    expect(mockAuthApi.verifyEmail).toHaveBeenCalledWith('valid-token');
+    expect(component['isSuccess']()).toBe(true);
+
     const successMessage = fixture.nativeElement.querySelector('.success-message');
     expect(successMessage).toBeTruthy();
 
@@ -59,27 +62,26 @@ describe('VerifyEmail Component', () => {
     expect(routerSpy).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should show error message on invalid token', async () => {
+  it('should show error message on invalid token signatures', () => {
     setupTest('invalid-token');
-    vi.spyOn(authApi, 'verifyEmail').mockReturnValue(throwError(() => ({ status: 400, error: { detail: 'Invalid token' } })));
+    mockAuthApi.verifyEmail.mockReturnValue(throwError(() => ({ status: 400, error: { detail: 'Invalid token' } })));
 
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    expect(component.isSuccess).toBe(false);
-    expect(component.errorMessage).toContain('Invalid token');
+    expect(component['isSuccess']()).toBe(false);
+    expect(component['errorMessage']()).toContain('Invalid token');
+
     const errorMessage = fixture.nativeElement.querySelector('.error-message');
     expect(errorMessage).toBeTruthy();
   });
 
-  it('should show error message if no token is present', async () => {
+  it('should short-circuit and show error message if no token is present in the route snapshot', () => {
     setupTest(null);
-    const verifySpy = vi.spyOn(authApi, 'verifyEmail');
+    mockAuthApi.verifyEmail.mockReturnValue(of(null));
 
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    expect(verifySpy).not.toHaveBeenCalled();
-    expect(component.errorMessage).toBe('No verification token found.');
+    expect(mockAuthApi.verifyEmail).not.toHaveBeenCalled();
+    expect(component['errorMessage']()).toBe('No verification token found.');
   });
 });
