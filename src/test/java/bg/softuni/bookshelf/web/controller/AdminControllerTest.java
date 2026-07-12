@@ -219,24 +219,4 @@ class AdminControllerTest extends AbstractControllerTestBase {
             verifyNoInteractions(userService);
         }
     }
-
-    @Nested
-    @DisplayName("Security Isolation Tests")
-    class SecurityIsolationTests {
-
-        @Test
-        @WithMockApplicationUser(roles = "USER")
-        @DisplayName("Authorization Boundary Check: Should reject request with 403 Forbidden status if missing administrative privileges")
-        void shouldReturn403_WhenUserIsNotAdmin() throws Exception {
-            // Act
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/users"));
-
-            // Assert
-            result.andExpect(status().isForbidden())
-                    .andExpect(jsonPath("$.title").value("Forbidden"))
-                    .andExpect(jsonPath("$.type").value("urn:bookshelf:access-denied"));
-
-            verifyNoInteractions(userService);
-        }
-    }
 }

@@ -6,10 +6,7 @@ import bg.softuni.bookshelf.data.enums.StatusEventType;
 import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.base.BaseService;
-import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
-import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
-import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
-import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
+import bg.softuni.bookshelf.service.user.dto.*;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +45,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
-    public void changePassword(UUID userId, ChangePasswordDto dto) {
+    public UserSecurityDto changePassword(UUID userId, ChangePasswordDto dto) {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
 
         if (!passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
@@ -57,19 +54,28 @@ public class UserServiceImpl extends BaseService implements UserService {
 
         user.setPassword(passwordEncoder.encode(dto.newPassword()));
         user.setPasswordChangeRequired(false);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        return new UserSecurityDto(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.isPasswordChangeRequired()
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<AdminUserViewDto> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(userMapper::toAdminUserViewDto);
+        return userRepository.findAll(pageable).map(userMapper::toAdminUserViewDto);
     }
 
     @Override
     @Transactional
     public void lockUser(UUID userId, String reason, UUID actorId) {
+        if (userId.equals(actorId)) {
+            throw new BusinessException(ErrorCode.SELF_LOCK_PREVENTION);
+        }
+
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 

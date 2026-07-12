@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.service.auth;
 
+import bg.softuni.bookshelf.service.user.dto.UserSecurityDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -11,11 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -38,19 +35,39 @@ public class JwtService {
      * @return The generated JWT string.
      */
     public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        if (userDetails instanceof CustomUserDetails customUserDetails) {
-            claims.put("userId", customUserDetails.getId());
-            claims.put("pwd_chg_req", customUserDetails.isPasswordChangeRequired());
+        Map<String, Object> extraClaims = new HashMap<>();
+        if (userDetails instanceof CustomUserDetails customUser) {
+            extraClaims.put("userId", customUser.getId().toString());
+            extraClaims.put("pwd_chg_req", customUser.isPasswordChangeRequired());
         }
-        
-        String role = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .orElse("");
-        claims.put("role", role);
 
-        return generateToken(claims, userDetails);
+        String role = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .findFirst()
+                .orElse("ROLE_USER");
+        extraClaims.put("role", role);
+
+        return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    /**
+     * Maps security claim payload and generates a token directly from a detached UserSecurityDto projection.
+     *
+     * @param user        The detached user security state.
+     * @param authorities The authorities to grant the session context.
+     * @return The signed JWT string.
+     */
+    public String generateTokenForUser(UserSecurityDto user, Collection<? extends GrantedAuthority> authorities) {
+        // TODO: Refactor using an explicit stateless factory method to avoid magic empty string values.
+        CustomUserDetails userDetails = new CustomUserDetails(
+                user.id(),
+                user.username(),
+                "",
+                true,
+                user.passwordChangeRequired(),
+                authorities.stream().map(auth -> (GrantedAuthority) auth).toList()
+        );
+        return generateToken(userDetails);
     }
 
     /**
@@ -89,33 +106,14 @@ public class JwtService {
         String role = claims.get("role", String.class);
         boolean passwordChangeRequired = claims.get("pwd_chg_req", Boolean.class);
 
-        // Password is not needed for in-memory principal
-        CustomUserDetails customUserDetails = new CustomUserDetails(
+        return new CustomUserDetails(
                 UUID.fromString(userId),
                 claims.getSubject(),
-                "",
+                "", // Password is not needed for in-memory principal
                 true,
                 passwordChangeRequired,
                 Collections.singletonList(new SimpleGrantedAuthority(role))
         );
-        return customUserDetails;
-    }
-
-    /**
-     * Generates a JWT with extra claims for a user.
-     *
-     * @param extraClaims Extra claims to add to the token.
-     * @param userDetails The user details.
-     * @return The generated JWT.
-     */
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return Jwts.builder()
-                .claims(extraClaims)
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSignInKey())
-                .compact();
     }
 
     /**
@@ -130,14 +128,17 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
+    // Evaluates if the cryptographic token expiration timestamp precedes the current system date.
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
+    // Extracts the expiration date claim from the token payload.
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
+    // Parses and cryptographically validates the JWT payload signature using the configured signing key.
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSignInKey())
@@ -146,8 +147,20 @@ public class JwtService {
                 .getPayload();
     }
 
+    // Decodes the base64-encoded secret key and constructs an HMAC signing key.
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    // Builds a signed JWT carrying standard claims, expiration limits, and private authority payloads.
+    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
+        return Jwts.builder()
+                .claims(extraClaims)
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSignInKey(), Jwts.SIG.HS256)
+                .compact();
     }
 }

@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {SecurityFilterChainIntegrationTest.SecuredTestController.class, UserController.class})
+@WebMvcTest(controllers = {SecurityFilterChainIntegrationTest.SecuredTestController.class, UserController.class, AuthenticationController.class})
 @DisplayName("Security Filter Chain Integration Tests")
 class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
 
@@ -128,6 +128,15 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
 
             // Assert
             result.andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @WithMockApplicationUser(roles = "USER", passwordChangeRequired = true)
+        @DisplayName("Should allow access to public auth endpoints even when password change is required")
+        void shouldAllowAccessToPublicAuthEndpoints() throws Exception {
+            // Act & Assert
+            mockMvc.perform(get("/api/auth/non-existent-endpoint"))
+                    .andExpect(status().isNotFound());
         }
     }
 }

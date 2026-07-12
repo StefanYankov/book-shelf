@@ -177,4 +177,14 @@ public class BookServiceImpl extends BaseService implements BookService {
 
         return PagedResponse.from(matchingBooks.map(bookMapper::toBookSummaryDto));
     }
+
+    @Override
+    @Transactional
+    public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
+        log.info("ADMIN ACTION: Power-user moderation executed for book with ID: {}", bookId);
+        Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
+
+        // TODO: Under long-term governance blueprints, split (POWER)ADMIN role permissions from MODERATION ADMIN roles to isolate general catalog modifications from strict community content curation.
+        return this.updateBook(bookId, updateDto);
+    }
 }

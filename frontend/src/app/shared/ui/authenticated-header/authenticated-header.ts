@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,6 +13,8 @@ import { AuthService } from '../../../core/services/auth.service';
 export class AuthenticatedHeader {
   public authService = inject(AuthService);
   private router = inject(Router);
+
+  protected isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
 
   logout(): void {
     this.authService.logout();

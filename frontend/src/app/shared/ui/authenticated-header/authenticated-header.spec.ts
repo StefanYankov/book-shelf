@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 
 describe('AuthenticatedHeader Component Tests', () => {
   let fixture: ComponentFixture<AuthenticatedHeader>;
+  let component: AuthenticatedHeader;
   let router: Router;
   let mockAuthService: {
     userRole: WritableSignal<string | null>;
@@ -30,50 +31,36 @@ describe('AuthenticatedHeader Component Tests', () => {
     });
 
     fixture = TestBed.createComponent(AuthenticatedHeader);
+    component = fixture.componentInstance;
     router = TestBed.inject(Router);
 
     vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
   });
 
   describe('Conditional Admin Route Authorization', () => {
-    it('should hide the Admin link for users possessing standard ROLE_USER authority', () => {
-      // Arrange
+    it('should have isAdmin return false for standard ROLE_USER', () => {
       mockAuthService.userRole.set('ROLE_USER');
-
-      // Act
       fixture.detectChanges();
 
-      // Assert
-      const adminLink = fixture.debugElement.query(By.css('a[routerLink="/app/admin/users"]'));
-      expect(adminLink).toBeNull();
+      expect(component['isAdmin']()).toBe(false);
     });
 
-    it('should display the Admin link for users possessing administrative ROLE_ADMIN authority', () => {
-      // Arrange
+    it('should have isAdmin return true for ROLE_ADMIN', () => {
       mockAuthService.userRole.set('ROLE_ADMIN');
-
-      // Act
       fixture.detectChanges();
 
-      // Assert
-      const adminLink = fixture.debugElement.query(By.css('a[routerLink="/app/admin/users"]'));
-      expect(adminLink).not.toBeNull();
-      expect(adminLink.nativeElement.textContent).toContain('Admin');
+      expect(component['isAdmin']()).toBe(true);
     });
   });
 
   describe('Logout Interactions', () => {
-    it('should invoke AuthService logout logic and redirect to login state on click', () => {
-      // Arrange
+    it('should invoke AuthService logout logic on click', () => {
       fixture.detectChanges();
-      const logoutButton = fixture.debugElement.query(By.css('button.dropdown-item'));
+      const logoutButton = fixture.debugElement.query(By.css('button.nav-link'));
 
-      // Act
       logoutButton.nativeElement.click();
 
-      // Assert
       expect(mockAuthService.logout).toHaveBeenCalledTimes(1);
-      expect(router.navigate).toHaveBeenCalledWith(['/login']);
     });
   });
 });

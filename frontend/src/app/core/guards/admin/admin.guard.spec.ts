@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { CanActivateFn, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
 import { adminGuard } from './admin.guard';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('adminGuard', () => {

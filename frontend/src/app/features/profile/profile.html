@@ -1,46 +1,85 @@
 <div class="container mt-5">
-  @if (authService.isPasswordChangeRequired()) {
-    <div class="alert alert-warning" role="alert">
-      <strong>Action Required:</strong> You must change your password before you can access other parts of the application.
+  <div class="row g-4">
+    <!-- Profile Form Column -->
+    <div class="col-lg-6">
+      <div class="card p-4 shadow-sm border-0 bg-white">
+        <h3 class="mb-3 fw-bold">Profile Details</h3>
+        <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
+          <div class="mb-3">
+            <label for="usernameInput" class="form-label text-muted small">Username</label>
+            <input id="usernameInput" type="text" formControlName="username" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label for="emailInput" class="form-label text-muted small">Email Address</label>
+            <input id="emailInput" type="email" formControlName="email" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label for="firstName" class="form-label text-muted small">First Name</label>
+            <input id="firstName" type="text" formControlName="firstName" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label for="lastName" class="form-label text-muted small">Last Name</label>
+            <input id="lastName" type="text" formControlName="lastName" class="form-control" />
+          </div>
+          <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">
+            Update Profile
+          </button>
+        </form>
+      </div>
     </div>
-  }
 
-  <div class="row">
-    <div class="col-md-6">
-      <h2>My Profile</h2>
-      <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
-        <div class="mb-3">
-          <label for="username" class="form-label">Username</label>
-          <input type="text" id="username" class="form-control" formControlName="username">
-        </div>
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input type="email" id="email" class="form-control" formControlName="email">
-        </div>
-        <div class="mb-3">
-          <label for="firstName" class="form-label">First Name</label>
-          <input type="text" id="firstName" class="form-control" formControlName="firstName">
-        </div>
-        <div class="mb-3">
-          <label for="lastName" class="form-label">Last Name</label>
-          <input type="text" id="lastName" class="form-control" formControlName="lastName">
-        </div>
-        <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Update Profile</button>
-      </form>
-    </div>
-    <div class="col-md-6">
-      <h2>Change Password</h2>
-      <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
-        <div class="mb-3">
-          <label for="currentPassword" class="form-label">Current Password</label>
-          <input type="password" id="currentPassword" class="form-control" formControlName="currentPassword">
-        </div>
-        <div class="mb-3">
-          <label for="newPassword" class="form-label">New Password</label>
-          <input type="password" id="newPassword" class="form-control" formControlName="newPassword">
-        </div>
-        <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid">Change Password</button>
-      </form>
+    <!-- Password Form Column -->
+    <div class="col-lg-6">
+      <div class="card p-4 shadow-sm border-0 bg-white">
+        <h3 class="mb-3 fw-bold">Change Password</h3>
+        <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
+          <div class="mb-3">
+            <label for="currentPassword" class="form-label text-muted small">Current Password</label>
+            <input id="currentPassword" type="password" formControlName="currentPassword" class="form-control" />
+          </div>
+
+          <div class="mb-3">
+            <label for="newPassword" class="form-label text-muted small">New Password</label>
+            <input id="newPassword" type="password" formControlName="newPassword" class="form-control" />
+
+            <!-- Dynamic Agile Validation Checklist -->
+            <div class="mt-2 p-2 bg-light rounded border">
+              <span class="text-muted d-block small mb-1 fw-bold">Password Strength Checklist:</span>
+              <ul class="list-unstyled mb-0 small">
+                <li class="d-flex align-items-center mb-1">
+                  <span class="me-2" [class.text-success]="newPasswordValue.length >= 8" [class.text-danger]="newPasswordValue.length < 8">
+                    ●
+                  </span>
+                  At least 8 characters long.
+                </li>
+                @for (rule of passwordRules; track rule.key) {
+                  <li class="d-flex align-items-center mb-1">
+                    <span class="me-2" [class.text-success]="isRuleValid(rule.key)" [class.text-danger]="!isRuleValid(rule.key)">
+                      ●
+                    </span>
+                    {{ rule.message }}
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label text-muted small">Confirm New Password</label>
+            <input id="confirmPassword" type="password" formControlName="confirmPassword" class="form-control" />
+
+            @if (passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched) {
+              <div class="text-danger small mt-1">
+                Passwords do not match. Please verify.
+              </div>
+            }
+          </div>
+
+          <button type="submit" class="btn btn-dark w-100 mt-2" [disabled]="passwordForm.invalid">
+            Change Password
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </div>

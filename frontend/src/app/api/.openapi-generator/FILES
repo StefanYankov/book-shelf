@@ -3,10 +3,11 @@ README.md
 api.base.service.ts
 api.module.ts
 api/adminAPI.service.ts
+api/adminModerationAPI.service.ts
 api/api.ts
 api/authenticationAPI.service.ts
 api/bookAPI.service.ts
-api/userAPI.service.ts
+api/userProfileAPI.service.ts
 api/userShelfAPI.service.ts
 configuration.ts
 encoder.ts
@@ -19,6 +20,7 @@ model/authenticationResponse.ts
 model/authorDto.ts
 model/bookDetailsDto.ts
 model/bookSummaryDto.ts
+model/bookUpdateDto.ts
 model/bookshelfCreateDto.ts
 model/bookshelfDetailsDto.ts
 model/bookshelfSummaryDto.ts
@@ -30,11 +32,11 @@ model/languageDto.ts
 model/lockUserRequestDto.ts
 model/models.ts
 model/pageBookSummaryDto.ts
-model/pageBookshelfSummaryDto.ts
 model/pageable.ts
 model/pageableObject.ts
 model/pagedResponseAdminUserViewDto.ts
 model/pagedResponseBookSummaryDto.ts
+model/pagedResponseBookshelfSummaryDto.ts
 model/problemDetail.ts
 model/publisherDto.ts
 model/registerRequest.ts

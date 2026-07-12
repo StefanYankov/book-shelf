@@ -3,17 +3,16 @@ import { provideRouter, ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BookDetail } from './book-detail';
-import { BookService } from '../../../core/services/book.service';
-import { BookshelfService } from '../../../core/services/bookshelf.service';
+import { BookAPIService, UserShelfAPIService } from '../../../api';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { BookDetailsDto, PageBookshelfSummaryDto } from '../../../api';
+import { BookDetailsDto, PagedResponseBookshelfSummaryDto } from '../../../api';
 
 describe('BookDetail Component', () => {
   let component: BookDetail;
   let fixture: ComponentFixture<BookDetail>;
-  let mockBookService: { getBookById: ReturnType<typeof vi.fn> };
-  let mockBookshelfService: { getShelvesForUser: ReturnType<typeof vi.fn>; addBookToShelf: ReturnType<typeof vi.fn> };
+  let mockBookApiService: { getBookById: ReturnType<typeof vi.fn> };
+  let mockUserShelfApiService: { getUserShelves: ReturnType<typeof vi.fn>; addBookToShelf: ReturnType<typeof vi.fn> };
   let mockAuthService: { isLoggedIn: ReturnType<typeof vi.fn> };
   let mockToastService: { showSuccess: ReturnType<typeof vi.fn> };
 
@@ -32,20 +31,20 @@ describe('BookDetail Component', () => {
     genres: new Set([{ id: 'g1', name: 'Fantasy' }])
   };
 
-  const mockShelves: PageBookshelfSummaryDto = {
+  const mockShelves: PagedResponseBookshelfSummaryDto = {
     content: [
       { id: 'shelf-1', name: 'My Favorites' },
       { id: 'shelf-2', name: 'To Read' }
     ],
-    totalElements: 2, totalPages: 1, number: 0, size: 20
+    totalElements: 2, totalPages: 1, pageNumber: 0, pageSize: 20
   };
 
   beforeEach(async () => {
-    mockBookService = {
+    mockBookApiService = {
       getBookById: vi.fn().mockReturnValue(of(mockBook))
     };
-    mockBookshelfService = {
-      getShelvesForUser: vi.fn().mockReturnValue(of(mockShelves)),
+    mockUserShelfApiService = {
+      getUserShelves: vi.fn().mockReturnValue(of(mockShelves)),
       addBookToShelf: vi.fn().mockReturnValue(of(null))
     };
     mockAuthService = {
@@ -60,8 +59,8 @@ describe('BookDetail Component', () => {
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { paramMap: of(new Map([['id', '123']])) } },
-        { provide: BookService, useValue: mockBookService },
-        { provide: BookshelfService, useValue: mockBookshelfService },
+        { provide: BookAPIService, useValue: mockBookApiService },
+        { provide: UserShelfAPIService, useValue: mockUserShelfApiService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: ToastService, useValue: mockToastService }
       ]
@@ -82,7 +81,7 @@ describe('BookDetail Component', () => {
 
   it('should call getBookById with the correct ID from the route', () => {
     setupComponent(false);
-    expect(mockBookService.getBookById).toHaveBeenCalledWith('123');
+    expect(mockBookApiService.getBookById).toHaveBeenCalledWith('123');
   });
 
   it('should render the book details in the template', () => {
@@ -119,7 +118,7 @@ describe('BookDetail Component', () => {
 
       dropdownItem.click();
 
-      expect(mockBookshelfService.addBookToShelf).toHaveBeenCalledWith('shelf-1', { bookId: '123' });
+      expect(mockUserShelfApiService.addBookToShelf).toHaveBeenCalledWith('shelf-1', { bookId: '123' });
       expect(mockToastService.showSuccess).toHaveBeenCalledWith('Book added to shelf successfully!');
     });
   });

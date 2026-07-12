@@ -1,59 +1,111 @@
 <div class="container mt-5">
-  <h2>User Management</h2>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0">User Directory</h2>
+    <span class="badge bg-secondary">System Administration</span>
+  </div>
 
+  <!-- Non-blocking Dialog Panel Layer -->
+  @if (activeAction(); as action) {
+    <div class="modal-backdrop-custom d-flex align-items-center justify-content-center">
+      <div class="card p-4 shadow-lg border-0 modal-card">
+        <h4 class="fw-bold mb-2">
+          Confirm Action: <span class="text-uppercase" [class.text-danger]="action.type === 'LOCK'" [class.text-success]="action.type === 'UNLOCK'">{{ action.type }}</span>
+        </h4>
+        <p class="text-muted small">You are about to modify the active state of user <strong>{{ action.username }}</strong>.</p>
+
+        <div class="mb-3">
+          <label for="adminReason" class="form-label text-muted small fw-bold">Reason for Action</label>
+          <textarea
+            id="adminReason"
+            class="form-control"
+            rows="3"
+            [ngModel]="inputReason()"
+            (ngModelChange)="inputReason.set($event)"
+            placeholder="Please detail the reason for this action context..."
+          ></textarea>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-light" (click)="cancelAction()">Cancel</button>
+          <button type="button" class="btn" [class.btn-danger]="action.type === 'LOCK'" [class.btn-success]="action.type === 'UNLOCK'" (click)="submitAdministrativeAction()">
+            Confirm Change
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Data Grid Viewport -->
   @if (loading()) {
-    <p>Loading users...</p>
-  } @else if (error()) {
-    <div class="alert alert-danger">
-      {{ error() }}
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading users...</span>
+      </div>
+      <p class="mt-2 text-muted">Synchronizing directory records...</p>
+    </div>
+  } @else if (error(); as err) {
+    <div class="alert alert-danger" role="alert">
+      {{ err }}
     </div>
   } @else if (data(); as userPage) {
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Name</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (user of userPage.content; track user.id) {
+    <div class="card shadow-sm border-0 bg-white p-3">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
           <tr>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.firstName }} {{ user.lastName }}</td>
-            <td>
-              @if (user.isActive) {
-                <span class="badge bg-success">Active</span>
-              } @else {
-                <span class="badge bg-danger">Locked</span>
-              }
-            </td>
-            <td>
-              @if (user.id) {
-                @if (user.isActive) {
-                  <button class="btn btn-danger btn-sm" (click)="onLockUser(user.id)">Lock</button>
-                } @else {
-                  <button class="btn btn-success btn-sm" (click)="onUnlockUser(user.id)">Unlock</button>
-                }
-              }
-            </td>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Full Name</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (user of userPage.content; track user.id) {
+            <tr>
+              <td><span class="fw-semibold">{{ user.username }}</span></td>
+              <td class="text-muted small">{{ user.email }}</td>
+              <td>{{ user.firstName }} {{ user.lastName }}</td>
+              <td>
+                @if (user.isActive) {
+                  <span class="badge status-active px-2.5 py-1.5 rounded-pill text-success bg-success-subtle">Active</span>
+                } @else {
+                  <span class="badge status-locked px-2.5 py-1.5 rounded-pill text-danger bg-danger-subtle">Locked</span>
+                }
+              </td>
+              <td class="text-end">
+                @if (user.id && user.username) {
+                  @if (user.isActive) {
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" (click)="openActionForm(user.id, user.username, 'LOCK')">Lock Account</button>
+                  } @else {
+                    <button class="btn btn-outline-success btn-sm rounded-pill px-3" (click)="openActionForm(user.id, user.username, 'UNLOCK')">Unlock Account</button>
+                  }
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No system user profiles located.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
 
-    <nav>
-      <ul class="pagination">
-        <li class="page-item" [class.disabled]="userPage.pageNumber === 0">
-          <button class="page-link" (click)="previousPage()">Previous</button>
-        </li>
-        <li class="page-item" [class.disabled]="userPage.isLast">
-          <button class="page-link" (click)="nextPage()">Next</button>
-        </li>
-      </ul>
-    </nav>
+      <!-- Navigation Footer -->
+      <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+        <span class="text-muted small">
+          Showing page {{ currentPage() + 1 }} of {{ userPage.totalPages || 1 }} ({{ userPage.totalElements }} users)
+        </span>
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm m-0 gap-1">
+            <li class="page-item" [class.disabled]="currentPage() === 0">
+              <button class="page-link rounded-pill px-3" (click)="previousPage()">Previous</button>
+            </li>
+            <li class="page-item" [class.disabled]="userPage.isLast">
+              <button class="page-link rounded-pill px-3" (click)="nextPage()">Next</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
   }
 </div>

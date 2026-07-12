@@ -1,20 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BookshelfService } from '../../../core/services/bookshelf.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { PageBookshelfSummaryDto } from '../../../api';
+import { PagedResponseBookshelfSummaryDto } from '../../../api';
 import { Subject, switchMap, startWith } from 'rxjs';
 
 @Component({
   selector: 'app-my-shelves',
-  standalone: true,
   imports: [CommonModule, RouterLink, ReactiveFormsModule],
   templateUrl: './my-shelves.html',
   styleUrls: ['./my-shelves.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MyShelves {
   private readonly bookshelfService = inject(BookshelfService);
@@ -27,7 +25,7 @@ export class MyShelves {
       startWith(null),
       switchMap(() => this.bookshelfService.getShelvesForUser({ page: 0, size: 20 }))
     ),
-    { initialValue: {} as PageBookshelfSummaryDto }
+    { initialValue: {} as PagedResponseBookshelfSummaryDto }
   );
 
   isCreating = signal(false);

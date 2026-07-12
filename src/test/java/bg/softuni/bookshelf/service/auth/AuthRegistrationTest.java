@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthenticationService: Registration Logic Tests")
-public class AuthRegistrationTests extends AbstractAuthUnitTestBase {
+public class AuthRegistrationTest extends AbstractAuthUnitTestBase {
 
     @Nested
     @DisplayName("register(RegisterRequest) Tests")

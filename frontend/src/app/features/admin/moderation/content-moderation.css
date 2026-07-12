@@ -1,0 +1,14 @@
+.nav-link {
+  cursor: pointer;
+}
+
+.moderation-form {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.moderated-title {
+  font-weight: 600;
+}

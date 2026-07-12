@@ -186,4 +186,23 @@ class UserShelfControllerTest extends AbstractControllerTestBase {
                     .andExpect(status().isUnauthorized());
         }
     }
+
+    @Test
+    @WithMockApplicationUser(roles = "ADMIN")
+    @DisplayName("Method Security: Should block system administrators from retrieving personal bookshelves")
+    void shouldReturn403_whenAdminAttemptsToGetShelves() throws Exception {
+        mockMvc.perform(get(BASE_URL))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockApplicationUser(roles = "ADMIN")
+    @DisplayName("Method Security: Should block system administrators from creating personal bookshelves")
+    void shouldReturn403_whenAdminAttemptsToCreateShelf() throws Exception {
+        BookshelfCreateDto createDto = BookshelfCreateDto.builder().name("Admin Personal Shelf").build();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isForbidden());
+    }
 }

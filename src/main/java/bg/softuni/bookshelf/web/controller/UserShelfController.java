@@ -41,7 +41,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved user's shelves")
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<PagedResponse<BookshelfSummaryDto>> getUserShelves(
             @AuthenticationPrincipal CustomUserDetails principal,
             Pageable pageable) {
@@ -56,7 +56,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "201", description = "Bookshelf created successfully")
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<BookshelfDetailsDto> createShelf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody BookshelfCreateDto createDto) {
@@ -72,7 +72,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "200", description = "Bookshelf found")
     @GetMapping("/{shelfId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<BookshelfDetailsDto> getShelfById(@Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId) {
         BookshelfDetailsDto shelf = bookshelfService.getShelfById(shelfId);
         return ResponseEntity.ok(shelf);
@@ -85,7 +85,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved books in shelf")
     @GetMapping("/{shelfId}/books")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<PagedResponse<BookSummaryDto>> getBooksInShelf(
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
             Pageable pageable) {
@@ -100,7 +100,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "200", description = "Bookshelf updated successfully")
     @PutMapping("/{shelfId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<BookshelfDetailsDto> updateShelf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
@@ -116,7 +116,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "204", description = "Bookshelf deleted successfully")
     @DeleteMapping("/{shelfId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Void> deleteShelf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId) {
@@ -131,7 +131,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "204", description = "Book added successfully")
     @PostMapping("/{shelfId}/books")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Void> addBookToShelf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
@@ -147,7 +147,7 @@ public class UserShelfController {
     )
     @ApiResponse(responseCode = "204", description = "Book removed successfully")
     @DeleteMapping("/{shelfId}/books/{bookId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Void> removeBookFromShelf(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,

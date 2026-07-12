@@ -6,6 +6,7 @@ import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
@@ -88,4 +89,15 @@ public interface BookService {
      * @return          An immutable PagedResponse containing summaries of the matched books.
      */
     PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable);
+
+    /**
+     * Moderates a book's metadata fields using power-user administrative privileges.
+     * Delegates internally to reuse relational mapping engines while maintaining separate audit trails.
+     *
+     * @param bookId    The UUID of the book to moderate.
+     * @param updateDto The DTO carrying updated catalog details.
+     * @return          The updated detailed view DTO of the book.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto);
 }
