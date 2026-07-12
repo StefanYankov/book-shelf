@@ -50,6 +50,13 @@ public class SecurityConfig {
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Admin Zone
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 2. Authenticated User Zone
+                        .requestMatchers("/api/users/me/**").hasRole("USER")
+
+                        // 3. Public Zone
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/books/**",

@@ -23,6 +23,7 @@ public enum ErrorCode {
     INVALID_TOKEN("E1003", "The provided token is invalid or has expired.", HttpStatus.UNAUTHORIZED),
     EXPIRED_TOKEN("E1004", "The provided token has expired. Please request a new one.", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND("E1005", "User not found.", HttpStatus.NOT_FOUND),
+    SELF_LOCK_PREVENTION("E1006", "Administrators are not allowed to lock their own accounts.", HttpStatus.FORBIDDEN),
 
     // --- Book domain (E1100 - E1199) ----
     BOOK_NOT_FOUND("E1100", "Book not found.", HttpStatus.NOT_FOUND),

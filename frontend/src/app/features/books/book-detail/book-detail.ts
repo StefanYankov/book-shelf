@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { switchMap, of } from 'rxjs';
-import { BookService } from '../../../core/services/book.service';
-import { BookshelfService } from '../../../core/services/bookshelf.service';
+import { BookAPIService } from '../../../api';
+import { UserShelfAPIService } from '../../../api';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { AddBookToBookshelfDto, PageBookshelfSummaryDto } from '../../../api';
+import { AddBookToBookshelfDto, PagedResponseBookshelfSummaryDto } from '../../../api';
 
 @Component({
   selector: 'app-book-detail',
@@ -19,23 +19,22 @@ import { AddBookToBookshelfDto, PageBookshelfSummaryDto } from '../../../api';
 })
 export class BookDetail {
   private readonly route = inject(ActivatedRoute);
-  private readonly bookService = inject(BookService);
-  private readonly bookshelfService = inject(BookshelfService);
+  private readonly bookApiService = inject(BookAPIService);
+  private readonly userShelfApiService = inject(UserShelfAPIService);
   private readonly toastService = inject(ToastService);
   public readonly authService = inject(AuthService);
 
   book = toSignal(
     this.route.paramMap.pipe(
-      switchMap(params => this.bookService.getBookById(params.get('id')!))
+      switchMap(params => this.bookApiService.getBookById(params.get('id')!))
     )
   );
 
   // --- User Shelves State ---
-  // Only fetch shelves if the user is logged in
   userShelves = toSignal(
     this.authService.isLoggedIn()
-      ? this.bookshelfService.getShelvesForUser({ page: 0, size: 100 })
-      : of({ content: [], totalPages: 0, number: 0, totalElements: 0 } as PageBookshelfSummaryDto)
+      ? this.userShelfApiService.getUserShelves({ page: 0, size: 100 })
+      : of({ content: [], totalPages: 0, pageNumber: 0, totalElements: 0, pageSize: 20, isLast: true } as PagedResponseBookshelfSummaryDto)
   );
 
   /**
@@ -47,7 +46,7 @@ export class BookDetail {
     if (!bookId || !shelfId) return;
 
     const addBookDto: AddBookToBookshelfDto = { bookId };
-    this.bookshelfService.addBookToShelf(shelfId, addBookDto).subscribe({
+    this.userShelfApiService.addBookToShelf(shelfId, addBookDto).subscribe({
       next: () => {
         this.toastService.showSuccess('Book added to shelf successfully!');
       },

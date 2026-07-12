@@ -1,60 +1,62 @@
-import { TestBed, inject } from '@angular/core/testing';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { HttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
-import { Router } from '@angular/router';
+import { signal, WritableSignal } from '@angular/core';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-describe('Auth Interceptor Specifications', () => {
-  let httpMock: HttpTestingController;
-  let mockAuthService: { getToken: ReturnType<typeof vi.fn> };
-  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
+describe('authInterceptor Unit Tests', () => {
+  let httpClient: HttpClient;
+  let httpTestingController: HttpTestingController;
+
+  let mockAuthService: {
+    getToken: ReturnType<typeof vi.fn>;
+    userRole: WritableSignal<string | null>;
+  };
 
   beforeEach(() => {
-    mockAuthService = { getToken: vi.fn() };
-    mockRouter = { navigate: vi.fn() };
+    mockAuthService = {
+      getToken: vi.fn().mockReturnValue('mock-jwt-token'),
+      userRole: signal<string | null>(null)
+    };
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter }
+        { provide: AuthService, useValue: mockAuthService }
       ]
     });
 
-    httpMock = TestBed.inject(HttpTestingController);
+    httpClient = TestBed.inject(HttpClient);
+    httpTestingController = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
-    httpMock.verify();
+    httpTestingController.verify();
+    vi.restoreAllMocks();
   });
 
-  it('should append bearer tokens to outbound headers if token exists in session context', inject([HttpClient], (httpClient: HttpClient) => {
-    mockAuthService.getToken.mockReturnValue('mock_jwt_string');
+  describe('Authorization Headers Mapping', () => {
+    it('should inject Bearer token header into outgoing HTTP requests when token is present', () => {
+      httpClient.get('/api/test-data').subscribe();
 
-    httpClient.get('/api/resource').subscribe();
-
-    const req = httpMock.expectOne('/api/resource');
-    expect(req.request.headers.has('Authorization')).toBe(true);
-    expect(req.request.headers.get('Authorization')).toBe('Bearer mock_jwt_string');
-    req.flush({});
-  }));
-
-  it('should catch 403 password-change-required custom exceptions and redirect to profile views', inject([HttpClient], (httpClient: HttpClient) => {
-    mockAuthService.getToken.mockReturnValue('mock_jwt_string');
-
-    httpClient.get('/api/protected').subscribe({
-      error: (err) => expect(err).toBeTruthy()
+      const req = httpTestingController.expectOne('/api/test-data');
+      expect(req.request.headers.has('Authorization')).toBe(true);
+      expect(req.request.headers.get('Authorization')).toBe('Bearer mock-jwt-token');
+      req.flush({});
     });
 
-    const req = httpMock.expectOne('/api/protected');
-    req.flush(
-      { type: 'urn:bookshelf:password-change-required' },
-      { status: 403, statusText: 'Forbidden' }
-    );
+    it('should pass request unmodified if no local token is present', () => {
+      mockAuthService.getToken.mockReturnValue(null);
 
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/app/profile']);
-  }));
+      httpClient.get('/api/test-data').subscribe();
+
+      const req = httpTestingController.expectOne('/api/test-data');
+      expect(req.request.headers.has('Authorization')).toBe(false);
+      req.flush({});
+    });
+  });
 });

@@ -1,11 +1,13 @@
 export * from './adminAPI.service';
 import { AdminAPIService } from './adminAPI.service';
+export * from './adminModerationAPI.service';
+import { AdminModerationAPIService } from './adminModerationAPI.service';
 export * from './authenticationAPI.service';
 import { AuthenticationAPIService } from './authenticationAPI.service';
 export * from './bookAPI.service';
 import { BookAPIService } from './bookAPI.service';
-export * from './userAPI.service';
-import { UserAPIService } from './userAPI.service';
+export * from './userProfileAPI.service';
+import { UserProfileAPIService } from './userProfileAPI.service';
 export * from './userShelfAPI.service';
 import { UserShelfAPIService } from './userShelfAPI.service';
-export const APIS = [AdminAPIService, AuthenticationAPIService, BookAPIService, UserAPIService, UserShelfAPIService];
+export const APIS = [AdminAPIService, AdminModerationAPIService, AuthenticationAPIService, BookAPIService, UserProfileAPIService, UserShelfAPIService];

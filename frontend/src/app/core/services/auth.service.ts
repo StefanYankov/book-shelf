@@ -20,8 +20,6 @@ export class AuthService {
   private readonly TOKEN_KEY = 'bookshelf_jwt';
   private readonly authenticationAPIService = inject(AuthenticationAPIService);
   private readonly router = inject(Router);
-
-  // Reactive authentication state
   private readonly authToken = signal<string | null>(this.getStoredTokenSafe());
 
   private readonly decodedToken = computed<DecodedToken | null>(() => {
@@ -46,21 +44,13 @@ export class AuthService {
 
   login(credentials: AuthenticationRequest): Observable<AuthenticationResponse> {
     return this.authenticationAPIService.authenticate(credentials).pipe(
-      tap(response => {
-        if (response.token) {
-          this.storeToken(response.token);
-        }
-      })
+      tap(response => this.handleAuthenticationResponse(response))
     );
   }
 
   register(request: RegisterRequest): Observable<AuthenticationResponse> {
     return this.authenticationAPIService.register(request).pipe(
-      tap(response => {
-        if (response.token) {
-          this.storeToken(response.token);
-        }
-      })
+      tap(response => this.handleAuthenticationResponse(response))
     );
   }
 
@@ -72,6 +62,12 @@ export class AuthService {
 
   getToken(): string | null {
     return this.authToken();
+  }
+
+  public handleAuthenticationResponse(response: AuthenticationResponse): void {
+    if (response.token) {
+      this.storeToken(response.token);
+    }
   }
 
   private storeToken(token: string): void {

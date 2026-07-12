@@ -6,8 +6,8 @@ import {
   BookshelfDetailsDto,
   BookshelfUpdateDto,
   Pageable,
-  PageBookshelfSummaryDto,
-  PageBookSummaryDto,
+  PagedResponseBookshelfSummaryDto,
+  PagedResponseBookSummaryDto,
   UserShelfAPIService,
 } from '../../api';
 
@@ -24,7 +24,7 @@ export class BookshelfService {
    * @param pageable Pagination and sorting configuration.
    * @returns An observable emitting a paginated result of bookshelf summaries.
    */
-  getShelvesForUser(pageable: Pageable): Observable<PageBookshelfSummaryDto> {
+  getShelvesForUser(pageable: Pageable): Observable<PagedResponseBookshelfSummaryDto> {
     return this.userShelfApiService.getUserShelves(pageable);
   }
 
@@ -52,7 +52,7 @@ export class BookshelfService {
    * @param pageable Pagination and sorting configuration.
    * @returns An observable emitting a paginated result of book summaries.
    */
-  getBooksInShelf(shelfId: string, pageable: Pageable): Observable<PageBookSummaryDto> {
+  getBooksInShelf(shelfId: string, pageable: Pageable): Observable<PagedResponseBookSummaryDto> {
     return this.userShelfApiService.getBooksInShelf(shelfId, pageable);
   }
 

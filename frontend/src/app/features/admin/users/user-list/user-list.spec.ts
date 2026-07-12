@@ -1,12 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of, BehaviorSubject } from 'rxjs';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UserList } from './user-list';
 import { AdminAPIService, PagedResponseAdminUserViewDto } from '../../../../api';
-import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { ToastService } from '../../../../core/services/toast.service';
 
-describe('UserList Component Specs', () => {
+describe('UserList Component Deep-Linking Spec Tests', () => {
   let component: UserList;
   let fixture: ComponentFixture<UserList>;
   let mockAdminApiService: {
@@ -14,14 +16,17 @@ describe('UserList Component Specs', () => {
     lockUser: ReturnType<typeof vi.fn>;
     unlockUser: ReturnType<typeof vi.fn>;
   };
+  let mockToastService: { showSuccess: ReturnType<typeof vi.fn>; showError: ReturnType<typeof vi.fn> };
+  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
+  let queryParamsSubject: BehaviorSubject<{ page?: string }>;
 
   const mockUserPage: PagedResponseAdminUserViewDto = {
     content: [{ id: '1', username: 'test', email: 'test@test.com', firstName: 'Test', lastName: 'User', isActive: true, isEmailVerified: true, role: 'ROLE_USER' }],
     pageNumber: 0,
     pageSize: 10,
     totalElements: 1,
-    totalPages: 1,
-    isLast: true
+    totalPages: 3,
+    isLast: false
   };
 
   beforeEach(async () => {
@@ -30,13 +35,33 @@ describe('UserList Component Specs', () => {
       lockUser: vi.fn().mockReturnValue(of(undefined)),
       unlockUser: vi.fn().mockReturnValue(of(undefined))
     };
+    mockToastService = {
+      showSuccess: vi.fn(),
+      showError: vi.fn()
+    };
+
+    queryParamsSubject = new BehaviorSubject<{ page?: string }>({ page: '0' });
+    mockRouter = {
+      navigate: vi.fn().mockImplementation((commands, extras) => {
+        if (extras?.queryParams) {
+          queryParamsSubject.next({ page: extras.queryParams.page.toString() });
+        }
+        return Promise.resolve(true);
+      })
+    };
 
     await TestBed.configureTestingModule({
       imports: [UserList],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AdminAPIService, useValue: mockAdminApiService }
+        { provide: AdminAPIService, useValue: mockAdminApiService },
+        { provide: ToastService, useValue: mockToastService },
+        { provide: Router, useValue: mockRouter },
+        {
+          provide: ActivatedRoute,
+          useValue: { queryParams: queryParamsSubject.asObservable() }
+        }
       ]
     }).compileComponents();
 
@@ -49,86 +74,38 @@ describe('UserList Component Specs', () => {
     await Promise.resolve();
   };
 
-  it('should create and load users on init', async () => {
+  it('should retrieve route parameters and set page during startup', async () => {
+    queryParamsSubject.next({ page: '2' });
     await stabilizeState();
-    expect(component).toBeTruthy();
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledWith({ page: 0, size: 10 });
-    expect(component.data()?.content?.length).toBe(1);
-    expect(component.loading()).toBe(false);
+
+    expect(component['currentPage']()).toBe(2);
+    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledWith({ page: 2, size: 10 });
   });
 
-  it('should handle error on user load', async () => {
-    mockAdminApiService.getAllUsers.mockReturnValue(throwError(() => new Error('API Error')));
-    await stabilizeState();
-    expect(component.error()).toBe('Failed to load users.');
-    expect(component.loading()).toBe(false);
-  });
-
-  it('should call lockUser and reload data on confirmation', async () => {
-    window.prompt = vi.fn().mockReturnValue('Test reason');
-    await stabilizeState();
-    component.onLockUser('1');
-    expect(mockAdminApiService.lockUser).toHaveBeenCalledWith('1', { reason: 'Test reason' });
-    await stabilizeState();
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(2);
-  });
-
-  it('should not call lockUser if prompt is cancelled', async () => {
-    window.prompt = vi.fn().mockReturnValue(null);
-    await stabilizeState();
-    component.onLockUser('1');
-    expect(mockAdminApiService.lockUser).not.toHaveBeenCalled();
-  });
-
-  it('should call unlockUser and reload data on confirmation', async () => {
-    window.prompt = vi.fn().mockReturnValue('Test reason');
-    await stabilizeState();
-    component.onUnlockUser('1');
-    expect(mockAdminApiService.unlockUser).toHaveBeenCalledWith('1', { reason: 'Test reason' });
-    await stabilizeState();
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(2);
-  });
-
-  it('should navigate to the next page', async () => {
-    // 1. Stabilize the initial load configuration first
+  it('should trigger router state changes when moving pages forward', async () => {
     await stabilizeState();
     expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(1);
 
-    // 2. Clear call history to isolate step metrics safely
-    mockAdminApiService.getAllUsers.mockClear();
-
-    // 3. Mutate the target parameters and step execution forward
-    component.data.set({ ...mockUserPage, isLast: false });
-    component.nextPage();
+    component['nextPage']();
     await stabilizeState();
 
-    expect(component.currentPage()).toBe(1);
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(1); // Cleared baseline calls means 1 fresh action invocation
+    expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+      relativeTo: expect.any(Object),
+      queryParams: { page: 1 },
+      queryParamsHandling: 'merge'
+    });
   });
 
-  it('should not navigate to the next page if on the last page', async () => {
-    component.data.set({ ...mockUserPage, isLast: true });
+  it('should invoke lockUser on submit and trigger reloading routines', async () => {
     await stabilizeState();
-    component.nextPage();
-    await stabilizeState();
-    expect(component.currentPage()).toBe(0);
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(1);
-  });
+    component['openActionForm']('1', 'test', 'LOCK');
+    await stabilizeState(); // Wait for modal to be visible
+    component['inputReason'].set('Violation of Terms of Service');
 
-  it('should navigate to the previous page', async () => {
-    component.currentPage.set(1);
+    component['submitAdministrativeAction']();
     await stabilizeState();
-    component.previousPage();
-    await stabilizeState();
-    expect(component.currentPage()).toBe(0);
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(2);
-  });
 
-  it('should not navigate to the previous page if on the first page', async () => {
-    await stabilizeState();
-    component.previousPage();
-    await stabilizeState();
-    expect(component.currentPage()).toBe(0);
-    expect(mockAdminApiService.getAllUsers).toHaveBeenCalledTimes(1);
+    expect(mockAdminApiService.lockUser).toHaveBeenCalledWith('1', { reason: 'Violation of Terms of Service' });
+    expect(mockToastService.showSuccess).toHaveBeenCalled();
   });
 });

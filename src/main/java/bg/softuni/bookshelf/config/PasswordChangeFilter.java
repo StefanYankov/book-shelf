@@ -19,7 +19,7 @@ import java.net.URI;
 
 /**
  * Filter that intercepts incoming HTTP requests to enforce mandatory password rotation.
- * Decoupled from direct JWT validation by leveraging the SecurityContext authentication principal.
+ * Bypasses public authentication paths to prevent lockouts caused by stale client tokens.
  */
 @RequiredArgsConstructor
 public class PasswordChangeFilter extends OncePerRequestFilter {
@@ -33,14 +33,19 @@ public class PasswordChangeFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        String path = request.getRequestURI();
+
+        boolean isPublicAuthPath = path.startsWith("/api/auth/");
+        if (isPublicAuthPath) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserDetails userDetails) {
             if (userDetails.isPasswordChangeRequired()) {
-                String path = request.getRequestURI();
                 String method = request.getMethod();
-
-                // Exclude the profile password update route to allow users to complete the password rotation flow
                 boolean isPasswordChangeRequest = "PUT".equalsIgnoreCase(method) && path.endsWith("/api/users/me/password");
 
                 if (!isPasswordChangeRequest) {

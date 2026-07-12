@@ -1,0 +1,69 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0">Content Moderation</h2>
+    <span class="badge bg-warning text-dark">Admin Panel</span>
+  </div>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab() === 'BOOKS'" (click)="activeTab.set('BOOKS')">Books</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab() === 'SHELVES'" (click)="activeTab.set('SHELVES')">Shelves</button>
+    </li>
+  </ul>
+
+  @if (activeTab() === 'BOOKS') {
+    <div class="card p-3">
+      @if (moderationForm(); as form) {
+        <div class="moderation-form">
+          <h4 class="mb-3">Moderating Book: <span class="moderated-title">{{ form.title }}</span></h4>
+          <div class="mb-3">
+            <label for="modTitle" class="form-label">Title</label>
+            <input id="modTitle" type="text" class="form-control" [(ngModel)]="form.title">
+          </div>
+          <div class="mb-3">
+            <label for="modSummary" class="form-label">Summary</label>
+            <textarea id="modSummary" class="form-control" rows="4" [(ngModel)]="form.summary"></textarea>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-secondary" (click)="cancelModeration()">Cancel</button>
+            <button class="btn btn-primary" (click)="submitBookModeration()">Save Changes</button>
+          </div>
+        </div>
+      } @else {
+        <div class="mb-3">
+          <input type="text" class="form-control" placeholder="Search for books to moderate..." [formControl]="searchControl">
+        </div>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (book of searchResults()?.content; track book.id) {
+              <tr>
+                <td>{{ book.title }}</td>
+                <td>{{ book.authorName }}</td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-primary" (click)="selectBookForModeration(book)">Moderate</button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="text-center text-muted">No books found for the current search query.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  } @else {
+    <div class="card p-3">
+      <p class="text-center text-muted">Shelf moderation interface is not yet implemented.</p>
+    </div>
+  }
+</div>

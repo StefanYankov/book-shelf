@@ -8,6 +8,7 @@ import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
+import bg.softuni.bookshelf.service.user.dto.UserSecurityDto;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -74,6 +75,7 @@ class UserServiceImplTest {
     @Nested
     @DisplayName("getProfile Tests")
     class GetProfileTests {
+
         @Test
         @DisplayName("Happy Path: Should return user profile DTO")
         void shouldReturnUserProfileDto() {
@@ -106,6 +108,7 @@ class UserServiceImplTest {
     @Nested
     @DisplayName("updateProfile Tests")
     class UpdateProfileTests {
+
         @Test
         @DisplayName("Happy Path: Should update first and last name")
         void shouldUpdateFirstAndLastName() {
@@ -142,8 +145,9 @@ class UserServiceImplTest {
     @Nested
     @DisplayName("changePassword Tests")
     class ChangePasswordTests {
+
         @Test
-        @DisplayName("Happy Path: Should change password and flip change required status flag to false")
+        @DisplayName("Happy Path: Should change password, clear rotation flags, and map to non-leaking record")
         void shouldChangePassword_WhenCurrentPasswordIsCorrect() {
             // Arrange
             UUID userId = UUID.randomUUID();
@@ -153,15 +157,19 @@ class UserServiceImplTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(passwordEncoder.matches("old", "encodedOld")).willReturn(true);
             given(passwordEncoder.encode("new")).willReturn("encodedNew");
+            given(userRepository.save(any(ApplicationUser.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             // Act
-            userService.changePassword(userId, dto);
+            UserSecurityDto result = userService.changePassword(userId, dto);
 
             // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(userId);
+            assertThat(result.username()).isEqualTo("testuser");
+            assertThat(result.passwordChangeRequired()).isFalse();
+
             verify(userRepository).save(userCaptor.capture());
-            ApplicationUser updatedUser = userCaptor.getValue();
-            assertThat(updatedUser.getPassword()).isEqualTo("encodedNew");
-            assertThat(updatedUser.isPasswordChangeRequired()).isFalse(); // Core fix verification
+            assertThat(userCaptor.getValue().getPassword()).isEqualTo("encodedNew");
         }
 
         @Test
@@ -180,7 +188,7 @@ class UserServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
 
-            verify(userRepository, never()).save(any(User.class)); // Defense in depth fix
+            verify(userRepository, never()).save(any(User.class));
         }
 
         @Test
@@ -197,13 +205,14 @@ class UserServiceImplTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
 
             verifyNoInteractions(passwordEncoder);
-            verify(userRepository, never()).save(any(User.class)); // Defense in depth fix
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 
     @Nested
     @DisplayName("getAllUsers Tests")
     class GetAllUsersTests {
+
         @Test
         @DisplayName("Happy Path: Should return paged admin user view DTOs")
         void shouldReturnPagedAdminUserViewDtos() {
@@ -260,6 +269,21 @@ class UserServiceImplTest {
             assertThat(capturedEvent.getReason()).isEqualTo("Test reason");
             assertThat(capturedEvent.getUser()).isEqualTo(user);
             assertThat(capturedEvent.getActor()).isEqualTo(actor);
+        }
+
+        @Test
+        @DisplayName("Defensive Security: lockUser should reject admin self-locking immediately with SELF_LOCK_PREVENTION")
+        void lockUser_shouldThrowSelfLockPrevention_WhenAdminLocksThemself() {
+            // Arrange
+            UUID adminId = UUID.randomUUID();
+
+            // Act & Assert
+            assertThatThrownBy(() -> userService.lockUser(adminId, "Accidental Self-Lock", adminId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SELF_LOCK_PREVENTION);
+
+            verifyNoInteractions(accountStatusEventRepository);
+            verify(userRepository, never()).findById(any(UUID.class));
         }
 
         @Test

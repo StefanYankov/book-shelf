@@ -4,6 +4,7 @@ import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
 import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
+import bg.softuni.bookshelf.service.user.dto.UserSecurityDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,7 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.UUID;
 
 /**
- * Service interface for managing user profile data.
+ * Service interface for managing user profile data and administrative actions.
  */
 public interface UserService {
 
@@ -34,14 +35,15 @@ public interface UserService {
     void updateProfile(UUID userId, UpdateProfileDto dto);
 
     /**
-     * Changes the password for a specific user after verifying their current password.
+     * Changes a user's password, flushes the new credentials, and returns a detached boundary projection.
      *
      * @param userId The UUID of the user changing their password.
      * @param dto    A {@link ChangePasswordDto} containing the current and new passwords.
+     * @return The updated, detached {@link UserSecurityDto} projection.
      * @throws bg.softuni.bookshelf.shared.exception.BusinessException if no user is found for the given ID,
-     *                                                                 or if the provided current password is incorrect.
+     *                                                                 or if the current password check fails.
      */
-    void changePassword(UUID userId, ChangePasswordDto dto);
+    UserSecurityDto changePassword(UUID userId, ChangePasswordDto dto);
 
     /**
      * Retrieves a paginated list of all users for administrative purposes.
@@ -49,7 +51,7 @@ public interface UserService {
      * @param pageable The pagination information.
      * @return A {@link Page} of {@link AdminUserViewDto} objects.
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     Page<AdminUserViewDto> getAllUsers(Pageable pageable);
 
     /**
@@ -58,8 +60,9 @@ public interface UserService {
      * @param userId  The UUID of the user to lock.
      * @param reason  The administrative reason for the action.
      * @param actorId The UUID of the administrator performing the action.
+     * @throws bg.softuni.bookshelf.shared.exception.BusinessException if an administrator tries to self-lock.
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     void lockUser(UUID userId, String reason, UUID actorId);
 
     /**
@@ -69,6 +72,6 @@ public interface UserService {
      * @param reason  The administrative reason for the action.
      * @param actorId The UUID of the administrator performing the action.
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     void unlockUser(UUID userId, String reason, UUID actorId);
 }

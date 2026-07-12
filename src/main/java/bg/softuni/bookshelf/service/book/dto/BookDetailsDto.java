@@ -1,6 +1,7 @@
 package bg.softuni.bookshelf.service.book.dto;
 
 import bg.softuni.bookshelf.data.enums.BookFormat;
+import lombok.Builder;
 
 import java.util.Set;
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.UUID;
 /**
  * DTO for returning detailed information about a single book.
  */
+@Builder
 public record BookDetailsDto(
         UUID id,
         String title,
