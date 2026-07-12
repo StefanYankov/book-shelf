@@ -8,11 +8,11 @@
 ## Overview
 
 This project is the **final project** for the university course:
-**Java Web - May 2026 (Spring Fundamentals)** at **Software University**.
+**Java Web - May 2026** module at **Software University**.
 
 ## Project Introduction
 
-The **Book Shelf API** is a Java-based web application developed as a final project for the **Spring Fundamentals** course at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
+The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
 
 ## Table of Contents
 - [Architecture and Technologies](#architecture-and-technologies)
@@ -74,21 +74,37 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Scalable, paginated queries with `JOIN FETCH` to prevent N+1 problems.
     -   Abstracted `ImageUploadService` for flexible integration with cloud storage providers.
     -   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
+-   **Administrative Services**:
+    -   Decoupled web layer projections utilizing `UserSecurityDto` and `UserSecurityViewDto` to protect JPA boundaries.
+    -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize("hasRole('ADMIN')")` declarations.
+    -   Stateful user locking and unlocking operations writing history to an emergency persistent status track.
+    -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
+    -   Administrative metadata override engines (`moderateBook`) implemented in the core catalog domain to curating titles and summaries.
 
 ### Frontend Application Structure and Features
 
 The Angular frontend is built with a standalone component architecture and follows a modular, feature-driven structure based on user roles:
 
--   **Core Authentication:**
+-   **Core Authentication & Security Guards:**
     -   `AuthService`: Manages JWT tokens, user login/logout, and token decoding.
-    -   `AuthInterceptor`: Automatically attaches JWT to all outgoing API requests.
-    -   `AuthGuard`: Protects authenticated routes.
+    -   `AuthInterceptor`: Pure transport-layer wrapper that appends headers without introducing routing side effects.
+    -   `LandingGuard`: Evaluates unauthenticated views and landing redirects for incoming public traffic.
+    -   `AuthGuard`: Validates session states and enforces global password rotation routes by checking `pwd_chg_req` status.
+    -   `UserGuard` / `AdminGuard`: Subsystem isolation gates that completely shield matching layout workspaces from conflicting roles.
 -   **Public Zone (`features/public` and `features/auth`):**
-    -   `PublicLayout`: Provides a shared `PublicHeader` (with Login/Register links) and footer for unauthenticated users.
+    -   `PublicLayout`: Provides a shared public shell (Catalog browsing, Login, Registration) and footer for unauthenticated guest entry points.
     -   `Login`, `Register`, `ForgotPassword`, `ResetPassword`: User authentication and account management forms.
--   **Authenticated Zone (`layout/app-layout`):**
-    -   `AppLayout`: Provides a shared `AuthenticatedHeader` for logged-in users with component metadata configured through modern `styleUrls` array declarations.
+-   **Authenticated User Zone (`layout/app-layout`):**
+    -   `AppLayout`: Dedicated workspace shell providing the core catalog interface and bookshelves for authenticated users.
     -   `AuthenticatedHeader`: Implements absolute routing targets directing users directly to the `/app/books` interface.
+    -   `Profile`: Component managing user details and personal security updates using reactive agile validation rule trackers to enforce complexity parameters inline.
+-   **Administrative Zone (`layout/admin-layout`):**
+    -   `AdminLayout`: Isolated control panel shell entirely segregated from user layouts to provide system-level administration interfaces.
+    -   `AdminHeader`: Dynamically restricts layout navigation paths when a forced credential rotation is active.
+    -   `AdminHome`: A dedicated, lightweight dashboard landing station for the administrative root layout view.
+    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking.
+    -   `ContentModeration`: Multi-tab interface featuring non-blocking reactive dialog structures to let administrators sanitize book summaries and fields.
+    -   `AdminProfile`: Decoupled profile component using complexity rules to enforce administrative credential changes.
 -   **Core Views & Components:**
     -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
     -   `BookDetail`: A dedicated page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality.
@@ -98,38 +114,38 @@ The project follows a standard monorepo structure with a clear separation betwee
 
 ```
 book-shelf/
-├── 📂 .github/workflows/         # CI/CD Pipelines
+├── 📂 .github/workflows/               # CI/CD Pipelines
 │   ├── 📄 backend-ci.yaml
 │   └── 📄 frontend-ci.yml
 │
-├── 📂 frontend/                  # Angular Application
+├── 📂 frontend/                        # Angular Application
 │   ├── 📂 src/app/
-│   │   ├── 📂 api/                # Auto-generated API client
-│   │   ├── 📂 core/               # Core services, guards, interceptors
-│   │   ├── 📂 features/           # Feature components (pages)
-│   │   ├── 📂 layout/             # Layout components (shells)
-│   │   └── 📂 shared/             # Reusable components, pipes, etc.
+│   │   ├── 📂 api/                     # Auto-generated API client
+│   │   ├── 📂 core/                    # Core services, guards, interceptors
+│   │   ├── 📂 features/                # Feature components (pages)
+│   │   ├── 📂 layout/                  # Layout components (shells)
+│   │   └── 📂 shared/                  # Reusable components, pipes, etc.
 │   └── 📄 angular.json
 │
-├── 📂 src/                       # Spring Boot Application
+├── 📂 src/                             # Spring Boot Application
 │   ├── 📂 main/
 │   │   ├── 📂 java/bg/softuni/bookshelf/
 │   │   │   ├── 📜 BookShelfApplication.java
-│   │   │   ├── 📂 config/             # Spring Security and App configuration
-│   │   │   ├── 📂 data/               # JPA Entities and Repositories
-│   │   │   ├── 📂 service/            # Service layer (business logic)
-│   │   │   ├── 📂 shared/             # Cross-cutting concerns
-│   │   │   └── 📂 web/                # Controllers and Exception Handling
+│   │   │   ├── 📂 config/              # Spring Security and App configuration
+│   │   │   ├── 📂 data/                # JPA Entities and Repositories
+│   │   │   ├── 📂 service/             # Service layer (business logic)
+│   │   │   ├── 📂 shared/              # Cross-cutting concerns
+│   │   │   └── 📂 web/                 # Controllers and Exception Handling
 │   │   └── 📂 resources/
-│   │       ├── 📂 db/migration/       # Flyway SQL scripts
-│   │       ├── 📄 application.yaml    # General fallback configuration
-│   │       └── 📄 application-dev.yaml# Development profile parameters
+│   │       ├── 📂 db/migration/        # Flyway SQL scripts
+│   │       ├── 📄 application.yaml     # General fallback configuration
+│   │       └── 📄 application-dev.yaml # Development profile parameters
 │   │
 │   └── 📂 test/
 │
-├── 📄 build.gradle                # Backend build script
-├── 📄 compose.yaml                # Docker Compose (Postgres setup)
-└── 📄 README.md                   # Project documentation
+├── 📄 build.gradle                     # Backend build script
+├── 📄 compose.yaml                     # Docker Compose (Postgres setup)
+└── 📄 README.md                        # Project documentation
 ```
 
 ## Installation and Setup
@@ -196,16 +212,22 @@ Once the application is running, the OpenAPI (Swagger UI) documentation is avail
 
 http://localhost:8080/swagger-ui.html
 
+http://localhost:8080/swagger-ui.html
+
 ## Test Credentials
 
-The local configuration environment seeds the following testing user definitions automatically on application startup with the default password `password`:
-- **Admin**: `admin`
-- **Standard User 1**: `user1`
-- **Standard User 2**: `user2`
+The local configuration environment seeds the following testing user definitions automatically on application startup.
+
+- **Admin**: `admin` / `admin`
+> [!IMPORTANT]
+> The admin user is required to change their password on first login.
+
+
+- **Standard User 1**: `user1` / `password`
+- **Standard User 2**: `user2` / `password`
 
 > [!NOTE]
-> The seeded development database contains static password hashes that may not align with runtime encoder salts. The fallback credential value for these profiles is `password`. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
-
+> The seeded development database contains static password hashes that may not align with runtime encoder salts. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
 #### **Resolving Pre-seeded Login Failures:**
 
 If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
@@ -246,7 +268,7 @@ In a production environment, if the primary administrator is locked out, a privi
 The project is licensed under the MIT License.
 
 ## Acknowledgments
-- Developed as part of the [**Spring Fundamentals**](https://softuni.bg/trainings/5311/spring-fundamentals-may-2026) course / [**Java Web**](https://softuni.bg/modules/120/java-web-may-2026/1629) module at [**Software University**](https://softuni.bg/).
+- Developed as part of the [**Java Web**](https://softuni.bg/modules/120/java-web-may-2026/1629) module at [**Software University**](https://softuni.bg/).
 - Special thanks to the course instructor for creating the project requirements.
 
 ## Repository
