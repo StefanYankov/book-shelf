@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -11,11 +11,9 @@ import { AddBookToBookshelfDto, PagedResponseBookshelfSummaryDto } from '../../.
 
 @Component({
   selector: 'app-book-detail',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './book-detail.html',
   styleUrls: ['./book-detail.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BookDetail {
   private readonly route = inject(ActivatedRoute);

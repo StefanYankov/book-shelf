@@ -51,8 +51,13 @@ public enum ErrorCode {
     // --- Author domain (E2300 - E2399) ---
     AUTHOR_NOT_FOUND("E2300", "The selected author could not be found.", HttpStatus.NOT_FOUND),
     AUTHOR_IN_USE("E2301","The selected author is currently in use.",HttpStatus.CONFLICT),
-    AUTHOR_NAME_DUPLICATE("E2302", "An author with this name already exists.", HttpStatus.CONFLICT)
-    
+    AUTHOR_NAME_DUPLICATE("E2302", "An author with this name already exists.", HttpStatus.CONFLICT),
+
+    // --- Review domain (E2400 - E2499) ---
+    REVIEW_NOT_FOUND("E2400", "Review not found.", HttpStatus.NOT_FOUND),
+    DUPLICATE_REVIEW("E2401", "You have already reviewed this item.", HttpStatus.CONFLICT),
+    UNAUTHORIZED_REVIEW_MODIFICATION("E2402", "You cannot modify a review you did not author.", HttpStatus.FORBIDDEN)
+
     ;
 
     private final String code;

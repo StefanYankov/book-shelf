@@ -9,7 +9,6 @@ import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -44,10 +43,12 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
      * @return a fully populated custom user record containing the UUID (never {@code null})
      * @throws UsernameNotFoundException if the user could not be found.
      */
-    // TODO: Configure a cache manager (e.g., Caffeine) to enable this optimization.
+    // TODO(caching, Redis): re-introduce caching here ONLY together with eviction on
+    //   lock/unlock. Caching UserDetails caches the isEnabled flag at load time, which would
+    //   make account-lock revocation strictly worse (a locked user stays cached as enabled).
+    //   Pair any @Cacheable("users") with @CacheEvict on AccountStatusService lock/unlock.
     @Override
-    @Cacheable("users")
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username)  throws UsernameNotFoundException {
         log.debug("Attempting to load user by username: {}", username);
 
         return userRepository.findByUsername(username)

@@ -16,7 +16,6 @@ import { BookFormat } from '../../../core/models/book-format.enum';
  */
 @Component({
   selector: 'app-book-list',
-  standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './book-list.html',
   styleUrls: ['./book-list.css']

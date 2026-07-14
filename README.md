@@ -31,7 +31,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Database**: PostgreSQL 17
 - **Migrations**: Flyway
 - **Containerization**: Docker and Docker Compose
-- **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated entry point control.
+- **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
     - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ
@@ -54,32 +54,39 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Bookshelf Management**:
     -   Custom user-defined bookshelf entities with database-level pagination tracking.
     -   Dedicated controller endpoints for adding, listing, and removing items.
+-   **Reviews**:
+    -   Polymorphic review targets via a soft `(targetId, targetType)` association, allowing reviews on books today and authors/publishers later without schema churn.
+    -   Full CRUD with ownership rules — a review may be edited only by its author and deleted by its author or an administrator — enforced at the service layer.
+    -   Paginated listing that resolves author names through a single batched lookup (avoids the N+1 query pattern).
+    -   Composite uniqueness on `(user, target)` preventing duplicate reviews for the same target.
 
 ### Backend Application Structure and Features
 
 -   **System Foundation**:
     -   Centralized RFC 7807 `ProblemDetail` exception handling (`GlobalExceptionHandler`).
-    -   Standardized HTTP 401 Unauthorized response codes on unauthenticated filter attempts.
+    -   Consistent RFC 7807 `ProblemDetail` responses for both HTTP 401 (unauthenticated) and 403 (forbidden) failures raised in the security filter chain, matching the format emitted by the controller advice.
     -   JSR-380 input validation on all DTOs.
     -   Automated Flyway database migrations.
 -   **Domain Model**:
-    -   A complete JPA entity model with  relationships (`Book`, `Author`, `User`, etc.).
+    -   A complete JPA entity model with relationships (`Book`, `Author`, `User`, etc.).
     -   `@Version` annotation on base entities for optimistic locking.
     -   `JOINED` inheritance strategy for the `User` hierarchy.
+    -   Soft, framework-agnostic references (`UUID`) for polymorphic associations such as review targets, keeping aggregates decoupled.
 -   **Core Services**:
     -   Full CRUD services implemented for `Book`, `Language`, `Genre`, `Publisher`, and `Author`.
     -   Application-level, case-insensitive duplicate name validation for all relevant entities.
     -   Robust handling of `DataIntegrityViolationException` on delete operations.
 -   **Book and Author Services**:
-    -   Scalable, paginated queries with `JOIN FETCH` to prevent N+1 problems.
+    -   Scalable, paginated queries using `JOIN FETCH` to prevent N+1 problems for mapped associations.
+    -   Cross-aggregate lookups (e.g. resolving review author names) resolved via batched `findAllById` in the service layer rather than persistence-layer joins, keeping decoupled aggregates independent.
     -   Abstracted `ImageUploadService` for flexible integration with cloud storage providers.
     -   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
 -   **Administrative Services**:
     -   Decoupled web layer projections utilizing `UserSecurityDto` and `UserSecurityViewDto` to protect JPA boundaries.
     -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize("hasRole('ADMIN')")` declarations.
-    -   Stateful user locking and unlocking operations writing history to an emergency persistent status track.
+    -   Stateful user locking and unlocking operations writing history to a persistent account-status event track.
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
-    -   Administrative metadata override engines (`moderateBook`) implemented in the core catalog domain to curating titles and summaries.
+    -   Administrative metadata override (`moderateBook`) implemented in the core catalog domain for curating titles and summaries.
 
 ### Frontend Application Structure and Features
 
@@ -220,14 +227,15 @@ The local configuration environment seeds the following testing user definitions
 
 - **Admin**: `admin` / `admin`
 > [!IMPORTANT]
-> The admin user is required to change their password on first login.
+> The admin user is required to change their password on first login. The admin password is encoded by the runtime encoder on first boot, so it always matches — the salt-sync workaround below does not apply to the admin.
 
 
 - **Standard User 1**: `user1` / `password`
 - **Standard User 2**: `user2` / `password`
 
 > [!NOTE]
-> The seeded development database contains static password hashes that may not align with runtime encoder salts. If authentication requests decline these criteria, use the **Password Reset** interface to assign a valid runtime hash sequence.
+> The seeded standard users (user1, user2) use static, pre-computed password hashes baked into the reference-data migration, which may not align with your runtime encoder configuration. If authentication requests decline these credentials, use the Password Reset interface to assign a valid runtime hash.
+
 #### **Resolving Pre-seeded Login Failures:**
 
 If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:

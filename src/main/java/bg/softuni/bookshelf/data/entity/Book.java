@@ -19,7 +19,7 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"author", "genres", "language", "publisher", "reviews", "userEntries"})
+@ToString(exclude = {"author", "genres", "language", "publisher", "userEntries"})
 public class Book extends BaseUUIDEntity {
 
     @Column(
@@ -71,10 +71,6 @@ public class Book extends BaseUUIDEntity {
             length = ValidationConstants.Book.MAX_SUMMARY_LENGTH
     )
     private String summary;
-
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private Set<Review> reviews = new HashSet<>();
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

@@ -18,3 +18,10 @@ application:
       # A default, non-production secret for local development convenience
       secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     auto-seed-admin: true
+
+# --- NEW: localhost origin lives ONLY in the dev profile ---
+# When running with the 'dev' profile active, this overrides the production default above.
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:4200
