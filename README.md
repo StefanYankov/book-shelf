@@ -15,15 +15,15 @@ This project is the **final project** for the university course:
 The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
 
 ## Table of Contents
-- #architecture-and-technologies
-- #installation-and-setup
-- #implemented-features
-- #project-structure
-- #api-documentation
-- #test-credentials
-- #license
-- #acknowledgments
-- #repository
+- [Architecture and Technologies](#architecture-and-technologies)
+- [Installation and Setup](#installation-and-setup)
+- [Implemented Features](#implemented-features)
+- [Project Structure](#project-structure)
+- [API Documentation](#api-documentation)
+- [Test Credentials](#test-credentials)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+- [Repository](#repository)
 
 ## Architecture and Technologies
 - **Backend**: Spring Boot 3.4.0 / Java 21
