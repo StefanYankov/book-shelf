@@ -125,7 +125,7 @@ INSERT INTO user_books (id, version, user_id, book_id, status, is_favorite, crea
 ON CONFLICT (id) DO NOTHING;
 
 -- Reviews
-INSERT INTO reviews (id, version, title, comment, rating, user_id, book_id, created_at, updated_at)
+INSERT INTO reviews (id, version, title, comment, rating, user_id, target_id, target_type, created_at, updated_at)
 VALUES
     (
         '99999999-0000-0000-0000-000000000001',
@@ -135,6 +135,7 @@ VALUES
         5, -- rating
         '22222222-0000-0000-0000-000000000001',
         '77777777-0000-0000-0000-000000000001',
+        'BOOK',
         NOW(),
         NOW()
     ),
@@ -146,6 +147,7 @@ VALUES
         5, -- rating
         '22222222-0000-0000-0000-000000000002',
         '77777777-0000-0000-0000-000000000002',
+        'BOOK',
         NOW(),
         NOW()
     ),
@@ -157,6 +159,7 @@ VALUES
         5, -- rating
         '22222222-0000-0000-0000-000000000001',
         '77777777-0000-0000-0000-000000000006',
+        'BOOK',
         NOW(),
         NOW()
     )

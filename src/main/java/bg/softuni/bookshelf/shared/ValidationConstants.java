@@ -52,9 +52,13 @@ public final class ValidationConstants {
     // Review-related constants
     public static final class Review {
         public static final int MAX_TITLE_LENGTH = 100;
+        public static final int MAX_COMMENT_LENGTH = 2000;
+        public static final int TARGET_TYPE_MAX_LENGTH = 50;
+        public static final int MIN_RATING = 1;
+        public static final int MAX_RATING = 5;
     }
 
-    // Review-related constants
+    // Language-related constants
     public static final class Language {
         public static final int MAX_NAME_LENGTH = 100;
     }

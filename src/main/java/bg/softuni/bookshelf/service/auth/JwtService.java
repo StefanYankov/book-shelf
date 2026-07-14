@@ -51,19 +51,21 @@ public class JwtService {
     }
 
     /**
-     * Maps security claim payload and generates a token directly from a detached UserSecurityDto projection.
+     * Generates a signed JWT for a detached {@link UserSecurityDto} projection, without
+     * requiring a fully-loaded principal or a credential.
+     * <p>
+     * Builds a token-derived principal via {@link CustomUserDetails#forToken} (no password),
+     * then delegates to {@link #generateToken}. Use this when issuing a token from security
+     * state you already hold (e.g. straight after a password change) rather than from a login.
      *
-     * @param user        The detached user security state.
-     * @param authorities The authorities to grant the session context.
-     * @return The signed JWT string.
+     * @param user        the detached user security state (id, username, password-change flag).
+     * @param authorities the authorities to embed in the token.
+     * @return the signed JWT string.
      */
     public String generateTokenForUser(UserSecurityDto user, Collection<? extends GrantedAuthority> authorities) {
-        // TODO: Refactor using an explicit stateless factory method to avoid magic empty string values.
-        CustomUserDetails userDetails = new CustomUserDetails(
+        CustomUserDetails userDetails = CustomUserDetails.forToken(
                 user.id(),
                 user.username(),
-                "",
-                true,
                 user.passwordChangeRequired(),
                 authorities.stream().map(auth -> (GrantedAuthority) auth).toList()
         );
@@ -104,20 +106,28 @@ public class JwtService {
         Claims claims = extractAllClaims(token);
         String userId = claims.get("userId", String.class);
         String role = claims.get("role", String.class);
-        boolean passwordChangeRequired = claims.get("pwd_chg_req", Boolean.class);
+        boolean passwordChangeRequired = Boolean.TRUE.equals(claims.get("pwd_chg_req", Boolean.class));
 
+        // KNOWN LIMITATION (stateless JWT): the principal is rebuilt purely from token
+        // claims, so isEnabled is hardcoded true. Account lock/ban does NOT revoke a live
+        // token — it only bites when the user requests a new one (bounded by token expiry).
+        // Interim mitigation: short access-token TTL (application.security.jwt.expiration).
+        // TODO(revocation, Redis): check a per-user status / token-version / deny-list here
+        //   and evict on lock/unlock for instant revocation once caching is introduced.
         return new CustomUserDetails(
                 UUID.fromString(userId),
                 claims.getSubject(),
-                "", // Password is not needed for in-memory principal
-                true,
+                "", // Password not needed for in-memory principal
+                true, // <-- see KNOWN LIMITATION above
                 passwordChangeRequired,
                 Collections.singletonList(new SimpleGrantedAuthority(role))
         );
     }
 
     /**
-     * Checks if a JWT is valid.
+     * Validates a token against a principal. Signature integrity and claim tamper-proofing are
+     * already guaranteed by extractAllClaims() (verifyWith + parseSignedClaims), so this only
+     * needs to confirm the subject matches and the token hasn't expired.
      *
      * @param token The JWT.
      * @param userDetails The user details to validate against.

@@ -1,7 +1,6 @@
 package bg.softuni.bookshelf.data.entity.identity;
 
 import bg.softuni.bookshelf.data.entity.Bookshelf;
-import bg.softuni.bookshelf.data.entity.Review;
 import bg.softuni.bookshelf.data.entity.UserBook;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -17,7 +16,7 @@ import java.util.Set;
 @Table(name = "application_users")
 @Getter
 @Setter
-@ToString(exclude = {"reviews", "libraryEntries", "bookshelves", "statusEvents"})
+@ToString(exclude = {"libraryEntries", "bookshelves", "statusEvents"})
 public class ApplicationUser extends User {
 
     /**
@@ -25,9 +24,6 @@ public class ApplicationUser extends User {
      */
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Review> reviews = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserBook> libraryEntries = new HashSet<>();

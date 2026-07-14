@@ -7,18 +7,17 @@ import bg.softuni.bookshelf.service.auth.AuthenticationService;
 import bg.softuni.bookshelf.service.auth.JwtService;
 import bg.softuni.bookshelf.service.book.BookService;
 import bg.softuni.bookshelf.service.bookshelf.BookshelfService;
+import bg.softuni.bookshelf.service.review.ReviewService;
 import bg.softuni.bookshelf.service.user.UserService;
 import bg.softuni.bookshelf.web.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest
 @ActiveProfiles("test")
 @Import({SecurityConfig.class, ApplicationConfig.class, GlobalExceptionHandler.class})
 public abstract class AbstractControllerTestBase {
@@ -51,4 +50,7 @@ public abstract class AbstractControllerTestBase {
 
     @MockitoBean
     protected UserService userService;
+
+    @MockitoBean
+    protected ReviewService reviewService;
 }

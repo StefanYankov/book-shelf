@@ -31,4 +31,43 @@ public class CustomUserDetails extends User {
         this.id = id;
         this.passwordChangeRequired = passwordChangeRequired;
     }
+
+    /**
+     * Whether this principal holds the ADMIN role.
+     * Centralizes the ROLE_ADMIN authority check so no other layer
+     * needs to know the authority string or stream over authorities.
+     */
+    public boolean isAdmin() {
+        return getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    /**
+     * Builds a principal reconstructed from a verified JWT (or a detached security projection),
+     * where no credential is available or needed.
+     * <p>
+     * Password is intentionally blank: a token-derived principal is already authenticated,
+     * so Spring Security never re-checks credentials for it. Centralizing construction here
+     * removes the magic "" password literal from the call sites and documents why it's empty.
+     *
+     * @param id                     the user's database UUID.
+     * @param username               the username (JWT subject).
+     * @param passwordChangeRequired whether a forced password rotation is pending.
+     * @param authorities            the granted authorities.
+     * @return a CustomUserDetails suitable for a stateless, already-authenticated principal.
+     */
+    public static CustomUserDetails forToken(
+            UUID id,
+            String username,
+            boolean passwordChangeRequired,
+            Collection<? extends GrantedAuthority> authorities) {
+        return new CustomUserDetails(
+                id,
+                username,
+                "",   // no credential in a token-derived principal (see Javadoc)
+                true, // token-derived principals are enabled; see KNOWN LIMITATION in JwtService
+                passwordChangeRequired,
+                authorities
+        );
+    }
 }
