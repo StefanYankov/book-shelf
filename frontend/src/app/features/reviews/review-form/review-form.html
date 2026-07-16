@@ -1,0 +1,54 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="card card-body mb-4">
+  <h5 class="mb-3">{{ isEditMode() ? 'Edit your review' : 'Write a review' }}</h5>
+
+  <div class="mb-3">
+    <label for="review-title" class="form-label">Title</label>
+    <input
+      id="review-title"
+      type="text"
+      formControlName="title"
+      class="form-control"
+      [class.is-invalid]="isInvalid('title')" />
+    @if (isInvalid('title')) {
+      <div class="invalid-feedback">{{ errorFor('title') }}</div>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label for="review-rating" class="form-label">Rating</label>
+    <select
+      id="review-rating"
+      formControlName="rating"
+      class="form-select"
+      [class.is-invalid]="isInvalid('rating')">
+      @for (star of ratingOptions; track star) {
+        <option [ngValue]="star">{{ star }} / 5</option>
+      }
+    </select>
+    @if (isInvalid('rating')) {
+      <div class="invalid-feedback">{{ errorFor('rating') }}</div>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label for="review-comment" class="form-label">Comment</label>
+    <textarea
+      id="review-comment"
+      formControlName="comment"
+      rows="3"
+      class="form-control"
+      [class.is-invalid]="isInvalid('comment')"></textarea>
+    @if (isInvalid('comment')) {
+      <div class="invalid-feedback">{{ errorFor('comment') }}</div>
+    }
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">
+      {{ isEditMode() ? 'Update' : 'Submit' }}
+    </button>
+    <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+      Cancel
+    </button>
+  </div>
+</form>

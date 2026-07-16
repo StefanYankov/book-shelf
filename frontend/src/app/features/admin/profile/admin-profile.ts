@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { UserProfileAPIService, ChangePasswordDto, AuthenticationResponse } from '../../../api';
+import { UserProfileAPIService, ChangePasswordDto } from '../../../api';
 import { ToastService } from '../../../core/services/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
@@ -39,7 +39,7 @@ export class AdminProfile {
   }, { validators: this.passwordMatchValidator });
 
   /**
-   * Commits the administrative credentials update workflow and switches session contexts cleanly.
+   * Changes the administrator's password, then forces re-authentication.
    */
   onPasswordSubmit(): void {
     if (this.passwordForm.invalid) return;
@@ -49,10 +49,15 @@ export class AdminProfile {
       newPassword: rawValue.newPassword || ''
     };
     this.userProfileApiService.changeMyPassword(dto).subscribe({
-      next: (response: AuthenticationResponse) => {
-        this.authService.handleAuthenticationResponse(response);
-        this.toastService.showSuccess('Password updated successfully.');
-        this.passwordForm.reset();
+      // NOTE: changeMyPassword returns a fresh AuthenticationResponse (JWT), but we
+      // intentionally ignore it and log out instead — the admin must re-authenticate
+      // with the new password. This is a UX/clean-session measure only; the previous
+      // JWT remains cryptographically valid until expiry (stateless tokens).
+      // TODO(revocation): true server-side invalidation on password change is tracked
+      //   in the token-revocation backlog (per-user tokenVersion claim).
+      next: () => {
+        this.toastService.showSuccess('Password updated. Please log in with your new password.');
+        this.authService.logout();
       },
       error: (err: HttpErrorResponse) => {
         this.toastService.showError(err.error?.detail || 'Failed to update administrative password.');

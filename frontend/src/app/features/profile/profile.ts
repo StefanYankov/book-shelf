@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { UserProfileAPIService, UpdateProfileDto, ChangePasswordDto, AuthenticationResponse } from '../../api';
+import { UserProfileAPIService, UpdateProfileDto, ChangePasswordDto } from '../../api';
 import { ToastService } from '../../core/services/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserProfile } from '../../core/models/user-profile.model';
@@ -63,7 +63,7 @@ export class Profile implements OnInit {
   }
 
   /**
-   * Commits the security password update workflow and updates the authentication identity payload.
+   * Changes the user's password, then forces re-authentication.
    */
   onPasswordSubmit(): void {
     if (this.passwordForm.invalid) return;
@@ -73,10 +73,15 @@ export class Profile implements OnInit {
       newPassword: rawValue.newPassword || ''
     };
     this.userProfileApiService.changeMyPassword(dto).subscribe({
-      next: (response: AuthenticationResponse) => {
-        this.authService.handleAuthenticationResponse(response);
-        this.toastService.showSuccess('Password changed successfully.');
-        this.passwordForm.reset();
+      // NOTE: changeMyPassword returns a fresh AuthenticationResponse (JWT), but we
+      // intentionally ignore it and log out instead — the user must re-authenticate
+      // with the new password. This is a UX/clean-session measure only; the previous
+      // JWT remains cryptographically valid until expiry (stateless tokens).
+      // TODO(revocation): true server-side invalidation on password change is tracked
+      //   in the token-revocation backlog (per-user tokenVersion claim).
+      next: () => {
+        this.toastService.showSuccess('Password changed. Please log in with your new password.');
+        this.authService.logout();
       },
       error: (err: HttpErrorResponse) => this.toastService.showError(err.error?.detail || 'Failed to change password.')
     });

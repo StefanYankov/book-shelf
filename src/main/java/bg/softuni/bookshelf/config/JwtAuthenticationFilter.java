@@ -22,7 +22,12 @@ import java.io.IOException;
  * Custom Spring Security filter that intercepts every HTTP request to validate the JWT.
  * This implementation is stateless and reconstructs the user principal from the token claims,
  * avoiding a database call on every request.
- * Catches all JWT-related exceptions to return HTTP 401 cleanly.
+ * <p>
+ * The filter is permissive about bad tokens: a missing, malformed, or expired token results
+ * in an unauthenticated request that is allowed to continue down the chain. Public endpoints
+ * then proceed anonymously; protected endpoints are rejected by the configured
+ * AuthenticationEntryPoint (which returns a consistent RFC 7807 401). The filter's job is to
+ * populate the SecurityContext when a valid token is present — never to reject a request.
  */
 @Slf4j
 @Component
@@ -60,14 +65,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-            filterChain.doFilter(request, response);
         } catch (JwtException e) {
-            log.warn("JWT authentication processing aborted: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write(
-                    String.format("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"%s\"}", e.getMessage())
-            );
+            // Invalid/expired token: do NOT reject here. Leave the context unauthenticated and
+            // let the chain continue. Public endpoints proceed anonymously; protected ones are
+            // rejected downstream by the AuthenticationEntryPoint (consistent 401 ProblemDetail).
+            log.warn("JWT authentication skipped: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
+
+        filterChain.doFilter(request, response);
     }
 }

@@ -1,0 +1,73 @@
+<section class="mt-5">
+  <h4 class="mb-3">Reviews</h4>
+
+  @if (reviewsPage(); as page) {
+    @if (page.totalElements) {
+      <p class="text-muted small">{{ page.totalElements }} review(s)</p>
+    }
+
+    @for (review of page.content; track review.id) {
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="card-title mb-1">{{ review.title }}</h6>
+              <p class="text-muted small mb-2">
+                by {{ review.username ?? 'Unknown' }}
+                @if (review.createdAt) {
+                  <span>&middot; {{ review.createdAt | date: 'mediumDate' }}</span>
+                }
+              </p>
+            </div>
+            <span class="badge bg-warning text-dark">&#9733; {{ review.rating }}/5</span>
+          </div>
+
+          <p class="card-text">{{ review.comment }}</p>
+
+          @if (canEdit(review) || canDelete(review)) {
+            <div class="d-flex gap-2">
+              @if (canEdit(review)) {
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="onEdit(review)">
+                  Edit
+                </button>
+              }
+              @if (canDelete(review)) {
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="onDelete(review.id!)">
+                  Delete
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <p class="text-muted">No reviews yet. Be the first to review this book!</p>
+    }
+
+    @if ((page.totalPages ?? 0) > 1) {
+      <nav class="d-flex justify-content-between align-items-center">
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          [disabled]="(page.pageNumber ?? 0) === 0"
+          (click)="goToPage((page.pageNumber ?? 0) - 1)">
+          Previous
+        </button>
+
+        <span class="text-muted small">
+          Page {{ (page.pageNumber ?? 0) + 1 }} of {{ page.totalPages ?? 0 }}
+        </span>
+
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          [disabled]="page.isLast"
+          (click)="goToPage((page.pageNumber ?? 0) + 1)">
+          Next
+        </button>
+      </nav>
+    }
+  } @else {
+    <p class="text-muted">Loading reviews...</p>
+  }
+</section>

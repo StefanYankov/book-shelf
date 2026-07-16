@@ -20,7 +20,7 @@
                   @for (shelf of shelfPage.content; track shelf.id) {
                     <li>
                       <a class="dropdown-item" href="#" (click)="$event.preventDefault(); addToShelf(bookDetails.id!, shelf.id!)">
-                        {{ shelf.name }}
+                      {{ shelf.name }}
                       </a>
                     </li>
                   } @empty {
@@ -57,6 +57,35 @@
 
       </div>
     </div>
+
+    <!-- Review add/edit -->
+    @if (authService.isLoggedIn()) {
+      @if (editingReview(); as editing) {
+        <app-review-form
+          [targetId]="bookDetails.id!"
+          [reviewToEdit]="editing"
+          (saved)="onReviewSaved()"
+          (cancelled)="onEditCancelled()" />
+      } @else if (showAddForm()) {
+        @if (addFormOpen()) {
+          <app-review-form
+            [targetId]="bookDetails.id!"
+            (saved)="onReviewSaved()"
+            (cancelled)="onAddCancelled()" />
+        } @else {
+          <div class="mt-4">
+            <button type="button" class="btn btn-primary" (click)="openAddForm()">
+              Write a review
+            </button>
+          </div>
+        }
+      }
+    }
+
+    <app-review-list
+      [targetId]="bookDetails.id!"
+      (editRequested)="onEditRequested($event)"
+      (reviewsLoaded)="onReviewsLoaded($event)" />
   } @else {
     <p>Loading book details...</p>
   }

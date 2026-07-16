@@ -131,7 +131,7 @@ VALUES
         '99999999-0000-0000-0000-000000000001',
         0,
         'Masterpiece',
-        lo_from_bytea(0, 'A masterpiece of science fiction that is incredibly relevant today.'::bytea),
+        'A masterpiece of science fiction that is incredibly relevant today.',
         5, -- rating
         '22222222-0000-0000-0000-000000000001',
         '77777777-0000-0000-0000-000000000001',
@@ -143,7 +143,7 @@ VALUES
         '99999999-0000-0000-0000-000000000002',
         0,
         'Fun Adventure',
-        lo_from_bytea(0, 'A fun and engaging adventure.'::bytea),
+        'A fun and engaging adventure.',
         5, -- rating
         '22222222-0000-0000-0000-000000000002',
         '77777777-0000-0000-0000-000000000002',
@@ -155,7 +155,7 @@ VALUES
         '99999999-0000-0000-0000-000000000003',
         0,
         'Essential Read',
-        lo_from_bytea(0, 'An essential epic read detailing foundational elements of cultural preservation and resilience.'::bytea),
+        'An essential epic read detailing foundational elements of cultural preservation and resilience.',
         5, -- rating
         '22222222-0000-0000-0000-000000000001',
         '77777777-0000-0000-0000-000000000006',
