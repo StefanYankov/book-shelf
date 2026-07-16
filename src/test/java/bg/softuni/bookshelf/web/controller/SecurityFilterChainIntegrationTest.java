@@ -138,5 +138,36 @@ class SecurityFilterChainIntegrationTest extends AbstractControllerTestBase {
             mockMvc.perform(get("/api/auth/non-existent-endpoint"))
                     .andExpect(status().isNotFound());
         }
+
+        @Test
+        @DisplayName("Regression: an EXPIRED token must NOT reject a PUBLIC route (should pass through, not 401)")
+        void shouldPassThroughPublicRoute_WhenTokenIsExpired() throws Exception {
+            // Arrange: an expired token, same as the protected-route case
+            String token = "expired-jwt";
+            given(jwtService.extractUsername(token)).willThrow(new ExpiredJwtException(null, null, "Expired"));
+
+            // Act: hit a PUBLIC path (/api/auth/** is permitAll) with the expired token
+            ResultActions result = mockMvc.perform(get("/api/auth/non-existent-endpoint")
+                    .header("Authorization", "Bearer " + token));
+
+            // Assert: reached the dispatcher (404 = no handler) rather than being rejected (401).
+            // A 401 here would mean the filter hard-rejected a public route — the original bug.
+            result.andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("Regression: an INVALID-signature token must NOT reject a PUBLIC route")
+        void shouldPassThroughPublicRoute_WhenTokenSignatureIsInvalid() throws Exception {
+            // Arrange
+            String token = "invalid-signature-jwt";
+            given(jwtService.extractUsername(token)).willThrow(new SignatureException("Invalid signature"));
+
+            // Act: public path with a bad token
+            ResultActions result = mockMvc.perform(get("/api/auth/non-existent-endpoint")
+                    .header("Authorization", "Bearer " + token));
+
+            // Assert: passes through to 404, not 401
+            result.andExpect(status().isNotFound());
+        }
     }
 }

@@ -1,0 +1,4 @@
+/* Component-specific styling only; layout/controls come from Bootstrap. */
+:host {
+  display: block;
+}

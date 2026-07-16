@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
-import { BookAPIService, Pageable } from '../../../api';
+import { of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
+import { BookAPIService, Pageable, PageBookSummaryDto, PagedResponseBookshelfSummaryDto } from '../../../api';
 import { BookshelfService } from '../../../core/services/bookshelf.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -26,6 +27,14 @@ export class BookList {
   private readonly toastService = inject(ToastService);
   protected readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+
+  /** Empty page used as a safe fallback for guests and on search failure. */
+  private static readonly EMPTY_BOOK_PAGE: PageBookSummaryDto = {
+    content: [],
+    totalPages: 0,
+    number: 0,
+    totalElements: 0,
+  };
 
   /** Exposes the BookFormat enum to the template. */
   protected readonly BookFormat = BookFormat;
@@ -58,14 +67,27 @@ export class BookList {
           filters.format || undefined,
           filters.yearMin || undefined,
           filters.yearMax || undefined
+        ).pipe(
+          // Degrade gracefully: a failed search shows "no results" instead of
+          // leaving the signal undefined forever (a permanent "Loading..." hang).
+          catchError(err => {
+            this.toastService.showError(err.error?.detail || 'Failed to load the book catalog.');
+            return of(BookList.EMPTY_BOOK_PAGE);
+          })
         );
       })
     )
   );
 
-  /** Signal containing the current user's bookshelves for the 'Add to Shelf' dropdown. */
+  /**
+   * Signal containing the current user's bookshelves for the 'Add to Shelf' dropdown.
+   * Only fetched for authenticated users; guests get an empty page so no protected
+   * endpoint is called on their behalf.
+   */
   protected readonly userShelves = toSignal(
-    this.bookshelfService.getShelvesForUser({ page: 0, size: 100 })
+    this.authService.isLoggedIn()
+      ? this.bookshelfService.getShelvesForUser({ page: 0, size: 100 })
+      : of({ content: [], pageNumber: 0, pageSize: 100, totalElements: 0, totalPages: 0, isLast: true } as PagedResponseBookshelfSummaryDto)
   );
 
   /** Toggles the visibility of the advanced filter panel. */

@@ -111,8 +111,8 @@ class ReviewControllerTest extends AbstractControllerTestBase {
 
         @Test
         @WithMockApplicationUser(roles = {"USER"})
-        @DisplayName("Happy Path: Should return 200 OK and mapping when authenticated and valid")
-        void shouldReturn200WhenAuthenticatedAndValid() throws Exception {
+        @DisplayName("Happy Path: Should return 201 Created and body when authenticated and valid")
+        void shouldReturn201WhenAuthenticatedAndValid() throws Exception {
             // Arrange
             UUID targetId = UUID.randomUUID();
             String targetType = "BOOK";
@@ -128,7 +128,7 @@ class ReviewControllerTest extends AbstractControllerTestBase {
                             .param("targetType", targetType)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.title").value(mockResponse.title()));
 
             verify(reviewService).addReview(any(ReviewCreateDto.class), eq(targetId), eq(targetType), any(UUID.class));
