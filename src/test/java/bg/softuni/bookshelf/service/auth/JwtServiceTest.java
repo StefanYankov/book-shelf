@@ -48,13 +48,20 @@ class JwtServiceTest {
         ReflectionTestUtils.setField(jwtService, "jwtExpiration", EXPIRATION_MS);
     }
 
+    // Confines the unavoidable unchecked cast (JJWT returns a raw List) to one place,
+    // so individual tests work with a clean, typed List<String>.
+    @SuppressWarnings("unchecked")
+    private List<String> extractAuthorities(String token) {
+        return jwtService.extractClaim(token, claims -> (List<String>) claims.get("authorities", List.class));
+    }
+
     @Nested
     @DisplayName("generateToken Tests")
     class GenerateTokenTests {
 
         @Test
-        @DisplayName("Should include username and role claim when generating token with standard UserDetails")
-        void shouldGenerateTokenWithRoleClaim() {
+        @DisplayName("Should include username and authorities claim when generating token with standard UserDetails")
+        void shouldGenerateTokenWithAuthoritiesClaim() {
             // Arrange
             String username = "standardUser";
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
@@ -68,9 +75,7 @@ class JwtServiceTest {
             // Assert
             assertThat(token).isNotBlank();
             assertThat(jwtService.extractUsername(token)).isEqualTo(username);
-
-            String extractedRole = jwtService.extractClaim(token, claims -> claims.get("role", String.class));
-            assertThat(extractedRole).isEqualTo("ROLE_USER");
+            assertThat(extractAuthorities(token)).containsExactly("ROLE_USER");
 
             Object extractedUserId = jwtService.extractClaim(token, claims -> claims.get("userId"));
             assertThat(extractedUserId).isNull();
@@ -80,7 +85,7 @@ class JwtServiceTest {
         }
 
         @Test
-        @DisplayName("Should include custom userId and role claims when CustomUserDetails is provided")
+        @DisplayName("Should include custom userId and authorities claims when CustomUserDetails is provided")
         void shouldGenerateTokenWithCustomClaims() {
             // Arrange
             UUID userId = UUID.randomUUID();
@@ -97,9 +102,7 @@ class JwtServiceTest {
             // Assert
             assertThat(token).isNotBlank();
             assertThat(jwtService.extractUsername(token)).isEqualTo(username);
-
-            String extractedRole = jwtService.extractClaim(token, claims -> claims.get("role", String.class));
-            assertThat(extractedRole).isEqualTo("ROLE_ADMIN");
+            assertThat(extractAuthorities(token)).containsExactly("ROLE_ADMIN");
 
             String extractedUserId = jwtService.extractClaim(token, claims -> claims.get("userId", String.class));
             assertThat(extractedUserId).isEqualTo(userId.toString());
@@ -107,6 +110,25 @@ class JwtServiceTest {
             verify(customUserDetails, times(1)).getId();
             verify(customUserDetails, times(1)).getUsername();
             verify(customUserDetails, times(1)).getAuthorities();
+        }
+
+        @Test
+        @DisplayName("Should embed ALL authorities (role + permissions) in the token, not just the first")
+        void shouldEmbedAllAuthorities() {
+            // Arrange
+            String username = "moderatorUser";
+            Collection<GrantedAuthority> authorities = List.of(
+                    new SimpleGrantedAuthority("MODERATE_REVIEWS"),
+                    new SimpleGrantedAuthority("ROLE_USER")
+            );
+            when(userDetails.getUsername()).thenReturn(username);
+            doReturn(authorities).when(userDetails).getAuthorities();
+
+            // Act
+            String token = jwtService.generateToken(userDetails);
+
+            // Assert
+            assertThat(extractAuthorities(token)).containsExactlyInAnyOrder("MODERATE_REVIEWS", "ROLE_USER");
         }
 
         @Test
@@ -169,11 +191,34 @@ class JwtServiceTest {
             assertThat(userDetails.getAuthorities()).containsExactly(new SimpleGrantedAuthority(role));
         }
 
+        @Test
+        @DisplayName("Should reconstruct ALL authorities (role + permission) from a token")
+        void shouldExtractAllAuthoritiesFromToken() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            CustomUserDetails principal = new CustomUserDetails(
+                    userId, "moderator", "", true, false,
+                    List.of(
+                            new SimpleGrantedAuthority("MODERATE_REVIEWS"),
+                            new SimpleGrantedAuthority("ROLE_USER")
+                    )
+            );
+            String token = jwtService.generateToken(principal);
+
+            // Act
+            CustomUserDetails result = jwtService.extractUserDetails(token);
+
+            // Assert
+            assertThat(result.getAuthorities())
+                    .extracting(GrantedAuthority::getAuthority)
+                    .containsExactlyInAnyOrder("MODERATE_REVIEWS", "ROLE_USER");
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {
                 "invalid-token",
-                "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.fake-signature", // Invalid signature
-                "eyJhbGciOiJIUzI1NiJ9.invalid-payload.signature" // Malformed payload
+                "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.fake-signature",
+                "eyJhbGciOiJIUzI1NiJ9.invalid-payload.signature"
         })
         @DisplayName("Error Case: Should throw exception for malformed or invalid tokens")
         void shouldThrowExceptionForMalformedToken(String token) {
@@ -230,7 +275,7 @@ class JwtServiceTest {
         @DisplayName("Should throw ExpiredJwtException when parsing expired token sequences")
         void shouldThrowWhenTokenIsExpired() {
             // Arrange
-            ReflectionTestUtils.setField(jwtService, "jwtExpiration", -1000L); // Set negative expiration limit
+            ReflectionTestUtils.setField(jwtService, "jwtExpiration", -1000L);
             when(userDetails.getUsername()).thenReturn("expiredUser");
             doReturn(Collections.emptyList()).when(userDetails).getAuthorities();
 

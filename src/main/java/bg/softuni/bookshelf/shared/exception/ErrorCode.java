@@ -24,6 +24,7 @@ public enum ErrorCode {
     EXPIRED_TOKEN("E1004", "The provided token has expired. Please request a new one.", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND("E1005", "User not found.", HttpStatus.NOT_FOUND),
     SELF_LOCK_PREVENTION("E1006", "Administrators are not allowed to lock their own accounts.", HttpStatus.FORBIDDEN),
+    PERMISSION_TARGET_INVALID("E1007", "Permissions can only be granted to standard user accounts.", HttpStatus.BAD_REQUEST),
 
     // --- Book domain (E1100 - E1199) ----
     BOOK_NOT_FOUND("E1100", "Book not found.", HttpStatus.NOT_FOUND),
@@ -56,7 +57,7 @@ public enum ErrorCode {
     // --- Review domain (E2400 - E2499) ---
     REVIEW_NOT_FOUND("E2400", "Review not found.", HttpStatus.NOT_FOUND),
     DUPLICATE_REVIEW("E2401", "You have already reviewed this item.", HttpStatus.CONFLICT),
-    UNAUTHORIZED_REVIEW_MODIFICATION("E2402", "You cannot modify a review you did not author.", HttpStatus.FORBIDDEN)
+    UNAUTHORIZED_REVIEW_MODIFICATION("E2402", "You cannot modify a review you did not author.", HttpStatus.FORBIDDEN),
 
     ;
 

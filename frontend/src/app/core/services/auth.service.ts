@@ -1,9 +1,8 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, tap } from 'rxjs';
-import { Router } from '@angular/router';
+import {computed, inject, Injectable, signal} from '@angular/core';
+import {Observable, tap} from 'rxjs';
+import {Router} from '@angular/router';
 
-import { AuthenticationAPIService } from '../../api';
-import { AuthenticationRequest, AuthenticationResponse, RegisterRequest } from '../../api';
+import {AuthenticationAPIService, AuthenticationRequest, AuthenticationResponse, RegisterRequest} from '../../api';
 
 /**
  * Shape of the decoded JWT payload issued by the backend.
@@ -19,8 +18,8 @@ export interface DecodedToken {
   iat: number;
   /** Expiry timestamp (seconds since epoch). */
   exp: number;
-  /** The user's granted authority, e.g. `ROLE_USER` or `ROLE_ADMIN`. */
-  role: string;
+  /** All granted authorities (roles + permissions), e.g. ["ROLE_ADMIN"] or ["ROLE_USER", "MODERATE_REVIEWS"]. */
+  authorities: string[];
   /** Whether a forced password rotation is pending for this user. */
   pwd_chg_req: boolean;
   /** The user's database UUID, used for client-side ownership checks (e.g. "is this my review?"). */
@@ -32,16 +31,16 @@ export interface DecodedToken {
  * <p>
  * Owns the JWT lifecycle: persistence to `localStorage`, decoding, and exposure of
  * token-derived state as reactive signals. This is the single source of truth for
- * "who is the current user" — all identity/role/rotation questions are answered here
+ * "who is the current user" — all identity/role/permission questions are answered here
  * rather than by decoding the token elsewhere.
  * <p>
- * Runs in a fully zoneless, signal-driven manner: {@link isLoggedIn}, {@link userRole},
- * {@link userId}, and {@link isPasswordChangeRequired} are all `computed` off the raw
- * token signal, so consumers react automatically to login/logout.
+ * Runs in a fully zoneless, signal-driven manner: {@link isLoggedIn}, {@link authorities},
+ * {@link userRole}, {@link isAdmin}, {@link userId}, and {@link isPasswordChangeRequired}
+ * are all `computed` off the raw token signal, so consumers react automatically to login/logout.
  * <p>
- * Identity signals ({@link userRole}, {@link userId}, {@link isPasswordChangeRequired})
- * are gated on {@link isLoggedIn}: an expired-but-present token must not leak identity or
- * role, otherwise the UI could render actions (e.g. a delete button) for a logged-out user.
+ * Identity signals are gated on {@link isLoggedIn}: an expired-but-present token must not leak
+ * identity, role, or permissions, otherwise the UI could render actions (e.g. a delete button)
+ * for a logged-out user.
  */
 @Injectable({
   providedIn: 'root'
@@ -72,9 +71,26 @@ export class AuthService {
     return token.exp * 1000 > Date.now();
   });
 
-  /** The current user's authority (e.g. `ROLE_ADMIN`), or `null` when logged out or expired. */
-  public readonly userRole = computed(() => {
-    return this.isLoggedIn() ? (this.decodedToken()?.role ?? null) : null;
+  /**
+   * All authorities (roles + permissions) for the current user, or `[]` when logged out or expired.
+   * This is the single source of authority truth; role and permission checks derive from it.
+   */
+  public readonly authorities = computed<string[]>(() => {
+    return this.isLoggedIn() ? (this.decodedToken()?.authorities ?? []) : [];
+  });
+
+  /** Whether the current user holds the ADMIN role. */
+  public readonly isAdmin = computed(() => this.authorities().includes('ROLE_ADMIN'));
+
+  /**
+   * The current user's primary role, or `null` when logged out or expired.
+   * Retained for guards that branch on role; derived from the authorities list.
+   */
+  public readonly userRole = computed<string | null>(() => {
+    const auths = this.authorities();
+    if (auths.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
+    if (auths.includes('ROLE_USER')) return 'ROLE_USER';
+    return null;
   });
 
   /**
@@ -94,6 +110,16 @@ export class AuthService {
   public readonly isPasswordChangeRequired = computed(() => {
     return this.isLoggedIn() ? (this.decodedToken()?.pwd_chg_req ?? false) : false;
   });
+
+  /**
+   * Whether the current user holds a given authority (role or permission).
+   * Reads the reactive {@link authorities} signal, so it re-evaluates on login/logout
+   * when used in a template.
+   * @param authority the exact authority string, e.g. 'MODERATE_REVIEWS'.
+   */
+  public hasAuthority(authority: string): boolean {
+    return this.authorities().includes(authority);
+  }
 
   /**
    * Authenticates a user and, on success, persists the returned JWT.

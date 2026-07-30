@@ -1,13 +1,16 @@
 package bg.softuni.bookshelf.service.user;
 
 import bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent;
+import bg.softuni.bookshelf.data.entity.identity.AdminUser;
 import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
 import bg.softuni.bookshelf.data.entity.identity.User;
+import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.data.enums.StatusEventType;
 import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
 import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
+import bg.softuni.bookshelf.service.user.dto.UserPermissionsDto;
 import bg.softuni.bookshelf.service.user.dto.UserSecurityDto;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
@@ -33,9 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserServiceImpl Unit Tests")
@@ -338,6 +339,187 @@ class UserServiceImplTest {
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
 
             verifyNoInteractions(accountStatusEventRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("Permission Management Tests")
+    class PermissionManagementTests {
+
+        @Test
+        @DisplayName("Happy Path: grantPermission should add the permission and save a PERMISSION_GRANTED event")
+        void grantPermission_shouldAddAndAudit() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            UUID actorId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId);
+            ApplicationUser actor = createSampleUser(actorId);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
+
+            // Act
+            userService.grantPermission(userId, Permission.MODERATE_REVIEWS, "Trusted contributor", actorId);
+
+            // Assert: permission added to the user, and the change persisted
+            verify(userRepository).save(userCaptor.capture());
+            assertThat(userCaptor.getValue().getPermissions()).contains(Permission.MODERATE_REVIEWS);
+
+            // Assert: auditable event recorded
+            verify(accountStatusEventRepository).save(eventCaptor.capture());
+            AccountStatusEvent event = eventCaptor.getValue();
+            assertThat(event.getEventType()).isEqualTo(StatusEventType.PERMISSION_GRANTED);
+            assertThat(event.getReason()).isEqualTo("Trusted contributor");
+            assertThat(event.getUser()).isEqualTo(user);
+            assertThat(event.getActor()).isEqualTo(actor);
+        }
+
+        @Test
+        @DisplayName("Happy Path: revokePermission should remove the permission and save a PERMISSION_REVOKED event")
+        void revokePermission_shouldRemoveAndAudit() {
+            // Arrange: user already holds the permission
+            UUID userId = UUID.randomUUID();
+            UUID actorId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId);
+            user.getPermissions().add(Permission.MODERATE_REVIEWS);
+            ApplicationUser actor = createSampleUser(actorId);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
+
+            // Act
+            userService.revokePermission(userId, Permission.MODERATE_REVIEWS, "No longer needed", actorId);
+
+            // Assert: permission removed, change persisted
+            verify(userRepository).save(userCaptor.capture());
+            assertThat(userCaptor.getValue().getPermissions()).doesNotContain(Permission.MODERATE_REVIEWS);
+
+            // Assert: auditable event recorded
+            verify(accountStatusEventRepository).save(eventCaptor.capture());
+            assertThat(eventCaptor.getValue().getEventType()).isEqualTo(StatusEventType.PERMISSION_REVOKED);
+        }
+
+        @Test
+        @DisplayName("Edge Case: revokePermission on an absent permission is idempotent (no error)")
+        void revokePermission_isIdempotent() {
+            // Arrange: user does NOT hold the permission
+            UUID userId = UUID.randomUUID();
+            UUID actorId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId); // no permissions
+            ApplicationUser actor = createSampleUser(actorId);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
+
+            // Act: revoking something not present should not throw
+            userService.revokePermission(userId, Permission.MODERATE_REVIEWS, "Cleanup", actorId);
+
+            // Assert: still saved + audited, set simply stays empty
+            verify(userRepository).save(userCaptor.capture());
+            assertThat(userCaptor.getValue().getPermissions()).doesNotContain(Permission.MODERATE_REVIEWS);
+            verify(accountStatusEventRepository).save(any(AccountStatusEvent.class));
+        }
+
+        @Test
+        @DisplayName("Error Case: grantPermission should reject a non-ApplicationUser target (e.g. an admin)")
+        void grantPermission_shouldRejectAdminTarget() {
+            // Arrange: target resolves to an AdminUser, not an ApplicationUser
+            UUID adminTargetId = UUID.randomUUID();
+            AdminUser adminTarget = new AdminUser();
+            adminTarget.setId(adminTargetId);
+            adminTarget.setUsername("someadmin");
+            given(userRepository.findById(adminTargetId)).willReturn(Optional.of(adminTarget));
+
+            // Act & Assert
+            assertThatThrownBy(() ->
+                    userService.grantPermission(adminTargetId, Permission.MODERATE_REVIEWS, "reason", UUID.randomUUID()))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PERMISSION_TARGET_INVALID);
+
+            // Assert: rejected before any persistence
+            verify(userRepository, never()).save(any());
+            verifyNoInteractions(accountStatusEventRepository);
+        }
+
+        @Test
+        @DisplayName("Error Case: grantPermission should throw USER_NOT_FOUND when target does not exist")
+        void grantPermission_shouldThrowWhenUserNotFound() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() ->
+                    userService.grantPermission(userId, Permission.MODERATE_REVIEWS, "reason", UUID.randomUUID()))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+
+            verify(userRepository, never()).save(any());
+            verifyNoInteractions(accountStatusEventRepository);
+        }
+
+        @Test
+        @DisplayName("Error Case: grantPermission should throw USER_NOT_FOUND when actor does not exist")
+        void grantPermission_shouldThrowWhenActorNotFound() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            UUID actorId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userRepository.findById(actorId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() ->
+                    userService.grantPermission(userId, Permission.MODERATE_REVIEWS, "reason", actorId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+
+            verifyNoInteractions(accountStatusEventRepository);
+        }
+
+        @Test
+        @DisplayName("Happy Path: getUserPermissions should return the user's granted permissions")
+        void getUserPermissions_shouldReturnPermissions() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId);
+            user.getPermissions().add(Permission.MODERATE_REVIEWS);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // Act
+            UserPermissionsDto result = userService.getUserPermissions(userId);
+
+            // Assert
+            assertThat(result.userId()).isEqualTo(userId);
+            assertThat(result.permissions()).containsExactly(Permission.MODERATE_REVIEWS);
+        }
+
+        @Test
+        @DisplayName("Edge Case: getUserPermissions should return an empty set for a user with no permissions")
+        void getUserPermissions_shouldReturnEmptyWhenNone() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId); // no permissions
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // Act
+            UserPermissionsDto result = userService.getUserPermissions(userId);
+
+            // Assert
+            assertThat(result.permissions()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Error Case: getUserPermissions should reject a non-ApplicationUser target")
+        void getUserPermissions_shouldRejectAdminTarget() {
+            // Arrange
+            UUID adminId = UUID.randomUUID();
+            AdminUser admin = new AdminUser();
+            admin.setId(adminId);
+            admin.setUsername("someadmin");
+            given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+
+            // Act & Assert
+            assertThatThrownBy(() -> userService.getUserPermissions(adminId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PERMISSION_TARGET_INVALID);
         }
     }
 }

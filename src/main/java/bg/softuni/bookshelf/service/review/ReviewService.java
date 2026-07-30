@@ -48,12 +48,14 @@ public interface ReviewService {
     ReviewViewDto updateReview(UUID reviewId, ReviewUpdateDto updateDto, UUID userId);
 
     /**
-     * Deletes a review. Permitted for the review's author or an administrator.
+     * Deletes a review. Permitted for the review's author, an administrator, or a user
+     * holding the review-moderation permission.
      *
-     * @param reviewId The ID of the review to delete.
-     * @param userId   The ID of the user performing the deletion.
-     * @param isAdmin  Whether the caller holds administrative privileges.
-     * @throws BusinessException if the review is not found or the user is not authorized.
+     * @param reviewId    The ID of the review to delete.
+     * @param userId      The ID of the user performing the deletion.
+     * @param isAdmin     Whether the caller holds administrative privileges.
+     * @param canModerate Whether the caller holds the review-moderation permission.
+     * @throws BusinessException if the review is not found or the caller is not authorized.
      */
-    void deleteReview(UUID reviewId, UUID userId, boolean isAdmin);
+    void deleteReview(UUID reviewId, UUID userId, boolean isAdmin, boolean canModerate);
 }

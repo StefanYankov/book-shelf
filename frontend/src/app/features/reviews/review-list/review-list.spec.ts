@@ -1,20 +1,20 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DebugElement } from '@angular/core';
-import { By } from '@angular/platform-browser';
-import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {DebugElement} from '@angular/core';
+import {By} from '@angular/platform-browser';
+import {of, throwError} from 'rxjs';
+import {afterEach, beforeEach, describe, expect, it, Mock, vi} from 'vitest';
 
-import { ReviewList } from './review-list';
-import { ReviewService } from '../../../core/services/review.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { ReviewViewDto, PagedResponseReviewViewDto } from '../../../api';
+import {ReviewList} from './review-list';
+import {ReviewService} from '../../../core/services/review.service';
+import {AuthService} from '../../../core/services/auth.service';
+import {ToastService} from '../../../core/services/toast.service';
+import {PagedResponseReviewViewDto, ReviewViewDto} from '../../../api';
 
 describe('ReviewList', () => {
   let fixture: ComponentFixture<ReviewList>;
 
   let reviewService: { getReviewsForTarget: Mock; deleteReview: Mock };
-  let authService: { userId: Mock; userRole: Mock };
+  let authService: { userId: Mock; isAdmin: Mock; hasAuthority: Mock };
   let toastService: { showSuccess: Mock; showError: Mock };
 
   // --- Test data factories ---
@@ -77,7 +77,8 @@ describe('ReviewList', () => {
     };
     authService = {
       userId: vi.fn().mockReturnValue('user-1'),
-      userRole: vi.fn().mockReturnValue('ROLE_USER'),
+      isAdmin: vi.fn().mockReturnValue(false),
+      hasAuthority: vi.fn().mockReturnValue(false),
     };
     toastService = {
       showSuccess: vi.fn(),
@@ -133,16 +134,27 @@ describe('ReviewList', () => {
     it('offers delete but not edit to an admin viewing another user\'s review', async () => {
       reviewService.getReviewsForTarget.mockReturnValue(of(aPage([aReview({ userId: 'someone-else' })])));
       authService.userId.mockReturnValue('admin-id');
-      authService.userRole.mockReturnValue('ROLE_ADMIN');
+      authService.isAdmin.mockReturnValue(true);
       await init();
       expect(editButton()).toBeNull();
       expect(deleteButton()).not.toBeNull();
     });
 
-    it('offers neither edit nor delete to a non-author, non-admin', async () => {
+    it('offers delete but not edit to a MODERATE_REVIEWS holder viewing another user\'s review', async () => {
+      reviewService.getReviewsForTarget.mockReturnValue(of(aPage([aReview({userId: 'someone-else'})])));
+      authService.userId.mockReturnValue('moderator-id');
+      authService.isAdmin.mockReturnValue(false);
+      authService.hasAuthority.mockImplementation((a: string) => a === 'MODERATE_REVIEWS');
+      await init();
+      expect(editButton()).toBeNull();
+      expect(deleteButton()).not.toBeNull();
+    });
+
+    it('offers neither edit nor delete to a non-author, non-admin, non-moderator', async () => {
       reviewService.getReviewsForTarget.mockReturnValue(of(aPage([aReview({ userId: 'someone-else' })])));
       authService.userId.mockReturnValue('user-2');
-      authService.userRole.mockReturnValue('ROLE_USER');
+      authService.isAdmin.mockReturnValue(false);
+      authService.hasAuthority.mockReturnValue(false);
       await init();
       expect(editButton()).toBeNull();
       expect(deleteButton()).toBeNull();
@@ -150,7 +162,8 @@ describe('ReviewList', () => {
 
     it('offers neither edit nor delete to a guest', async () => {
       authService.userId.mockReturnValue(null);
-      authService.userRole.mockReturnValue(null);
+      authService.isAdmin.mockReturnValue(false);
+      authService.hasAuthority.mockReturnValue(false);
       await init();
       expect(editButton()).toBeNull();
       expect(deleteButton()).toBeNull();

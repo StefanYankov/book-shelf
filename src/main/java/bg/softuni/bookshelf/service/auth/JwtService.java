@@ -41,11 +41,10 @@ public class JwtService {
             extraClaims.put("pwd_chg_req", customUser.isPasswordChangeRequired());
         }
 
-        String role = userDetails.getAuthorities().stream()
+        List<String> authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .findFirst()
-                .orElse("ROLE_USER");
-        extraClaims.put("role", role);
+                .toList();
+        extraClaims.put("authorities", authorities);
 
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
@@ -105,22 +104,24 @@ public class JwtService {
     public CustomUserDetails extractUserDetails(String token) {
         Claims claims = extractAllClaims(token);
         String userId = claims.get("userId", String.class);
-        String role = claims.get("role", String.class);
         boolean passwordChangeRequired = Boolean.TRUE.equals(claims.get("pwd_chg_req", Boolean.class));
 
-        // KNOWN LIMITATION (stateless JWT): the principal is rebuilt purely from token
-        // claims, so isEnabled is hardcoded true. Account lock/ban does NOT revoke a live
-        // token — it only bites when the user requests a new one (bounded by token expiry).
-        // Interim mitigation: short access-token TTL (application.security.jwt.expiration).
-        // TODO(revocation, Redis): check a per-user status / token-version / deny-list here
-        //   and evict on lock/unlock for instant revocation once caching is introduced.
+        @SuppressWarnings("unchecked")
+        List<String> authorityNames = claims.get("authorities", List.class);
+        List<SimpleGrantedAuthority> authorities = authorityNames == null
+                ? List.of()
+                : authorityNames.stream().map(SimpleGrantedAuthority::new).toList();
+
+        // KNOWN LIMITATION (stateless JWT): principal rebuilt from claims; isEnabled hardcoded true.
+        // Lock/ban and permission changes do NOT revoke a live token until it expires.
+        // TODO(revocation, Redis): per-user token-version / deny-list here for instant revocation.
         return new CustomUserDetails(
                 UUID.fromString(userId),
                 claims.getSubject(),
-                "", // Password not needed for in-memory principal
-                true, // <-- see KNOWN LIMITATION above
+                "",
+                true,
                 passwordChangeRequired,
-                Collections.singletonList(new SimpleGrantedAuthority(role))
+                authorities
         );
     }
 

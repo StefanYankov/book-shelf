@@ -12,7 +12,7 @@ This project is the **final project** for the university course:
 
 ## Project Introduction
 
-The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data.
+The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data. Roles are augmented by admin-managed, permissions for delegating specific capabilities without granting full administrative rights.
 
 ## Table of Contents
 - [Architecture and Technologies](#architecture-and-technologies)
@@ -44,9 +44,10 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Identity and Access Management (IAM)**:
     -   Full Spring Security integration with stateless JWT (JSON Web Token) generation and validation.
     -   Role-based access control (`USER`, `ADMIN`).
+    -   Permissions layered on top of roles: an administrator can grant or revoke specific capabilities (e.g. `MODERATE_REVIEWS`) to standard users. Permissions are embedded in the JWT as authorities alongside the role, and every grant/revoke is written to an auditable account-status event track.
     -   Secure email verification and single-use password recovery tokens.
     -   Public self-registration endpoint for new users with proactive duplication checks.
-    -   Declarative test harness via customized @WithMockApplicationUser annotations supporting role slicing in unit tests.
+    -   Declarative test harness via customized `@WithMockApplicationUser` annotations supporting role and permission slicing in unit tests.
 -   **Book Discovery**:
     -   Public-facing REST endpoints for searching and viewing books.
     -   A modern, Signal-based Angular UI for real-time book searching with debouncing.
@@ -56,7 +57,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Dedicated controller endpoints for adding, listing, and removing items.
 -   **Reviews**:
     -   Polymorphic review targets via a soft `(targetId, targetType)` association, allowing reviews on books today and authors/publishers later without schema churn.
-    -   Full CRUD with ownership rules — a review may be edited only by its author and deleted by its author or an administrator — enforced at the service layer.
+    -   Full CRUD with ownership rules — a review may be edited only by its author and deleted by its author, an administrator, or a user holding the `MODERATE_REVIEWS` permission — enforced at the service layer.
     -   Paginated listing that resolves author names through a single batched lookup (avoids the N+1 query pattern).
     -   Composite uniqueness on `(user, target)` preventing duplicate reviews for the same target.
 
@@ -72,6 +73,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   `@Version` annotation on base entities for optimistic locking.
     -   `JOINED` inheritance strategy for the `User` hierarchy.
     -   Soft, framework-agnostic references (`UUID`) for polymorphic associations such as review targets, keeping aggregates decoupled.
+    -   Admin-managed `Set<Permission>` on standard users (`user_permissions` table via Flyway `V7`), mapped to Spring Security authorities at authentication time.
 -   **Core Services**:
     -   Full CRUD services implemented for `Book`, `Language`, `Genre`, `Publisher`, and `Author`.
     -   Application-level, case-insensitive duplicate name validation for all relevant entities.
@@ -86,6 +88,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize("hasRole('ADMIN')")` declarations.
     -   Stateful user locking and unlocking operations writing history to a persistent account-status event track.
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
+    -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
     -   Administrative metadata override (`moderateBook`) implemented in the core catalog domain for curating titles and summaries.
 
 ### Frontend Application Structure and Features
@@ -93,7 +96,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 The Angular frontend is built with a standalone component architecture and follows a modular, feature-driven structure based on user roles:
 
 -   **Core Authentication & Security Guards:**
-    -   `AuthService`: Manages JWT tokens, user login/logout, and token decoding.
+    -   `AuthService`: Manages JWT tokens, user login/logout, and token decoding; exposes reactive `authorities`, `isAdmin`, and `hasAuthority(...)` signals so the UI can gate actions on both roles and permissions.
     -   `AuthInterceptor`: Pure transport-layer wrapper that appends headers without introducing routing side effects.
     -   `LandingGuard`: Evaluates unauthenticated views and landing redirects for incoming public traffic.
     -   `AuthGuard`: Validates session states and enforces global password rotation routes by checking `pwd_chg_req` status.
@@ -109,12 +112,12 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `AdminLayout`: Isolated control panel shell entirely segregated from user layouts to provide system-level administration interfaces.
     -   `AdminHeader`: Dynamically restricts layout navigation paths when a forced credential rotation is active.
     -   `AdminHome`: A dedicated, lightweight dashboard landing station for the administrative root layout view.
-    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking.
+    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock and on-demand permission management — a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
     -   `ContentModeration`: Multi-tab interface featuring non-blocking reactive dialog structures to let administrators sanitize book summaries and fields.
     -   `AdminProfile`: Decoupled profile component using complexity rules to enforce administrative credential changes.
 -   **Core Views & Components:**
     -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
-    -   `BookDetail`: A dedicated page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality.
+    -   `BookDetail`: A dedicated page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality and an embedded review section (add, edit, delete) with a moderation-aware delete affordance.
 
 ## Project Structure
 The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
@@ -168,7 +171,7 @@ The application is designed to be run with Docker Compose for the database and l
     -   Open the project in IntelliJ IDEA.
     -   Run the `BookShelfApplication.java` file.
     -   The backend will be available on `http://localhost:8080`.
-    -   -Note: Flyway will automatically create the database schema and seed development reference blocks using the application-dev profile parameters..-
+    -   Note: Flyway will automatically create the database schema and seed development reference data using the application-dev profile parameters.
 
 3.  **Run the Frontend**:
     -   Navigate to the `frontend/` directory in a separate terminal.
@@ -182,8 +185,8 @@ The application is designed to be run with Docker Compose for the database and l
     ./gradlew test
     ```
 
-4. **Run Frontend Tests**:
-     -   Navigate to the `frontend/` directory in a separate terminal.
+5. **Run Frontend Tests**:
+    -   Navigate to the `frontend/` directory in a separate terminal.
     ```bash
     ng test
     ```
@@ -198,13 +201,13 @@ Upon submitting the registration form, watch your backend console for logs from 
 
 ```text
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Email verification token generated for user [syankov2].
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : \==========================================================================
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : 📧 MOCK EMAIL DISPATCHED
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Type: EMAIL VERIFICATION
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : To: syankoff3@gmail.com
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Action Required: Please click the following link to activate your account.
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Link: http://localhost:4200/verify?token=dc08bf4b-700e-40a6-a186-e1bc3ea819fd
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : \==========================================================================
+12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
 12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Verification email sent to: syankoff3@gmail.com
 ```
 
@@ -216,8 +219,6 @@ Upon submitting the registration form, watch your backend console for logs from 
 
 ## API Documentation
 Once the application is running, the OpenAPI (Swagger UI) documentation is available at:
-
-http://localhost:8080/swagger-ui.html
 
 http://localhost:8080/swagger-ui.html
 

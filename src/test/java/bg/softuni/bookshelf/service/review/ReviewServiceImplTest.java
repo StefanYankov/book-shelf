@@ -94,7 +94,6 @@ class ReviewServiceImplTest {
             ReviewViewDto expectedDto = new ReviewViewDto(UUID.randomUUID(), "T", "C", 5, userId, "testuser", targetId, targetType, Instant.now(), Instant.now());
 
             given(reviewRepository.findAllByTargetIdAndTargetType(targetId, targetType, pageable)).willReturn(reviewPage);
-            // Batched author lookup (N+1 fix) — one call for all authors, not one per review.
             given(userRepository.findAllById(any())).willReturn(List.of(mockUser));
             given(reviewMapper.toReviewViewDto(mockReview, "testuser")).willReturn(expectedDto);
 
@@ -173,7 +172,7 @@ class ReviewServiceImplTest {
             ReviewUpdateDto dto = createValidUpdateDto();
 
             Review existingReview = new Review();
-            existingReview.setUserId(userId); // Belongs to original user
+            existingReview.setUserId(userId);
 
             given(reviewRepository.findById(reviewId)).willReturn(Optional.of(existingReview));
 
@@ -217,23 +216,23 @@ class ReviewServiceImplTest {
     }
 
     @Nested
-    @DisplayName("deleteReview(UUID, UUID, boolean) Tests")
+    @DisplayName("deleteReview(UUID, UUID, boolean, boolean) Tests")
     class DeleteReviewTests {
 
         @Test
-        @DisplayName("Error Case: Should throw BusinessException if caller is neither author nor admin")
+        @DisplayName("Error Case: Should throw when caller is neither author, admin, nor moderator")
         void shouldThrowIfUnauthorized() {
             // Arrange
             UUID reviewId = UUID.randomUUID();
             UUID hackerId = UUID.randomUUID();
 
             Review existingReview = new Review();
-            existingReview.setUserId(userId); // Belongs to original user
+            existingReview.setUserId(userId);
 
             given(reviewRepository.findById(reviewId)).willReturn(Optional.of(existingReview));
 
-            // Act & Assert: non-owner, non-admin (isAdmin=false)
-            assertThatThrownBy(() -> reviewService.deleteReview(reviewId, hackerId, false))
+            // Act & Assert
+            assertThatThrownBy(() -> reviewService.deleteReview(reviewId, hackerId, false, false))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.UNAUTHORIZED_REVIEW_MODIFICATION);
@@ -252,8 +251,8 @@ class ReviewServiceImplTest {
 
             given(reviewRepository.findById(reviewId)).willReturn(Optional.of(existingReview));
 
-            // Act: owner (userId matches), not admin
-            reviewService.deleteReview(reviewId, userId, false);
+            // Act
+            reviewService.deleteReview(reviewId, userId, false, false);
 
             // Assert
             verify(reviewRepository).delete(existingReview);
@@ -267,12 +266,31 @@ class ReviewServiceImplTest {
             UUID adminId = UUID.randomUUID();
 
             Review existingReview = new Review();
-            existingReview.setUserId(userId); // Belongs to someone else
+            existingReview.setUserId(userId);
 
             given(reviewRepository.findById(reviewId)).willReturn(Optional.of(existingReview));
 
-            // Act: caller is NOT the owner but isAdmin=true
-            reviewService.deleteReview(reviewId, adminId, true);
+            // Act
+            reviewService.deleteReview(reviewId, adminId, true, false);
+
+            // Assert
+            verify(reviewRepository).delete(existingReview);
+        }
+
+        @Test
+        @DisplayName("Happy Path: Should delete another user's review when caller holds moderation permission")
+        void shouldDeleteIfModerator() {
+            // Arrange
+            UUID reviewId = UUID.randomUUID();
+            UUID moderatorId = UUID.randomUUID();
+
+            Review existingReview = new Review();
+            existingReview.setUserId(userId);
+
+            given(reviewRepository.findById(reviewId)).willReturn(Optional.of(existingReview));
+
+            // Act
+            reviewService.deleteReview(reviewId, moderatorId, false, true);
 
             // Assert
             verify(reviewRepository).delete(existingReview);

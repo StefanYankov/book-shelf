@@ -1,7 +1,10 @@
 package bg.softuni.bookshelf.web.controller;
 
+import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.LockUserRequestDto;
+import bg.softuni.bookshelf.service.user.dto.PermissionRequestDto;
+import bg.softuni.bookshelf.service.user.dto.UserPermissionsDto;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -21,11 +24,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -219,6 +219,192 @@ class AdminControllerTest extends AbstractControllerTestBase {
                     .andExpect(jsonPath("$.errors.reason").exists());
 
             verifyNoInteractions(userService);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /users/{userId}/permissions")
+    class GrantPermissionTests {
+
+        @Test
+        @DisplayName("Happy Path: Should grant permission and return 204 No Content")
+        void shouldGrantPermissionAndReturnNoContent() throws Exception {
+            // Arrange
+            UUID targetUserId = UUID.randomUUID();
+            PermissionRequestDto dto = new PermissionRequestDto(Permission.MODERATE_REVIEWS, "Trusted contributor");
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isNoContent());
+            verify(userService).grantPermission(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Error Path: Should return 400 when the target is not a standard user account")
+        void shouldReturn400_WhenTargetInvalid() throws Exception {
+            // Arrange
+            UUID adminTargetId = UUID.randomUUID();
+            PermissionRequestDto dto = new PermissionRequestDto(Permission.MODERATE_REVIEWS, "reason");
+
+            doThrow(new BusinessException(ErrorCode.PERMISSION_TARGET_INVALID))
+                    .when(userService).grantPermission(any(), any(), any(), any());
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + adminTargetId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.title").value("Business Rule Violation"));
+
+            verify(userService).grantPermission(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Error Path: Should return 404 when the target user does not exist")
+        void shouldReturn404_WhenUserNotFound() throws Exception {
+            // Arrange
+            UUID nonExistentUserId = UUID.randomUUID();
+            PermissionRequestDto dto = new PermissionRequestDto(Permission.MODERATE_REVIEWS, "reason");
+
+            doThrow(new BusinessException(ErrorCode.USER_NOT_FOUND))
+                    .when(userService).grantPermission(any(), any(), any(), any());
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + nonExistentUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorCode").value("E1005"));
+
+            verify(userService).grantPermission(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Validation Error: Should return 400 when reason is blank")
+        void shouldReturn400_WhenReasonIsBlank() throws Exception {
+            // Arrange: valid permission, blank reason
+            UUID targetUserId = UUID.randomUUID();
+            String body = "{\"permission\":\"MODERATE_REVIEWS\",\"reason\":\"\"}";
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body));
+
+            // Assert
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.reason").exists());
+
+            verifyNoInteractions(userService);
+        }
+
+        @Test
+        @DisplayName("Validation Error: Should return 400 when permission is an unknown value")
+        void shouldReturn400_WhenPermissionInvalid() throws Exception {
+            // Arrange: an enum value that doesn't exist -> deserialization fails -> 400
+            UUID targetUserId = UUID.randomUUID();
+            String body = "{\"permission\":\"NOT_A_REAL_PERMISSION\",\"reason\":\"reason\"}";
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body));
+
+            // Assert
+            result.andExpect(status().isBadRequest());
+            verifyNoInteractions(userService);
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /users/{userId}/permissions")
+    class RevokePermissionTests {
+
+        @Test
+        @DisplayName("Happy Path: Should revoke permission and return 204 No Content")
+        void shouldRevokePermissionAndReturnNoContent() throws Exception {
+            // Arrange
+            UUID targetUserId = UUID.randomUUID();
+            PermissionRequestDto dto = new PermissionRequestDto(Permission.MODERATE_REVIEWS, "No longer needed");
+
+            // Act
+            ResultActions result = mockMvc.perform(delete(BASE_URL + "/users/" + targetUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isNoContent());
+            verify(userService).revokePermission(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Error Path: Should return 404 when the target user does not exist")
+        void shouldReturn404_WhenUserNotFoundOnRevoke() throws Exception {
+            // Arrange
+            UUID nonExistentUserId = UUID.randomUUID();
+            PermissionRequestDto dto = new PermissionRequestDto(Permission.MODERATE_REVIEWS, "reason");
+
+            doThrow(new BusinessException(ErrorCode.USER_NOT_FOUND))
+                    .when(userService).revokePermission(any(), any(), any(), any());
+
+            // Act
+            ResultActions result = mockMvc.perform(delete(BASE_URL + "/users/" + nonExistentUserId + "/permissions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorCode").value("E1005"));
+
+            verify(userService).revokePermission(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /users/{userId}/permissions")
+    class GetUserPermissionsTests {
+
+        @Test
+        @DisplayName("Happy Path: Should return 200 and the user's permissions")
+        void shouldReturnPermissions() throws Exception {
+            // Arrange
+            UUID targetUserId = UUID.randomUUID();
+            UserPermissionsDto dto = new UserPermissionsDto(targetUserId, java.util.Set.of(Permission.MODERATE_REVIEWS));
+            given(userService.getUserPermissions(targetUserId)).willReturn(dto);
+
+            // Act
+            ResultActions result = mockMvc.perform(get(BASE_URL + "/users/" + targetUserId + "/permissions"));
+
+            // Assert
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.userId").value(targetUserId.toString()))
+                    .andExpect(jsonPath("$.permissions[0]").value("MODERATE_REVIEWS"));
+
+            verify(userService).getUserPermissions(targetUserId);
+        }
+
+        @Test
+        @DisplayName("Error Path: Should return 404 when the target user does not exist")
+        void shouldReturn404_WhenUserNotFound() throws Exception {
+            // Arrange
+            UUID nonExistentUserId = UUID.randomUUID();
+            doThrow(new BusinessException(ErrorCode.USER_NOT_FOUND))
+                    .when(userService).getUserPermissions(nonExistentUserId);
+
+            // Act
+            ResultActions result = mockMvc.perform(get(BASE_URL + "/users/" + nonExistentUserId + "/permissions"));
+
+            // Assert
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorCode").value("E1005"));
         }
     }
 }

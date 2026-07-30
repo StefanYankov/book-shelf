@@ -181,10 +181,13 @@ public class BookServiceImpl extends BaseService implements BookService {
     @Override
     @Transactional
     public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
-        log.info("ADMIN ACTION: Power-user moderation executed for book with ID: {}", bookId);
+        log.info("ADMIN ACTION: catalog moderation executed for book with ID: {}", bookId);
         Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
 
-        // TODO: Under long-term governance blueprints, split (POWER)ADMIN role permissions from MODERATION ADMIN roles to isolate general catalog modifications from strict community content curation.
+        // TODO(permissions): gate catalog moderation behind a delegatable MODERATE_BOOKS
+        //   permission (mirroring MODERATE_REVIEWS), so an admin can grant trusted users
+        //   the ability to curate titles/summaries without granting full admin rights.
+        //   Roles stay coarse; permissions carry the fine-grained, admin-managed capability.
         return this.updateBook(bookId, updateDto);
     }
 }
