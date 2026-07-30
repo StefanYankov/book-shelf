@@ -39,6 +39,7 @@ model/pagedResponseAdminUserViewDto.ts
 model/pagedResponseBookSummaryDto.ts
 model/pagedResponseBookshelfSummaryDto.ts
 model/pagedResponseReviewViewDto.ts
+model/permissionRequestDto.ts
 model/problemDetail.ts
 model/publisherDto.ts
 model/registerRequest.ts
@@ -48,6 +49,7 @@ model/reviewUpdateDto.ts
 model/reviewViewDto.ts
 model/sortObject.ts
 model/updateProfileDto.ts
+model/userPermissionsDto.ts
 param.ts
 provide-api.ts
 query.params.ts

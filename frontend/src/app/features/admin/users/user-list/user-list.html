@@ -4,7 +4,7 @@
     <span class="badge bg-secondary">System Administration</span>
   </div>
 
-  <!-- Non-blocking Dialog Panel Layer -->
+  <!-- Lock/Unlock reason dialog -->
   @if (activeAction(); as action) {
     <div class="modal-backdrop-custom d-flex align-items-center justify-content-center">
       <div class="card p-4 shadow-lg border-0 modal-card">
@@ -35,6 +35,76 @@
     </div>
   }
 
+  <!-- Permission management panel -->
+  @if (permissionPanelUser(); as panelUser) {
+    <div class="modal-backdrop-custom d-flex align-items-center justify-content-center">
+      <div class="card p-4 shadow-lg border-0 modal-card">
+        <h4 class="fw-bold mb-2">Manage Permissions</h4>
+        <p class="text-muted small">Fine-grained capabilities for <strong>{{ panelUser.username }}</strong>.</p>
+
+        @if (panelPermissions() === null) {
+          <div class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading permissions...</span>
+            </div>
+          </div>
+        } @else if (activePermissionAction(); as permAction) {
+          <!-- Reason step for grant/revoke -->
+          <p class="small">
+            You are about to
+            <strong [class.text-danger]="permAction.type === 'REVOKE'"
+                    [class.text-success]="permAction.type === 'GRANT'"
+                    class="text-uppercase">{{ permAction.type }}</strong>
+            the permission <strong>{{ permAction.permission }}</strong>.
+          </p>
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-bold" for="permReason">Reason for Action</label>
+            <textarea
+              (ngModelChange)="inputReason.set($event)"
+              [ngModel]="inputReason()"
+              class="form-control"
+              id="permReason"
+              placeholder="Please detail the reason..."
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button (click)="cancelPermissionAction()" class="btn btn-light" type="button">Back</button>
+            <button (click)="submitPermissionAction()" class="btn btn-primary" type="button">Confirm</button>
+          </div>
+        } @else {
+          <!-- Permission catalog with current grant state -->
+          <ul class="list-group mb-3">
+            @for (permission of allPermissions; track permission) {
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  {{ permission }}
+                  @if (hasPermission(permission)) {
+                    <span class="badge bg-success-subtle text-success ms-2">Granted</span>
+                  } @else {
+                    <span class="badge bg-secondary-subtle text-secondary ms-2">Not granted</span>
+                  }
+                </span>
+                @if (hasPermission(permission)) {
+                  <button (click)="startPermissionAction(permission, 'REVOKE')" class="btn btn-sm btn-outline-danger"
+                          type="button">Revoke
+                  </button>
+                } @else {
+                  <button (click)="startPermissionAction(permission, 'GRANT')" class="btn btn-sm btn-outline-success"
+                          type="button">Grant
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+          <div class="d-flex justify-content-end">
+            <button (click)="closePermissionPanel()" class="btn btn-light" type="button">Close</button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   <!-- Data Grid Viewport -->
   @if (loading()) {
     <div class="text-center py-5">
@@ -51,13 +121,13 @@
     <div class="card shadow-sm border-0 bg-white p-3">
       <table class="table align-middle table-hover">
         <thead class="table-light">
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Full Name</th>
-            <th>Status</th>
-            <th class="text-end">Actions</th>
-          </tr>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Full Name</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
         </thead>
         <tbody>
           @for (user of userPage.content; track user.id) {
@@ -74,11 +144,22 @@
               </td>
               <td class="text-end">
                 @if (user.id && user.username) {
-                  @if (user.isActive) {
-                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" (click)="openActionForm(user.id, user.username, 'LOCK')">Lock Account</button>
-                  } @else {
-                    <button class="btn btn-outline-success btn-sm rounded-pill px-3" (click)="openActionForm(user.id, user.username, 'UNLOCK')">Unlock Account</button>
-                  }
+                  <div class="d-inline-flex gap-2">
+                    @if (user.isActive) {
+                      <button (click)="openActionForm(user.id, user.username, 'LOCK')"
+                              class="btn btn-outline-danger btn-sm rounded-pill px-3">Lock
+                      </button>
+                    } @else {
+                      <button (click)="openActionForm(user.id, user.username, 'UNLOCK')"
+                              class="btn btn-outline-success btn-sm rounded-pill px-3">Unlock
+                      </button>
+                    }
+                    @if (user.role !== 'ROLE_ADMIN') {
+                      <button (click)="openPermissionPanel(user.id, user.username)"
+                              class="btn btn-outline-primary btn-sm rounded-pill px-3">Permissions
+                      </button>
+                    }
+                  </div>
                 }
               </td>
             </tr>

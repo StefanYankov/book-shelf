@@ -1,16 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, Subscription } from 'rxjs';
-import { switchMap, tap, map, distinctUntilChanged } from 'rxjs/operators';
-import { AdminAPIService, LockUserRequestDto, PagedResponseAdminUserViewDto } from '../../../../api';
-import { ToastService } from '../../../../core/services/toast.service';
-import { UserActionState } from '../../../../core/models/user-action-state.model';
+import {ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {ActivatedRoute, Router} from '@angular/router';
+import {Subject, Subscription} from 'rxjs';
+import {distinctUntilChanged, map, switchMap, tap} from 'rxjs/operators';
+import {PagedResponseAdminUserViewDto, PermissionRequestDto} from '../../../../api';
+import {AdminUserService} from '../../../../core/services/admin-user.service';
+import {ToastService} from '../../../../core/services/toast.service';
+import {UserActionState} from '../../../../core/models/user-action-state.model';
+import {PermissionActionState} from '../../../../core/models/permission-action-state.model';
 
 /**
  * Component for displaying and managing a paginated list of users in the admin panel.
  * Synchronizes pagination state directly to route query parameters to support bookmarking.
+ * Supports lock/unlock and on-demand fine-grained permission management.
  */
 @Component({
   selector: 'app-user-list',
@@ -21,7 +24,8 @@ import { UserActionState } from '../../../../core/models/user-action-state.model
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserList implements OnInit, OnDestroy {
-  private readonly adminApiService = inject(AdminAPIService);
+  /** The catalog of all known permissions, derived from the generated enum (future-proof). */
+  protected readonly allPermissions = Object.values(PermissionRequestDto.PermissionEnum);
   private readonly toastService = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -33,6 +37,15 @@ export class UserList implements OnInit, OnDestroy {
   protected readonly inputReason = signal<string>('');
   protected readonly currentPage = signal(0);
 
+  // --- Permission management (on-demand) state ---
+  /** The user whose permission panel is open, or null when closed. */
+  protected readonly permissionPanelUser = signal<{ id: string; username: string } | null>(null);
+  /** The open user's currently granted permissions, or null while loading. */
+  protected readonly panelPermissions = signal<string[] | null>(null);
+  /** An in-progress grant/revoke awaiting a reason, or null. */
+  protected readonly activePermissionAction = signal<PermissionActionState | null>(null);
+  private readonly adminUserService = inject(AdminUserService);
+
   private readonly loadUsers$ = new Subject<void>();
   private queryParamsSubscription?: Subscription;
 
@@ -40,7 +53,7 @@ export class UserList implements OnInit, OnDestroy {
     // Pipeline 1: Administrative user loader stream
     this.loadUsers$.pipe(
       tap(() => this.loading.set(true)),
-      switchMap(() => this.adminApiService.getAllUsers({ page: this.currentPage(), size: 10 }))
+        switchMap(() => this.adminUserService.getAllUsers({page: this.currentPage(), size: 10}))
     ).subscribe({
       next: (response) => {
         this.data.set(response);
@@ -76,7 +89,7 @@ export class UserList implements OnInit, OnDestroy {
   }
 
   /**
-   * Initiates the local interaction context modal form.
+   * Initiates the local interaction context modal form for lock/unlock.
    */
   protected openActionForm(userId: string, username: string, type: 'LOCK' | 'UNLOCK'): void {
     this.inputReason.set('');
@@ -92,7 +105,7 @@ export class UserList implements OnInit, OnDestroy {
   }
 
   /**
-   * Submits the state transition request securely with the inputted feedback metadata.
+   * Submits the lock/unlock state transition request with the inputted reason metadata.
    */
   protected submitAdministrativeAction(): void {
     const action = this.activeAction();
@@ -103,11 +116,9 @@ export class UserList implements OnInit, OnDestroy {
       return;
     }
 
-    const dto: LockUserRequestDto = { reason };
-
     const apiCall = action.type === 'LOCK'
-      ? this.adminApiService.lockUser(action.userId, dto)
-      : this.adminApiService.unlockUser(action.userId, dto);
+        ? this.adminUserService.lockUser(action.userId, reason)
+        : this.adminUserService.unlockUser(action.userId, reason);
 
     apiCall.subscribe({
       next: () => {
@@ -117,6 +128,90 @@ export class UserList implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.toastService.showError(err.error?.detail || `Failed to ${action.type.toLowerCase()} user.`);
+      }
+    });
+  }
+
+  // --- Permission management ---
+
+  /**
+   * Opens the permission panel for a user and lazily loads their current permissions.
+   */
+  protected openPermissionPanel(userId: string, username: string): void {
+    this.permissionPanelUser.set({id: userId, username});
+    this.panelPermissions.set(null); // loading
+    this.adminUserService.getUserPermissions(userId).subscribe({
+      next: (permissions) => this.panelPermissions.set(permissions),
+      error: () => {
+        this.toastService.showError('Failed to load user permissions.');
+        this.closePermissionPanel();
+      }
+    });
+  }
+
+  /**
+   * Closes the permission panel and clears its state.
+   */
+  protected closePermissionPanel(): void {
+    this.permissionPanelUser.set(null);
+    this.panelPermissions.set(null);
+    this.activePermissionAction.set(null);
+    this.inputReason.set('');
+  }
+
+  /**
+   * Whether the open user currently holds the given permission.
+   */
+  protected hasPermission(permission: string): boolean {
+    return this.panelPermissions()?.includes(permission) ?? false;
+  }
+
+  /**
+   * Begins a grant/revoke by capturing the intent and prompting for a reason.
+   */
+  protected startPermissionAction(permission: PermissionRequestDto.PermissionEnum, type: 'GRANT' | 'REVOKE'): void {
+    const user = this.permissionPanelUser();
+    if (!user) return;
+    this.inputReason.set('');
+    this.activePermissionAction.set({userId: user.id, username: user.username, permission, type});
+  }
+
+  /**
+   * Cancels the pending permission grant/revoke (returns to the permission list).
+   */
+  protected cancelPermissionAction(): void {
+    this.activePermissionAction.set(null);
+    this.inputReason.set('');
+  }
+
+  /**
+   * Submits the pending grant/revoke with the supplied reason, then refreshes the panel.
+   */
+  protected submitPermissionAction(): void {
+    const action = this.activePermissionAction();
+    const reason = this.inputReason().trim();
+
+    if (!action || !reason) {
+      this.toastService.showError('An administrative reason must be supplied.');
+      return;
+    }
+
+    const apiCall = action.type === 'GRANT'
+        ? this.adminUserService.grantPermission(action.userId, action.permission, reason)
+        : this.adminUserService.revokePermission(action.userId, action.permission, reason);
+
+    apiCall.subscribe({
+      next: () => {
+        this.toastService.showSuccess(`Permission ${action.type === 'GRANT' ? 'granted to' : 'revoked from'} ${action.username}.`);
+        this.activePermissionAction.set(null);
+        this.inputReason.set('');
+        // Re-fetch to refresh the panel's current-state display.
+        this.adminUserService.getUserPermissions(action.userId).subscribe({
+          next: (permissions) => this.panelPermissions.set(permissions)
+        });
+      },
+      error: (err) => {
+        this.toastService.showError(err.error?.detail || 'Failed to update permission.');
       }
     });
   }

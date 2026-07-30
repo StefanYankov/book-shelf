@@ -1,9 +1,9 @@
-import { TestBed } from '@angular/core/testing';
-import { AuthService, DecodedToken } from './auth.service';
-import { AuthenticationAPIService } from '../../api';
-import { Router } from '@angular/router';
-import { of } from 'rxjs';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {TestBed} from '@angular/core/testing';
+import {AuthService, DecodedToken} from './auth.service';
+import {AuthenticationAPIService} from '../../api';
+import {Router} from '@angular/router';
+import {of} from 'rxjs';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 // --- Safe Polyfill for Node/Headless Test Runners Missing LocalStorage ---
 if (typeof globalThis.localStorage === 'undefined') {
@@ -89,6 +89,8 @@ describe('AuthService Unit Tests', () => {
       expect(service.getToken()).toBeNull();
       expect(service.isLoggedIn()).toBe(false);
       expect(service.userRole()).toBeNull();
+      expect(service.authorities()).toEqual([]);
+      expect(service.isAdmin()).toBe(false);
     });
 
     it('should degrade gracefully and handle localStorage exceptions inside safe wrappers', () => {
@@ -117,7 +119,7 @@ describe('AuthService Unit Tests', () => {
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
-      const token = createFakeToken({ sub: 'u', role: 'ROLE_USER', exp: 9999999999 });
+      const token = createFakeToken({sub: 'u', authorities: ['ROLE_USER'], exp: 9999999999});
       mockAuthApiService.authenticate.mockReturnValue(of({ token }));
 
       // Act & Assert: the in-memory signal still updates even though persistence failed
@@ -127,12 +129,12 @@ describe('AuthService Unit Tests', () => {
   });
 
   describe('JWT Decoding and Computed Signal Tests', () => {
-    it('should correctly decode valid claims and evaluate computed user role and active state', () => {
+    it('should correctly decode valid claims and evaluate computed role and active state', () => {
       // Arrange
       const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
       const fakeToken = createFakeToken({
         sub: 'john_doe',
-        role: 'ROLE_ADMIN',
+        authorities: ['ROLE_ADMIN'],
         exp: futureExpiry
       });
 
@@ -142,6 +144,7 @@ describe('AuthService Unit Tests', () => {
       // Assert
       expect(activeService.getToken()).toBe(fakeToken);
       expect(activeService.userRole()).toBe('ROLE_ADMIN');
+      expect(activeService.isAdmin()).toBe(true);
       expect(activeService.isLoggedIn()).toBe(true);
     });
 
@@ -150,7 +153,7 @@ describe('AuthService Unit Tests', () => {
       const pastExpiry = Math.floor(Date.now() / 1000) - 3600;
       const fakeToken = createFakeToken({
         sub: 'john_doe',
-        role: 'ROLE_USER',
+        authorities: ['ROLE_USER'],
         exp: pastExpiry
       });
 
@@ -162,13 +165,67 @@ describe('AuthService Unit Tests', () => {
     });
   });
 
+  describe('Authorities, Role, and Permission Derivation', () => {
+    it('should expose all authorities from a valid token', () => {
+      // Arrange: a moderator user (base role + a granted permission)
+      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const fakeToken = createFakeToken({
+        sub: 'moderator',
+        authorities: ['ROLE_USER', 'MODERATE_REVIEWS'],
+        exp: futureExpiry
+      });
+
+      // Act
+      const moderatorService = createServiceWithStoredToken(fakeToken);
+
+      // Assert
+      expect(moderatorService.authorities()).toEqual(['ROLE_USER', 'MODERATE_REVIEWS']);
+      expect(moderatorService.userRole()).toBe('ROLE_USER');
+      expect(moderatorService.isAdmin()).toBe(false);
+    });
+
+    it('should report hasAuthority true for a held permission and false otherwise', () => {
+      // Arrange
+      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const fakeToken = createFakeToken({
+        sub: 'moderator',
+        authorities: ['ROLE_USER', 'MODERATE_REVIEWS'],
+        exp: futureExpiry
+      });
+
+      // Act
+      const moderatorService = createServiceWithStoredToken(fakeToken);
+
+      // Assert
+      expect(moderatorService.hasAuthority('MODERATE_REVIEWS')).toBe(true);
+      expect(moderatorService.hasAuthority('SOME_OTHER_PERMISSION')).toBe(false);
+    });
+
+    it('should derive isAdmin true when ROLE_ADMIN is present among authorities', () => {
+      // Arrange
+      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const fakeToken = createFakeToken({
+        sub: 'admin',
+        authorities: ['ROLE_ADMIN'],
+        exp: futureExpiry
+      });
+
+      // Act
+      const adminService = createServiceWithStoredToken(fakeToken);
+
+      // Assert
+      expect(adminService.isAdmin()).toBe(true);
+      expect(adminService.userRole()).toBe('ROLE_ADMIN');
+    });
+  });
+
   describe('userId Claim Decoding', () => {
     it('should expose the userId claim from a valid token', () => {
       // Arrange
       const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
       const fakeToken = createFakeToken({
         sub: 'john_doe',
-        role: 'ROLE_USER',
+        authorities: ['ROLE_USER'],
         userId: '22222222-0000-0000-0000-000000000001',
         exp: futureExpiry
       });
@@ -187,7 +244,7 @@ describe('AuthService Unit Tests', () => {
     it('should return null userId when the claim is absent from the token', () => {
       // Arrange: valid token but WITHOUT a userId claim
       const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
-      const fakeToken = createFakeToken({ sub: 'legacy', role: 'ROLE_USER', exp: futureExpiry });
+      const fakeToken = createFakeToken({sub: 'legacy', authorities: ['ROLE_USER'], exp: futureExpiry});
 
       // Act
       const legacyService = createServiceWithStoredToken(fakeToken);
@@ -203,7 +260,7 @@ describe('AuthService Unit Tests', () => {
       const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
       const fakeToken = createFakeToken({
         sub: 'admin',
-        role: 'ROLE_ADMIN',
+        authorities: ['ROLE_ADMIN'],
         pwd_chg_req: true,
         exp: futureExpiry
       });
@@ -218,12 +275,12 @@ describe('AuthService Unit Tests', () => {
     it('should default isPasswordChangeRequired to false when the claim is absent', () => {
       // Arrange: token WITHOUT pwd_chg_req (simulates an older/edge token)
       const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
-      const fakeToken = createFakeToken({ sub: 'user1', role: 'ROLE_USER', exp: futureExpiry });
+      const fakeToken = createFakeToken({sub: 'user1', authorities: ['ROLE_USER'], exp: futureExpiry});
 
       // Act
       const defaultService = createServiceWithStoredToken(fakeToken);
 
-      // Assert: the `|| false` fallback must hold
+      // Assert: the fallback must hold
       expect(defaultService.isPasswordChangeRequired()).toBe(false);
     });
   });
@@ -239,6 +296,8 @@ describe('AuthService Unit Tests', () => {
       // Assert: no throw, everything falls back cleanly
       expect(brokenService.isLoggedIn()).toBe(false);
       expect(brokenService.userRole()).toBeNull();
+      expect(brokenService.authorities()).toEqual([]);
+      expect(brokenService.isAdmin()).toBe(false);
       expect(brokenService.userId()).toBeNull();
       expect(brokenService.isPasswordChangeRequired()).toBe(false);
     });
@@ -248,7 +307,7 @@ describe('AuthService Unit Tests', () => {
     it('should store JWT token and update reactive state signals on successful login', () => {
       // Arrange
       const credentials = { username: 'testuser', password: 'password123' };
-      const expectedToken = createFakeToken({ sub: 'testuser', role: 'ROLE_USER', exp: 9999999999 });
+      const expectedToken = createFakeToken({sub: 'testuser', authorities: ['ROLE_USER'], exp: 9999999999});
       mockAuthApiService.authenticate.mockReturnValue(of({ token: expectedToken }));
 
       // Act
@@ -265,7 +324,7 @@ describe('AuthService Unit Tests', () => {
     it('should store JWT token and update reactive state signals on successful registration', () => {
       // Arrange
       const request = { firstName: 'John', lastName: 'Doe', email: 'john@example.com', username: 'john', password: 'password123' };
-      const expectedToken = createFakeToken({ sub: 'john', role: 'ROLE_USER', exp: 9999999999 });
+      const expectedToken = createFakeToken({sub: 'john', authorities: ['ROLE_USER'], exp: 9999999999});
       mockAuthApiService.register.mockReturnValue(of({ token: expectedToken }));
 
       // Act
@@ -294,7 +353,7 @@ describe('AuthService Unit Tests', () => {
   describe('Logout Routine', () => {
     it('should clear stored token, reset reactive signals, and navigate back to login route', () => {
       // Arrange
-      const fakeToken = createFakeToken({ sub: 'john', role: 'ROLE_USER', exp: 9999999999 });
+      const fakeToken = createFakeToken({sub: 'john', authorities: ['ROLE_USER'], exp: 9999999999});
       localStorage.setItem(TOKEN_KEY, fakeToken);
       service['authToken'].set(fakeToken);
 
@@ -311,14 +370,14 @@ describe('AuthService Unit Tests', () => {
   });
 
   describe('Expired Token Identity Suppression (regression)', () => {
-    // Guards the bug where an expired-but-present token still leaked userId/role,
+    // Guards the bug where an expired-but-present token still leaked userId/role/authorities,
     // causing action buttons (e.g. review delete) to render for a logged-out user.
-    it('should suppress userId, userRole, and pwd_chg_req when the token is expired', () => {
+    it('should suppress userId, authorities, role, and pwd_chg_req when the token is expired', () => {
       // Arrange: a token that decodes fine but is past expiry, for an ADMIN
       const pastExpiry = Math.floor(Date.now() / 1000) - 3600;
       const expiredAdminToken = createFakeToken({
         sub: 'admin',
-        role: 'ROLE_ADMIN',
+        authorities: ['ROLE_ADMIN'],
         userId: '11111111-0000-0000-0000-000000000001',
         pwd_chg_req: true,
         exp: pastExpiry,
@@ -331,6 +390,8 @@ describe('AuthService Unit Tests', () => {
       expect(expiredService.isLoggedIn()).toBe(false);
       expect(expiredService.userId()).toBeNull();
       expect(expiredService.userRole()).toBeNull();
+      expect(expiredService.authorities()).toEqual([]);
+      expect(expiredService.isAdmin()).toBe(false);
       expect(expiredService.isPasswordChangeRequired()).toBe(false);
     });
   });

@@ -1,17 +1,17 @@
-import { Component, inject, input, output, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { switchMap, tap } from 'rxjs/operators';
+import {Component, computed, inject, input, output, signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {toObservable, toSignal} from '@angular/core/rxjs-interop';
+import {switchMap, tap} from 'rxjs/operators';
 import {ReviewService, ReviewTargetType} from '../../../core/services/review.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { ReviewViewDto } from '../../../api';
+import {AuthService} from '../../../core/services/auth.service';
+import {ToastService} from '../../../core/services/toast.service';
+import {ReviewViewDto} from '../../../api';
 
 /**
  * Displays a paginated list of reviews for a given target (e.g. a book).
  * Read access is public; per-row edit/delete affordances are gated by ownership
- * (author) and role (admin). Editing is delegated to a parent via editRequested;
- * deletion is handled here and reloads the page.
+ * (author), the ADMIN role, or the MODERATE_REVIEWS permission. Editing is delegated
+ * to a parent via editRequested; deletion is handled here and reloads the page.
  */
 @Component({
   selector: 'app-review-list',
@@ -70,7 +70,9 @@ export class ReviewList {
   }
 
   protected canDelete(review: ReviewViewDto): boolean {
-    return this.canEdit(review) || this.authService.userRole() === 'ROLE_ADMIN';
+    return this.canEdit(review)
+      || this.authService.isAdmin()
+      || this.authService.hasAuthority('MODERATE_REVIEWS');
   }
 
   protected onEdit(review: ReviewViewDto): void {
