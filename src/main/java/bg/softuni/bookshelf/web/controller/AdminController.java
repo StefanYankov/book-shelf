@@ -4,6 +4,8 @@ import bg.softuni.bookshelf.service.auth.CustomUserDetails;
 import bg.softuni.bookshelf.service.user.UserService;
 import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.LockUserRequestDto;
+import bg.softuni.bookshelf.service.user.dto.PermissionRequestDto;
+import bg.softuni.bookshelf.service.user.dto.UserPermissionsDto;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.web.ApiStandardResponses;
 import io.swagger.v3.oas.annotations.Operation;
@@ -109,5 +111,98 @@ public class AdminController {
         log.info("API POST request to unlock user {} by admin {}.", userId, principal.getUsername());
         userService.unlockUser(userId, dto.reason(), principal.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            operationId = "grantPermission",
+            summary = "Grant a permission to a user",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Grants a fine-grained permission (e.g. review moderation) to a standard user account."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Permission successfully granted."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "The target is not a standard user account.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Target user or executing administrator record not found.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    @PostMapping("/users/{userId}/permissions")
+    public ResponseEntity<Void> grantPermission(
+            @Parameter(description = "The UUID of the user to grant the permission to.") @PathVariable UUID userId,
+            @Valid @RequestBody PermissionRequestDto dto,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails principal) {
+        log.info("API POST request to grant permission {} to user {} by admin {}.", dto.permission(), userId, principal.getUsername());
+        userService.grantPermission(userId, dto.permission(), dto.reason(), principal.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            operationId = "revokePermission",
+            summary = "Revoke a permission from a user",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Revokes a previously granted fine-grained permission from a standard user account."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Permission successfully revoked."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "The target is not a standard user account.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Target user or executing administrator record not found.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    @DeleteMapping("/users/{userId}/permissions")
+    public ResponseEntity<Void> revokePermission(
+            @Parameter(description = "The UUID of the user to revoke the permission from.") @PathVariable UUID userId,
+            @Valid @RequestBody PermissionRequestDto dto,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails principal) {
+        log.info("API DELETE request to revoke permission {} from user {} by admin {}.", dto.permission(), userId, principal.getUsername());
+        userService.revokePermission(userId, dto.permission(), dto.reason(), principal.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            operationId = "getUserPermissions",
+            summary = "Get a user's permissions",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Retrieves the fine-grained permissions currently granted to a standard user account."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved the user's permissions."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "The target is not a standard user account.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Target user not found.",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    @GetMapping("/users/{userId}/permissions")
+    public ResponseEntity<UserPermissionsDto> getUserPermissions(
+            @Parameter(description = "The UUID of the user whose permissions are requested.") @PathVariable UUID userId) {
+        log.info("API GET request to retrieve permissions for user {}.", userId);
+        return ResponseEntity.ok(userService.getUserPermissions(userId));
     }
 }

@@ -1,7 +1,9 @@
 package bg.softuni.bookshelf.service.user;
 
 import bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent;
+import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
 import bg.softuni.bookshelf.data.entity.identity.User;
+import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.data.enums.StatusEventType;
 import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
@@ -10,6 +12,7 @@ import bg.softuni.bookshelf.service.user.dto.*;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends BaseService implements UserService {
@@ -41,6 +45,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         user.setFirstName(dto.firstName());
         user.setLastName(dto.lastName());
         userRepository.save(user);
+        log.info("Profile updated for user {}", userId);
     }
 
     @Override
@@ -55,6 +60,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         user.setPassword(passwordEncoder.encode(dto.newPassword()));
         user.setPasswordChangeRequired(false);
         User savedUser = userRepository.save(user);
+        log.info("Password changed for user {}", userId);
 
         return new UserSecurityDto(
                 savedUser.getId(),
@@ -79,12 +85,8 @@ public class UserServiceImpl extends BaseService implements UserService {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 
-        AccountStatusEvent event = new AccountStatusEvent();
-        event.setUser(user);
-        event.setActor(actor);
-        event.setReason(reason);
-        event.setEventType(StatusEventType.ACCOUNT_LOCKED);
-        accountStatusEventRepository.save(event);
+        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_LOCKED);
+        log.info("User {} locked by admin {}", userId, actorId);
     }
 
     @Override
@@ -93,11 +95,64 @@ public class UserServiceImpl extends BaseService implements UserService {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 
+        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_UNLOCKED);
+        log.info("User {} unlocked by admin {}", userId, actorId);
+    }
+
+    @Override
+    @Transactional
+    public void grantPermission(UUID userId, Permission permission, String reason, UUID actorId) {
+        ApplicationUser user = findApplicationUserOrThrow(userId);
+        User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
+
+        user.getPermissions().add(permission);
+        userRepository.save(user);
+
+        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_GRANTED);
+        log.info("Admin {} granted permission {} to user {}", actorId, permission, userId);
+    }
+
+    @Override
+    @Transactional
+    public void revokePermission(UUID userId, Permission permission, String reason, UUID actorId) {
+        ApplicationUser user = findApplicationUserOrThrow(userId);
+        User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
+
+        user.getPermissions().remove(permission);
+        userRepository.save(user);
+
+        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_REVOKED);
+        log.info("Admin {} revoked permission {} from user {}", actorId, permission, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserPermissionsDto getUserPermissions(UUID userId) {
+        ApplicationUser user = findApplicationUserOrThrow(userId);
+        log.info("Permissions retrieved for user {}", userId);
+        return new UserPermissionsDto(user.getId(), user.getPermissions());
+    }
+
+
+    // Narrows a user to ApplicationUser or rejects the operation. Permissions only exist on
+    // standard user accounts; admins derive all capability from their role.
+    private ApplicationUser findApplicationUserOrThrow(UUID userId) {
+        User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
+        if (!(user instanceof ApplicationUser applicationUser)) {
+            throw new BusinessException(ErrorCode.PERMISSION_TARGET_INVALID);
+        }
+        return applicationUser;
+    }
+
+    // Centralizes the auditable account-status event write shared by lock/unlock and grant/revoke.
+    private void recordStatusEvent(User user, User actor, String reason, StatusEventType type) {
         AccountStatusEvent event = new AccountStatusEvent();
         event.setUser(user);
         event.setActor(actor);
         event.setReason(reason);
-        event.setEventType(StatusEventType.ACCOUNT_UNLOCKED);
+        event.setEventType(type);
         accountStatusEventRepository.save(event);
     }
+
+
 }

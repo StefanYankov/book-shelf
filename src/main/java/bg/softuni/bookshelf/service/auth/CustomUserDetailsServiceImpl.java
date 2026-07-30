@@ -15,7 +15,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of the custom user details service.
@@ -62,16 +63,21 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
     private CustomUserDetails mapToUserDetails(User user) {
         String role;
         boolean isEnabled;
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
         if (user instanceof AdminUser) {
             role = "ROLE_ADMIN";
-            isEnabled = true; // Admins are always enabled
-        } else if (user instanceof ApplicationUser) {
+            isEnabled = true;
+        } else if (user instanceof ApplicationUser appUser) {
             role = "ROLE_USER";
             isEnabled = accountStatusService.isUserActive(user.getId());
+            // Granted permissions become authorities alongside the base role.
+            appUser.getPermissions().forEach(p -> authorities.add(new SimpleGrantedAuthority(p.name())));
         } else {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unknown user type: " + user.getClass().getSimpleName());
         }
+
+        authorities.add(new SimpleGrantedAuthority(role));
 
         return new CustomUserDetails(
                 user.getId(),
@@ -79,7 +85,7 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
                 user.getPassword(),
                 isEnabled,
                 user.isPasswordChangeRequired(),
-                Collections.singletonList(new SimpleGrantedAuthority(role))
+                authorities
         );
     }
 }

@@ -54,7 +54,6 @@ public class ReviewServiceImpl extends BaseService implements ReviewService {
                 reviewMapper.toReviewViewDto(
                         review,
                         // Fallback keeps a listing endpoint resilient if an author was deleted
-                        // (userId is a soft UUID reference, not an FK — so this is possible).
                         usernamesById.getOrDefault(review.getUserId(), "[deleted user]")
                 ));
     }
@@ -109,15 +108,16 @@ public class ReviewServiceImpl extends BaseService implements ReviewService {
 
     @Override
     @Transactional
-    public void deleteReview(UUID reviewId, UUID userId, boolean isAdmin) {
+    public void deleteReview(UUID reviewId, UUID userId, boolean isAdmin, boolean canModerate) {
         log.debug("Attempting to delete review {} by user {}", reviewId, userId);
         Objects.requireNonNull(reviewId, DeveloperErrors.ENTITY_ID_NULL);
         Objects.requireNonNull(userId, DeveloperErrors.ENTITY_ID_NULL);
 
         Review review = findOrThrow(() -> reviewRepository.findById(reviewId), ErrorCode.REVIEW_NOT_FOUND, reviewId);
 
-        if (!review.getUserId().equals(userId) && !isAdmin) {
-            log.warn("Unauthorized deletion attempt. User {} lacks ownership or ADMIN privileges for review {}", userId, reviewId);
+        boolean isAuthor = review.getUserId().equals(userId);
+        if (!isAuthor && !isAdmin && !canModerate) {
+            log.warn("Unauthorized deletion attempt. User {} lacks ownership, ADMIN, or moderation rights for review {}", userId, reviewId);
             throw new BusinessException(ErrorCode.UNAUTHORIZED_REVIEW_MODIFICATION);
         }
 

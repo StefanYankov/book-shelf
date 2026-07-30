@@ -9,10 +9,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithSecurityContextFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Security context factory that instantiates CustomUserDetails dynamically
@@ -24,9 +24,15 @@ public class WithMockApplicationUserSecurityContextFactory implements WithSecuri
     public SecurityContext createSecurityContext(WithMockApplicationUser annotation) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-        List<GrantedAuthority> authorities = Arrays.stream(annotation.roles())
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        Arrays.stream(annotation.roles())
                 .map(role -> new SimpleGrantedAuthority(role.startsWith("ROLE_") ? role : "ROLE_" + role))
-                .collect(Collectors.toList());
+                .forEach(authorities::add);
+
+        Arrays.stream(annotation.permissions())
+                .map(SimpleGrantedAuthority::new)
+                .forEach(authorities::add);
 
         CustomUserDetails principal = new CustomUserDetails(
                 UUID.randomUUID(),

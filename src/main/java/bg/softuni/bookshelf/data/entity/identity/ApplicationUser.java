@@ -2,15 +2,13 @@ package bg.softuni.bookshelf.data.entity.identity;
 
 import bg.softuni.bookshelf.data.entity.Bookshelf;
 import bg.softuni.bookshelf.data.entity.UserBook;
+import bg.softuni.bookshelf.data.enums.Permission;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "application_users")
@@ -25,6 +23,18 @@ public class ApplicationUser extends User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    /**
+     * Capabilities granted to this user by an administrator, mapped to
+     * Spring Security authorities alongside the base role.
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "user_permissions",
+            joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "permission", nullable = false)
+    private Set<Permission> permissions = EnumSet.noneOf(Permission.class);
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserBook> libraryEntries = new HashSet<>();
 
@@ -32,9 +42,9 @@ public class ApplicationUser extends User {
     private List<Bookshelf> bookshelves = new ArrayList<>();
 
     /**
-     * A chronological log of all status-changing events for this user's account.
+     * A chronological log of all status-changing events for this user's account, to provide a full
+     * audit trail for administrative actions.
      * The user's current active/locked/banned status is derived from the most recent event in this list.
-     * This provides a full audit trail for administrative actions.
      */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountStatusEvent> statusEvents = new ArrayList<>();

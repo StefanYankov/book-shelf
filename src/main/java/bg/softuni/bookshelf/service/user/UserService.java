@@ -1,10 +1,7 @@
 package bg.softuni.bookshelf.service.user;
 
-import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
-import bg.softuni.bookshelf.service.user.dto.ChangePasswordDto;
-import bg.softuni.bookshelf.service.user.dto.UpdateProfileDto;
-import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
-import bg.softuni.bookshelf.service.user.dto.UserSecurityDto;
+import bg.softuni.bookshelf.data.enums.Permission;
+import bg.softuni.bookshelf.service.user.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -74,4 +71,39 @@ public interface UserService {
      */
     @PreAuthorize("hasRole('ADMIN')")
     void unlockUser(UUID userId, String reason, UUID actorId);
+
+    /**
+     * Grants a permission to a standard user, creating an auditable status event.
+     *
+     * @param userId     The UUID of the user to grant the permission to.
+     * @param permission The permission to grant.
+     * @param reason     The administrative reason for the action.
+     * @param actorId    The UUID of the administrator performing the action.
+     * @throws bg.softuni.bookshelf.shared.exception.BusinessException if the target is not a standard user.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    void grantPermission(UUID userId, Permission permission, String reason, UUID actorId);
+
+    /**
+     * Revokes a permission from a standard user, creating an auditable status event.
+     *
+     * @param userId     The UUID of the user to revoke the permission from.
+     * @param permission The permission to revoke.
+     * @param reason     The administrative reason for the action.
+     * @param actorId    The UUID of the administrator performing the action.
+     * @throws bg.softuni.bookshelf.shared.exception.BusinessException if the target is not a standard user.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    void revokePermission(UUID userId, Permission permission, String reason, UUID actorId);
+
+    /**
+     * Retrieves the set of permissions granted to a standard user.
+     *
+     * @param userId The UUID of the user whose permissions are requested.
+     * @return A {@link UserPermissionsDto} containing the user's granted permissions.
+     * @throws bg.softuni.bookshelf.shared.exception.BusinessException if the user is not found
+     *                                                                 or is not a standard user account.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    UserPermissionsDto getUserPermissions(UUID userId);
 }

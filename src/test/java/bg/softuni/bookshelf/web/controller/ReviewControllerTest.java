@@ -1,6 +1,5 @@
 package bg.softuni.bookshelf.web.controller;
 
-import bg.softuni.bookshelf.service.review.ReviewService;
 import bg.softuni.bookshelf.service.review.dto.ReviewCreateDto;
 import bg.softuni.bookshelf.service.review.dto.ReviewUpdateDto;
 import bg.softuni.bookshelf.service.review.dto.ReviewViewDto;
@@ -16,7 +15,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
@@ -37,9 +35,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ReviewControllerTest extends AbstractControllerTestBase {
 
     private static final String BASE_URL = "/api/reviews";
-
-    @MockitoBean
-    protected ReviewService reviewService;
 
     // --- Object Mother Centralized Factories ---
 
@@ -263,7 +258,7 @@ class ReviewControllerTest extends AbstractControllerTestBase {
 
         @Test
         @WithMockApplicationUser(roles = {"USER"})
-        @DisplayName("Happy Path: Should return 204 and pass isAdmin=false for author deletion")
+        @DisplayName("Happy Path: USER principal is translated to isAdmin=false, canModerate=false")
         void shouldReturn204ForAuthor() throws Exception {
             // Arrange
             UUID reviewId = UUID.randomUUID();
@@ -272,13 +267,12 @@ class ReviewControllerTest extends AbstractControllerTestBase {
             mockMvc.perform(delete(BASE_URL + "/{reviewId}", reviewId))
                     .andExpect(status().isNoContent());
 
-            // A USER principal must be translated to isAdmin=false by the controller.
-            verify(reviewService).deleteReview(eq(reviewId), any(UUID.class), eq(false));
+            verify(reviewService).deleteReview(eq(reviewId), any(UUID.class), eq(false), eq(false));
         }
 
         @Test
         @WithMockApplicationUser(roles = {"ADMIN"})
-        @DisplayName("Happy Path: Should return 204 and pass isAdmin=true for administrative override")
+        @DisplayName("Happy Path: ADMIN principal is translated to isAdmin=true")
         void shouldReturn204ForAdminOverride() throws Exception {
             // Arrange
             UUID reviewId = UUID.randomUUID();
@@ -287,19 +281,31 @@ class ReviewControllerTest extends AbstractControllerTestBase {
             mockMvc.perform(delete(BASE_URL + "/{reviewId}", reviewId))
                     .andExpect(status().isNoContent());
 
-            // An ADMIN principal must be translated to isAdmin=true — this is the whole
-            // point of the boundary translation, so we assert the boolean explicitly.
-            verify(reviewService).deleteReview(eq(reviewId), any(UUID.class), eq(true));
+            verify(reviewService).deleteReview(eq(reviewId), any(UUID.class), eq(true), eq(false));
+        }
+
+        @Test
+        @WithMockApplicationUser(roles = {"USER"}, permissions = {"MODERATE_REVIEWS"})
+        @DisplayName("Happy Path: USER with MODERATE_REVIEWS is translated to canModerate=true")
+        void shouldReturn204ForModerator() throws Exception {
+            // Arrange
+            UUID reviewId = UUID.randomUUID();
+
+            // Act & Assert
+            mockMvc.perform(delete(BASE_URL + "/{reviewId}", reviewId))
+                    .andExpect(status().isNoContent());
+
+            verify(reviewService).deleteReview(eq(reviewId), any(UUID.class), eq(false), eq(true));
         }
 
         @Test
         @WithMockApplicationUser(roles = {"USER"})
-        @DisplayName("Error Case: Should return 403 Forbidden when standard user attempts to delete foreign review")
+        @DisplayName("Error Case: Should return 403 when a plain user deletes a foreign review")
         void shouldReturn403WhenDeletingForeignReview() throws Exception {
             // Arrange
             UUID reviewId = UUID.randomUUID();
             doThrow(new BusinessException(ErrorCode.UNAUTHORIZED_REVIEW_MODIFICATION))
-                    .when(reviewService).deleteReview(any(UUID.class), any(UUID.class), eq(false));
+                    .when(reviewService).deleteReview(any(UUID.class), any(UUID.class), eq(false), eq(false));
 
             // Act & Assert
             mockMvc.perform(delete(BASE_URL + "/{reviewId}", reviewId))

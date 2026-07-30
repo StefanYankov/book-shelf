@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.service.auth;
 
+import bg.softuni.bookshelf.data.enums.Permission;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -40,6 +41,16 @@ public class CustomUserDetails extends User {
     public boolean isAdmin() {
         return getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    /**
+     * Whether this principal holds the given permission (granted as an authority).
+     *
+     * @param permission the permission to check.
+     */
+    public boolean hasPermission(Permission permission) {
+        return getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals(permission.name()));
     }
 
     /**

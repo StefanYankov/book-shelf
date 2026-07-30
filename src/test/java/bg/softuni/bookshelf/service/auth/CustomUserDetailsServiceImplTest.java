@@ -1,6 +1,8 @@
 package bg.softuni.bookshelf.service.auth;
 
+import bg.softuni.bookshelf.data.entity.identity.AdminUser;
 import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
+import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.user.AccountStatusService;
 import org.junit.jupiter.api.DisplayName;
@@ -14,14 +16,15 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CustomUserDetailsService Unit Tests")
@@ -46,6 +49,23 @@ class CustomUserDetailsServiceImplTest {
         return user;
     }
 
+    private ApplicationUser createTestUser(UUID id, String username, Permission... permissions) {
+        ApplicationUser user = createTestUser(id, username);
+        user.setPermissions(new HashSet<>(Arrays.asList(permissions)));
+        return user;
+    }
+
+    private AdminUser createTestAdmin(UUID id, String username) {
+        AdminUser admin = new AdminUser();
+        admin.setId(id);
+        admin.setUsername(username);
+        admin.setPassword("hashed-password");
+        admin.setFirstName("Sys");
+        admin.setLastName("Admin");
+        admin.setEmail(username + "@example.com");
+        return admin;
+    }
+
     @Nested
     @DisplayName("loadUserByUsername(String) Tests")
     class LoadUserByUsernameTests {
@@ -66,7 +86,7 @@ class CustomUserDetailsServiceImplTest {
             // Assert
             assertThat(result).isNotNull().isInstanceOf(CustomUserDetails.class);
             CustomUserDetails customUserDetails = (CustomUserDetails) result;
-            
+
             assertThat(customUserDetails.getId()).isEqualTo(userId);
             assertThat(customUserDetails.getUsername()).isEqualTo(username);
             assertThat(customUserDetails.getPassword()).isEqualTo("hashed-password");
@@ -118,6 +138,65 @@ class CustomUserDetailsServiceImplTest {
 
             verify(userRepository).findByUsername(username);
             verifyNoMoreInteractions(userRepository);
+        }
+
+        @Test
+        @DisplayName("Should map granted permissions to authorities alongside the base role")
+        void shouldMapPermissionsToAuthorities() {
+            // Arrange: an active user who has been granted the MODERATE_REVIEWS permission
+            String username = "moderator";
+            UUID userId = UUID.randomUUID();
+            ApplicationUser userEntity = createTestUser(userId, username, Permission.MODERATE_REVIEWS);
+            given(userRepository.findByUsername(username)).willReturn(Optional.of(userEntity));
+            given(accountStatusService.isUserActive(userId)).willReturn(true);
+
+            // Act
+            CustomUserDetails result = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+
+            // Assert: the principal carries BOTH the base role and the granted permission
+            assertThat(result.getAuthorities())
+                    .extracting(GrantedAuthority::getAuthority)
+                    .containsExactlyInAnyOrder("ROLE_USER", "MODERATE_REVIEWS");
+        }
+
+        @Test
+        @DisplayName("Should map a user with no permissions to the base role only")
+        void shouldMapUserWithoutPermissionsToRoleOnly() {
+            // Arrange
+            String username = "plainuser";
+            UUID userId = UUID.randomUUID();
+            ApplicationUser userEntity = createTestUser(userId, username);
+            given(userRepository.findByUsername(username)).willReturn(Optional.of(userEntity));
+            given(accountStatusService.isUserActive(userId)).willReturn(true);
+
+            // Act
+            CustomUserDetails result = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+
+            // Assert
+            assertThat(result.getAuthorities())
+                    .extracting(GrantedAuthority::getAuthority)
+                    .containsExactly("ROLE_USER");
+        }
+
+        @Test
+        @DisplayName("Should map an AdminUser to ROLE_ADMIN, always enabled, without consulting account status")
+        void shouldMapAdminUser() {
+            // Arrange
+            String username = "admin";
+            UUID userId = UUID.randomUUID();
+            AdminUser adminEntity = createTestAdmin(userId, username);
+            given(userRepository.findByUsername(username)).willReturn(Optional.of(adminEntity));
+
+            // Act
+            CustomUserDetails result = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+
+            // Assert
+            assertThat(result.getId()).isEqualTo(userId);
+            assertThat(result.isEnabled()).isTrue();
+            assertThat(result.getAuthorities())
+                    .extracting(GrantedAuthority::getAuthority)
+                    .containsExactly("ROLE_ADMIN");
+            verify(accountStatusService, never()).isUserActive(userId);
         }
     }
 }

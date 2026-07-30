@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.web.controller;
 
+import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.service.auth.CustomUserDetails;
 import bg.softuni.bookshelf.service.review.ReviewService;
 import bg.softuni.bookshelf.service.review.dto.ReviewCreateDto;
@@ -96,7 +97,12 @@ public class ReviewController {
             @AuthenticationPrincipal CustomUserDetails principal) {
         // The controller is the correct boundary to translate a security principal
         // into the plain values the service understands.
-        reviewService.deleteReview(reviewId, principal.getId(), principal.isAdmin());
+        reviewService.deleteReview(
+                reviewId,
+                principal.getId(),
+                principal.isAdmin(),
+                principal.hasPermission(Permission.MODERATE_REVIEWS)
+        );
         return ResponseEntity.noContent().build();
     }
 }
