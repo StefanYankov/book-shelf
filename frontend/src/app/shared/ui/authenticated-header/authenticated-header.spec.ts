@@ -1,11 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AuthenticatedHeader } from './authenticated-header';
-import { AuthService } from '../../../core/services/auth.service';
-import { Router } from '@angular/router';
-import { signal, WritableSignal } from '@angular/core';
-import { By } from '@angular/platform-browser';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { provideRouter } from '@angular/router';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {AuthenticatedHeader} from './authenticated-header';
+import {AuthService} from '../../../core/services/auth.service';
+import {provideRouter, Router} from '@angular/router';
+import {signal, WritableSignal} from '@angular/core';
+import {By} from '@angular/platform-browser';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 describe('AuthenticatedHeader Component Tests', () => {
   let fixture: ComponentFixture<AuthenticatedHeader>;
@@ -50,6 +49,32 @@ describe('AuthenticatedHeader Component Tests', () => {
       fixture.detectChanges();
 
       expect(component['isAdmin']()).toBe(true);
+    });
+  });
+
+  describe('Navigation Links', () => {
+    it('should render the primary navigation links, including the reading challenge', () => {
+      // Act
+      fixture.detectChanges();
+      const links = fixture.debugElement.queryAll(By.css('a.nav-link'))
+        .map(el => el.nativeElement.getAttribute('routerLink'));
+
+      // Assert
+      expect(links).toContain('/app/books');
+      expect(links).toContain('/app/my-shelves');
+      expect(links).toContain('/app/challenges');
+      expect(links).toContain('/app/profile');
+    });
+
+    it('should link the Challenge item to the challenge route', () => {
+      // Act
+      fixture.detectChanges();
+      const challengeLink = fixture.debugElement.queryAll(By.css('a.nav-link'))
+        .find(el => el.nativeElement.textContent.trim() === 'Challenge');
+
+      // Assert
+      expect(challengeLink).toBeDefined();
+      expect(challengeLink!.nativeElement.getAttribute('routerLink')).toBe('/app/challenges');
     });
   });
 

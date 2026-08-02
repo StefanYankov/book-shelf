@@ -7,15 +7,14 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import {SortObject} from './sortObject';
 
 
-export interface PageableObject {
-    offset?: number;
-    sort?: SortObject;
-    paged?: boolean;
-  pageNumber?: number;
-  pageSize?: number;
-  unpaged?: boolean;
+export interface ReadingChallengeViewDto {
+  id?: string;
+  userId?: string;
+  year?: number;
+  goal?: number;
+  booksRead?: number;
+  completed?: boolean;
 }
 

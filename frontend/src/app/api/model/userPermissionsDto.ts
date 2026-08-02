@@ -13,7 +13,6 @@ export interface UserPermissionsDto {
   userId?: string;
   permissions?: Set<UserPermissionsDto.PermissionsEnum>;
 }
-
 export namespace UserPermissionsDto {
   export const PermissionsEnum = {
     ModerateReviews: 'MODERATE_REVIEWS'
