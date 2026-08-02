@@ -12,12 +12,13 @@ This project is the **final project** for the university course:
 
 ## Project Introduction
 
-The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, and handling reviews. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data. Roles are augmented by admin-managed, permissions for delegating specific capabilities without granting full administrative rights.
+The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, handling reviews, and tracking yearly reading challenges. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data. Roles are augmented by admin-managed permissions for delegating specific capabilities without granting full administrative rights. Reading challenges are provided by a dedicated REST microservice, consumed by the main application through a Feign client with JWT propagation.
 
 ## Table of Contents
 - [Architecture and Technologies](#architecture-and-technologies)
 - [Installation and Setup](#installation-and-setup)
 - [Implemented Features](#implemented-features)
+- [Integrations](#integrations)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
 - [Test Credentials](#test-credentials)
@@ -32,9 +33,10 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Migrations**: Flyway
 - **Containerization**: Docker and Docker Compose
 - **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
+- **Inter-service communication**: Spring Cloud OpenFeign — the main application consumes the reading challenge microservice via a Feign client, forwarding the caller's JWT and translating downstream errors into the application's standard problem response.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
-    - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ
+    - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ, WireMock (Spring Cloud Contract)
     - **Frontend**: Vitest, JSDOM
 
 ## Implemented Features
@@ -60,6 +62,10 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Full CRUD with ownership rules — a review may be edited only by its author and deleted by its author, an administrator, or a user holding the `MODERATE_REVIEWS` permission — enforced at the service layer.
     -   Paginated listing that resolves author names through a single batched lookup (avoids the N+1 query pattern).
     -   Composite uniqueness on `(user, target)` preventing duplicate reviews for the same target.
+-   **Reading Challenges** (backed by the reading challenge microservice):
+    -   Users set a yearly reading goal and adjust their progress from the frontend; the main application proxies these operations to the microservice via a Feign client.
+    -   Progress is set to an absolute value, and completion is recomputed on every change, so reducing progress below the goal un-completes a challenge — allowing users to correct mistakes.
+    -   The caller's JWT is forwarded to the microservice, which independently validates it and resolves the user; downstream `404`/`409` responses are translated into the main application's standard problem response.
 
 ### Backend Application Structure and Features
 
@@ -90,6 +96,10 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
     -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
     -   Administrative metadata override (`moderateBook`) implemented in the core catalog domain for curating titles and summaries.
+-   **Reading Challenge Integration**:
+    -   `ReadingChallengeClient` — a Feign client mirroring the microservice's REST contract.
+    -   `FeignClientConfig` — forwards the caller's `Authorization` header to the microservice and translates downstream HTTP errors into `BusinessException` so clients receive the standard problem response.
+    -   `ReadingChallengeProxyService` and `ReadingChallengeController` expose `/api/challenges` (create, adjust progress, read) to the frontend.
 
 ### Frontend Application Structure and Features
 
@@ -106,8 +116,10 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `Login`, `Register`, `ForgotPassword`, `ResetPassword`: User authentication and account management forms.
 -   **Authenticated User Zone (`layout/app-layout`):**
     -   `AppLayout`: Dedicated workspace shell providing the core catalog interface and bookshelves for authenticated users.
-    -   `AuthenticatedHeader`: Implements absolute routing targets directing users directly to the `/app/books` interface.
-    -   `Profile`: Component managing user details and personal security updates using reactive agile validation rule trackers to enforce complexity parameters inline.
+    -   `AuthenticatedHeader`: Navigation shell linking the catalog, bookshelves, reading challenge, and profile.
+    -   `Home`: Dashboard landing view with a reading challenge prompt card linking to the challenge page.
+    -   `Profile`: Component managing user details and personal security updates using reactive validation to enforce complexity parameters inline.
+    -   `ReadingChallenge`: Yearly reading challenge page (`/app/challenges`) with set-goal, progress, and completed states; progress is adjusted with +1 / -1 steppers that set the absolute books-read value.
 -   **Administrative Zone (`layout/admin-layout`):**
     -   `AdminLayout`: Isolated control panel shell entirely segregated from user layouts to provide system-level administration interfaces.
     -   `AdminHeader`: Dynamically restricts layout navigation paths when a forced credential rotation is active.
@@ -118,6 +130,11 @@ The Angular frontend is built with a standalone component architecture and follo
 -   **Core Views & Components:**
     -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
     -   `BookDetail`: A dedicated page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality and an embedded review section (add, edit, delete) with a moderation-aware delete affordance.
+
+## Integrations
+
+- **Reading Challenge Microservice**: The main application delegates reading challenge operations to a separate Spring Boot REST microservice through a Feign client. The main application authenticates the user and forwards the JWT; the microservice independently validates the token and owns the reading challenge data in its own PostgreSQL database.
+    - Microservice repository: https://github.com/StefanYankov/reading-challenge-svc
 
 ## Project Structure
 The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
@@ -141,9 +158,9 @@ book-shelf/
 │   ├── 📂 main/
 │   │   ├── 📂 java/bg/softuni/bookshelf/
 │   │   │   ├── 📜 BookShelfApplication.java
-│   │   │   ├── 📂 config/              # Spring Security and App configuration
+│   │   │   ├── 📂 config/              # Spring Security, Feign, and App configuration
 │   │   │   ├── 📂 data/                # JPA Entities and Repositories
-│   │   │   ├── 📂 service/             # Service layer (business logic)
+│   │   │   ├── 📂 service/             # Service layer (business logic, Feign client)
 │   │   │   ├── 📂 shared/              # Cross-cutting concerns
 │   │   │   └── 📂 web/                 # Controllers and Exception Handling
 │   │   └── 📂 resources/
@@ -161,6 +178,9 @@ book-shelf/
 ## Installation and Setup
 
 The application is designed to be run with Docker Compose for the database and local servers for the backend and frontend.
+
+> [!NOTE]
+> The reading challenge features require the reading challenge microservice to be running (default `http://localhost:8081`). See its repository for setup. When the microservice is not running, the main application returns an error for challenge operations but otherwise functions normally.
 
 1. **Infrastructure**:
     ```bash
