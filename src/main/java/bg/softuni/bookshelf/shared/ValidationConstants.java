@@ -70,10 +70,9 @@ public final class ValidationConstants {
         public static final int MAX_YEAR = 2100;
         public static final int MIN_GOAL = 1;
         public static final int MAX_GOAL = 1000;
-        public static final int MIN_PROGRESS = 1;
+        public static final int MIN_PROGRESS = 0;
         public static final int MAX_PROGRESS = 1000;
     }
-
     private ValidationConstants() {
         // Restrict instantiation
     }

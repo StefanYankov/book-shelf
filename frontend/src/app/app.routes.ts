@@ -1,12 +1,12 @@
-import { Routes } from '@angular/router';
-import { PublicLayout } from './layout/public-layout/public-layout';
-import { AppLayout } from './layout/app-layout/app-layout';
-import { AdminLayout } from './layout/admin-layout/admin-layout';
-import { authGuard } from './core/guards/auth/auth.guard';
-import { adminGuard } from './core/guards/admin/admin.guard';
-import { userGuard } from './core/guards/user/user.guard';
-import { landingGuard } from './core/guards/landing/landing.guard';
-import { APP_TITLE } from './core/constants';
+import {Routes} from '@angular/router';
+import {PublicLayout} from './layout/public-layout/public-layout';
+import {AppLayout} from './layout/app-layout/app-layout';
+import {AdminLayout} from './layout/admin-layout/admin-layout';
+import {authGuard} from './core/guards/auth/auth.guard';
+import {adminGuard} from './core/guards/admin/admin.guard';
+import {userGuard} from './core/guards/user/user.guard';
+import {landingGuard} from './core/guards/landing/landing.guard';
+import {APP_TITLE} from './core/constants';
 
 export const routes: Routes = [
   // Tree 1: PUBLIC PORTAL (Accessible to guests)
@@ -41,9 +41,18 @@ export const routes: Routes = [
     children: [
       { path: 'home', title: `${APP_TITLE} | Dashboard`, loadComponent: () => import('./features/home/home').then(m => m.Home) },
       { path: 'books', title: `${APP_TITLE} | Catalog`, loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList) },
-      { path: 'books/:id', title: `${APP_TITLE} | Book Details`, loadComponent: () => import('./features/books/book-detail/book-detail').then(m => m.BookDetail) }, // <-- ADDED
+      {
+        path: 'books/:id',
+        title: `${APP_TITLE} | Book Details`,
+        loadComponent: () => import('./features/books/book-detail/book-detail').then(m => m.BookDetail)
+      },
       { path: 'my-shelves', title: `${APP_TITLE} | My Shelves`, loadComponent: () => import('./features/shelves/my-shelves/my-shelves').then(m => m.MyShelves) },
       { path: 'profile', title: `${APP_TITLE} | Profile`, loadComponent: () => import('./features/profile/profile').then(m => m.Profile) },
+      {
+        path: 'challenges',
+        title: `${APP_TITLE} | Reading Challenge`,
+        loadComponent: () => import('./features/challenges/reading-challenge/reading-challenge').then(m => m.ReadingChallenge)
+      },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]
   },

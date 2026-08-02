@@ -1,0 +1,20 @@
+.progress {
+  border-radius: 999px;
+  background-color: #eef2f7;
+}
+
+.progress-bar {
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.stepper-btn {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}

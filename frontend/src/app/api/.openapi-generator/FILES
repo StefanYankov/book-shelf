@@ -7,6 +7,7 @@ api/adminModerationAPI.service.ts
 api/api.ts
 api/authenticationAPI.service.ts
 api/bookAPI.service.ts
+api/readingChallengeAPI.service.ts
 api/reviewAPI.service.ts
 api/userProfileAPI.service.ts
 api/userShelfAPI.service.ts
@@ -31,6 +32,7 @@ model/forgotPasswordRequest.ts
 model/genreDto.ts
 model/languageDto.ts
 model/lockUserRequestDto.ts
+model/logProgressDto.ts
 model/models.ts
 model/pageBookSummaryDto.ts
 model/pageable.ts
@@ -42,6 +44,8 @@ model/pagedResponseReviewViewDto.ts
 model/permissionRequestDto.ts
 model/problemDetail.ts
 model/publisherDto.ts
+model/readingChallengeCreateDto.ts
+model/readingChallengeViewDto.ts
 model/registerRequest.ts
 model/resetPasswordRequest.ts
 model/reviewCreateDto.ts

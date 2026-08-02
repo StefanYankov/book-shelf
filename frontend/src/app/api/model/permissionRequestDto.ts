@@ -13,7 +13,6 @@ export interface PermissionRequestDto {
   permission: PermissionRequestDto.PermissionEnum;
   reason: string;
 }
-
 export namespace PermissionRequestDto {
   export const PermissionEnum = {
     ModerateReviews: 'MODERATE_REVIEWS'
