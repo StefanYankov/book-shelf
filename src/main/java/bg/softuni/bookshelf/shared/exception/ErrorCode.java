@@ -59,6 +59,11 @@ public enum ErrorCode {
     DUPLICATE_REVIEW("E2401", "You have already reviewed this item.", HttpStatus.CONFLICT),
     UNAUTHORIZED_REVIEW_MODIFICATION("E2402", "You cannot modify a review you did not author.", HttpStatus.FORBIDDEN),
 
+    // --- Reading Challenge domain (E2500 - E2599) — proxied from the microservice ---
+    CHALLENGE_NOT_FOUND("E2500", "Reading challenge not found.", HttpStatus.NOT_FOUND),
+    DUPLICATE_CHALLENGE("E2501", "A reading challenge already exists for this user and year.", HttpStatus.CONFLICT),
+    CHALLENGE_SERVICE_UNAVAILABLE("E2502", "The reading challenge service is currently unavailable.", HttpStatus.SERVICE_UNAVAILABLE),
+
     ;
 
     private final String code;
