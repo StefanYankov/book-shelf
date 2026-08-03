@@ -83,11 +83,11 @@ class AdminControllerTest extends AbstractControllerTestBase {
     class LockUserTests {
 
         @Test
-        @DisplayName("Happy Path: Should call service and return 204 No Content for valid request execution")
-        void shouldLockUserAndReturnNoContent() throws Exception {
+        @DisplayName("Happy Path: permanent lock (no duration) returns 204 and passes a null duration")
+        void shouldLockUserPermanentlyAndReturnNoContent() throws Exception {
             // Arrange
             UUID targetUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto("Violation of terms of service.");
+            LockUserRequestDto dto = new LockUserRequestDto("Violation of terms of service.", null);
 
             // Act
             ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/lock")
@@ -96,7 +96,24 @@ class AdminControllerTest extends AbstractControllerTestBase {
 
             // Assert
             result.andExpect(status().isNoContent());
-            verify(userService).lockUser(any(), any(), any());
+            verify(userService).lockUser(any(), any(), any(), isNull());
+        }
+
+        @Test
+        @DisplayName("Happy Path: temporary lock (duration in hours) returns 204 and passes a non-null duration")
+        void shouldLockUserTemporarilyAndReturnNoContent() throws Exception {
+            // Arrange
+            UUID targetUserId = UUID.randomUUID();
+            LockUserRequestDto dto = new LockUserRequestDto("Cooling-off period.", 24);
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/lock")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // Assert
+            result.andExpect(status().isNoContent());
+            verify(userService).lockUser(any(), any(), any(), notNull());
         }
 
         @Test
@@ -104,10 +121,10 @@ class AdminControllerTest extends AbstractControllerTestBase {
         void shouldReturn404_WhenTargetUserNotFound() throws Exception {
             // Arrange
             UUID nonExistentUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto("Spam account.");
+            LockUserRequestDto dto = new LockUserRequestDto("Spam account.", null);
 
             doThrow(new BusinessException(ErrorCode.USER_NOT_FOUND))
-                    .when(userService).lockUser(any(), any(), any());
+                    .when(userService).lockUser(any(), any(), any(), any());
 
             // Act
             ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + nonExistentUserId + "/lock")
@@ -120,7 +137,7 @@ class AdminControllerTest extends AbstractControllerTestBase {
                     .andExpect(jsonPath("$.type").value("urn:bookshelf:business-error"))
                     .andExpect(jsonPath("$.errorCode").value("E1005"));
 
-            verify(userService).lockUser(any(), any(), any());
+            verify(userService).lockUser(any(), any(), any(), any());
         }
 
         @ParameterizedTest
@@ -130,11 +147,11 @@ class AdminControllerTest extends AbstractControllerTestBase {
                 "'\t'",
                 "'\n'"
         })
-        @DisplayName("Validation Error: Should fail-fast and return 400 Bad Request when constraint validations reject field payload properties")
+        @DisplayName("Validation Error: Should fail-fast and return 400 Bad Request when reason is blank")
         void shouldReturn400_WhenReasonIsBlank(String blankReason) throws Exception {
             // Arrange
             UUID targetUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto(blankReason);
+            LockUserRequestDto dto = new LockUserRequestDto(blankReason, null);
 
             // Act
             ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/lock")
@@ -149,6 +166,25 @@ class AdminControllerTest extends AbstractControllerTestBase {
 
             verifyNoInteractions(userService);
         }
+
+        @Test
+        @DisplayName("Validation Error: Should return 400 when the lock duration is not positive")
+        void shouldReturn400_WhenDurationNotPositive() throws Exception {
+            // Arrange
+            UUID targetUserId = UUID.randomUUID();
+            String body = "{\"reason\":\"Temp\",\"lockDurationHours\":0}";
+
+            // Act
+            ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/lock")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body));
+
+            // Assert
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.lockDurationHours").exists());
+
+            verifyNoInteractions(userService);
+        }
     }
 
     @Nested
@@ -160,7 +196,7 @@ class AdminControllerTest extends AbstractControllerTestBase {
         void shouldUnlockUserAndReturnNoContent() throws Exception {
             // Arrange
             UUID targetUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto("Verification completed successfully.");
+            LockUserRequestDto dto = new LockUserRequestDto("Verification completed successfully.", null);
 
             // Act
             ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/unlock")
@@ -177,7 +213,7 @@ class AdminControllerTest extends AbstractControllerTestBase {
         void shouldReturn404_WhenTargetUserNotFoundOnUnlock() throws Exception {
             // Arrange
             UUID nonExistentUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto("Account cleared.");
+            LockUserRequestDto dto = new LockUserRequestDto("Account cleared.", null);
 
             doThrow(new BusinessException(ErrorCode.USER_NOT_FOUND))
                     .when(userService).unlockUser(any(), any(), any());
@@ -206,7 +242,7 @@ class AdminControllerTest extends AbstractControllerTestBase {
         void shouldReturn400_WhenUnlockReasonIsBlank(String blankReason) throws Exception {
             // Arrange
             UUID targetUserId = UUID.randomUUID();
-            LockUserRequestDto dto = new LockUserRequestDto(blankReason);
+            LockUserRequestDto dto = new LockUserRequestDto(blankReason, null);
 
             // Act
             ResultActions result = mockMvc.perform(post(BASE_URL + "/users/" + targetUserId + "/unlock")

@@ -25,6 +25,51 @@
           ></textarea>
         </div>
 
+        @if (action.type === 'LOCK') {
+          <div class="mb-3">
+            <span class="form-label text-muted small fw-bold d-block">Lock Duration</span>
+            <div class="d-flex gap-3 mb-2">
+              <div class="form-check">
+                <input
+                  (change)="lockType.set('permanent')"
+                  [checked]="lockType() === 'permanent'"
+                  class="form-check-input"
+                  id="lockPermanent"
+                  name="lockType"
+                  type="radio"
+                />
+                <label class="form-check-label" for="lockPermanent">Permanent</label>
+              </div>
+              <div class="form-check">
+                <input
+                  (change)="lockType.set('temporary')"
+                  [checked]="lockType() === 'temporary'"
+                  class="form-check-input"
+                  id="lockTemporary"
+                  name="lockType"
+                  type="radio"
+                />
+                <label class="form-check-label" for="lockTemporary">Temporary</label>
+              </div>
+            </div>
+
+            @if (lockType() === 'temporary') {
+              <div class="input-group input-group-sm" style="max-width: 220px;">
+                <input
+                  (ngModelChange)="lockDurationHours.set($event)"
+                  [ngModel]="lockDurationHours()"
+                  aria-label="Lock duration in hours"
+                  class="form-control"
+                  id="lockDurationHours"
+                  min="1"
+                  type="number"
+                />
+                <span class="input-group-text">hours</span>
+              </div>
+            }
+          </div>
+        }
+
         <div class="d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-light" (click)="cancelAction()">Cancel</button>
           <button type="button" class="btn" [class.btn-danger]="action.type === 'LOCK'" [class.btn-success]="action.type === 'UNLOCK'" (click)="submitAdministrativeAction()">

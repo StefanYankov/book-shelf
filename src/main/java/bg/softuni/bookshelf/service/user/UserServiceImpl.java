@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
@@ -77,7 +79,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
-    public void lockUser(UUID userId, String reason, UUID actorId) {
+    public void lockUser(UUID userId, String reason, UUID actorId, Duration duration) {
         if (userId.equals(actorId)) {
             throw new BusinessException(ErrorCode.SELF_LOCK_PREVENTION);
         }
@@ -85,8 +87,13 @@ public class UserServiceImpl extends BaseService implements UserService {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 
-        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_LOCKED);
-        log.info("User {} locked by admin {}", userId, actorId);
+        // A null duration is a permanent lock: it leaves the event's expiry null, which the
+        // reconciliation job never selects. A duration produces a temporary lock.
+        Instant expiry = duration == null ? null : Instant.now().plus(duration);
+
+        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_LOCKED, expiry);
+        log.info("User {} locked by admin {} ({})", userId, actorId,
+                expiry == null ? "permanent" : "until " + expiry);
     }
 
     @Override
@@ -95,7 +102,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 
-        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_UNLOCKED);
+        recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_UNLOCKED, null);
         log.info("User {} unlocked by admin {}", userId, actorId);
     }
 
@@ -108,7 +115,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         user.getPermissions().add(permission);
         userRepository.save(user);
 
-        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_GRANTED);
+        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_GRANTED, null);
         log.info("Admin {} granted permission {} to user {}", actorId, permission, userId);
     }
 
@@ -121,7 +128,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         user.getPermissions().remove(permission);
         userRepository.save(user);
 
-        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_REVOKED);
+        recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_REVOKED, null);
         log.info("Admin {} revoked permission {} from user {}", actorId, permission, userId);
     }
 
@@ -133,9 +140,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         return new UserPermissionsDto(user.getId(), user.getPermissions());
     }
 
-
-    // Narrows a user to ApplicationUser or rejects the operation. Permissions only exist on
-    // standard user accounts; admins derive all capability from their role.
+    // Permissions apply only to standard user accounts; admins derive all capability from their role.
     private ApplicationUser findApplicationUserOrThrow(UUID userId) {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         if (!(user instanceof ApplicationUser applicationUser)) {
@@ -144,15 +149,15 @@ public class UserServiceImpl extends BaseService implements UserService {
         return applicationUser;
     }
 
-    // Centralizes the auditable account-status event write shared by lock/unlock and grant/revoke.
-    private void recordStatusEvent(User user, User actor, String reason, StatusEventType type) {
+    // expiryDate is only meaningful for temporary locks; it is null for every other event type
+    // and for permanent locks, meaning "no expiry".
+    private void recordStatusEvent(User user, User actor, String reason, StatusEventType type, Instant expiryDate) {
         AccountStatusEvent event = new AccountStatusEvent();
         event.setUser(user);
         event.setActor(actor);
         event.setReason(reason);
         event.setEventType(type);
+        event.setExpiryDate(expiryDate);
         accountStatusEventRepository.save(event);
     }
-
-
 }

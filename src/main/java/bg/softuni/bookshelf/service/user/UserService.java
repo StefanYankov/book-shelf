@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -52,15 +53,26 @@ public interface UserService {
     Page<AdminUserViewDto> getAllUsers(Pageable pageable);
 
     /**
-     * Creates a new {@link bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent} to lock a user's account.
+     * Creates an {@link bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent} locking a user's account.
+     * <p>
+     * The lock may be <strong>permanent</strong> or <strong>temporary</strong>, determined by {@code duration}:
+     * <ul>
+     *   <li>{@code duration == null} — a <strong>permanent</strong> lock. The event's expiry is left
+     *       null, and the automated reconciliation job will <em>never</em> unlock it. Only an explicit
+     *       administrative unlock lifts a permanent lock.</li>
+     *   <li>{@code duration != null} — a <strong>temporary</strong> lock. The event's expiry is set to
+     *       {@code now + duration}; once that instant passes, the account is treated as active again
+     *       (immediately, on the read side) and the reconciliation job records the corresponding unlock event.</li>
+     * </ul>
      *
-     * @param userId  The UUID of the user to lock.
-     * @param reason  The administrative reason for the action.
-     * @param actorId The UUID of the administrator performing the action.
+     * @param userId   The UUID of the user to lock.
+     * @param reason   The administrative reason for the action.
+     * @param actorId  The UUID of the administrator performing the action.
+     * @param duration The lock duration, or {@code null} for a permanent lock.
      * @throws bg.softuni.bookshelf.shared.exception.BusinessException if an administrator tries to self-lock.
      */
     @PreAuthorize("hasRole('ADMIN')")
-    void lockUser(UUID userId, String reason, UUID actorId);
+    void lockUser(UUID userId, String reason, UUID actorId, Duration duration);
 
     /**
      * Creates a new {@link bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent} to unlock a user's account.

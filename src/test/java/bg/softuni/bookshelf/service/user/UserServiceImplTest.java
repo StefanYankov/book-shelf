@@ -28,6 +28,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
@@ -250,8 +252,8 @@ class UserServiceImplTest {
     class LockUnlockUserTests {
 
         @Test
-        @DisplayName("Happy Path: lockUser should create and save a lock event")
-        void lockUser_shouldCreateAndSaveLockEvent() {
+        @DisplayName("Happy Path: permanent lock (null duration) creates a lock event with no expiry")
+        void lockUser_permanent_shouldCreateLockEventWithoutExpiry() {
             // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
@@ -261,15 +263,40 @@ class UserServiceImplTest {
             given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
 
             // Act
-            userService.lockUser(userId, "Test reason", actorId);
+            userService.lockUser(userId, "Test reason", actorId, null);
 
             // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
-            AccountStatusEvent capturedEvent = eventCaptor.getValue();
-            assertThat(capturedEvent.getEventType()).isEqualTo(StatusEventType.ACCOUNT_LOCKED);
-            assertThat(capturedEvent.getReason()).isEqualTo("Test reason");
-            assertThat(capturedEvent.getUser()).isEqualTo(user);
-            assertThat(capturedEvent.getActor()).isEqualTo(actor);
+            AccountStatusEvent event = eventCaptor.getValue();
+            assertThat(event.getEventType()).isEqualTo(StatusEventType.ACCOUNT_LOCKED);
+            assertThat(event.getReason()).isEqualTo("Test reason");
+            assertThat(event.getUser()).isEqualTo(user);
+            assertThat(event.getActor()).isEqualTo(actor);
+            assertThat(event.getExpiryDate()).isNull();
+        }
+
+        @Test
+        @DisplayName("Happy Path: temporary lock sets an expiry at now + duration")
+        void lockUser_temporary_shouldSetExpiry() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            UUID actorId = UUID.randomUUID();
+            ApplicationUser user = createSampleUser(userId);
+            ApplicationUser actor = createSampleUser(actorId);
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
+            Instant before = Instant.now();
+
+            // Act
+            userService.lockUser(userId, "Temp suspension", actorId, Duration.ofHours(24));
+
+            // Assert
+            verify(accountStatusEventRepository).save(eventCaptor.capture());
+            AccountStatusEvent event = eventCaptor.getValue();
+            assertThat(event.getEventType()).isEqualTo(StatusEventType.ACCOUNT_LOCKED);
+            assertThat(event.getExpiryDate()).isNotNull();
+            assertThat(event.getExpiryDate()).isAfter(before.plus(Duration.ofHours(23)));
+            assertThat(event.getExpiryDate()).isBefore(before.plus(Duration.ofHours(25)));
         }
 
         @Test
@@ -279,7 +306,7 @@ class UserServiceImplTest {
             UUID adminId = UUID.randomUUID();
 
             // Act & Assert
-            assertThatThrownBy(() -> userService.lockUser(adminId, "Accidental Self-Lock", adminId))
+            assertThatThrownBy(() -> userService.lockUser(adminId, "Accidental Self-Lock", adminId, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SELF_LOCK_PREVENTION);
 
@@ -303,8 +330,9 @@ class UserServiceImplTest {
 
             // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
-            AccountStatusEvent capturedEvent = eventCaptor.getValue();
-            assertThat(capturedEvent.getEventType()).isEqualTo(StatusEventType.ACCOUNT_UNLOCKED);
+            AccountStatusEvent event = eventCaptor.getValue();
+            assertThat(event.getEventType()).isEqualTo(StatusEventType.ACCOUNT_UNLOCKED);
+            assertThat(event.getExpiryDate()).isNull();
         }
 
         @Test
@@ -316,7 +344,7 @@ class UserServiceImplTest {
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // Act & Assert
-            assertThatThrownBy(() -> userService.lockUser(userId, "reason", actorId))
+            assertThatThrownBy(() -> userService.lockUser(userId, "reason", actorId, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
 
@@ -334,7 +362,7 @@ class UserServiceImplTest {
             given(userRepository.findById(actorId)).willReturn(Optional.empty());
 
             // Act & Assert
-            assertThatThrownBy(() -> userService.lockUser(userId, "reason", actorId))
+            assertThatThrownBy(() -> userService.lockUser(userId, "reason", actorId, null))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
 
@@ -360,11 +388,11 @@ class UserServiceImplTest {
             // Act
             userService.grantPermission(userId, Permission.MODERATE_REVIEWS, "Trusted contributor", actorId);
 
-            // Assert: permission added to the user, and the change persisted
+            // Assert
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getPermissions()).contains(Permission.MODERATE_REVIEWS);
 
-            // Assert: auditable event recorded
+            // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
             AccountStatusEvent event = eventCaptor.getValue();
             assertThat(event.getEventType()).isEqualTo(StatusEventType.PERMISSION_GRANTED);
@@ -376,7 +404,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("Happy Path: revokePermission should remove the permission and save a PERMISSION_REVOKED event")
         void revokePermission_shouldRemoveAndAudit() {
-            // Arrange: user already holds the permission
+            // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
             ApplicationUser user = createSampleUser(userId);
@@ -388,11 +416,11 @@ class UserServiceImplTest {
             // Act
             userService.revokePermission(userId, Permission.MODERATE_REVIEWS, "No longer needed", actorId);
 
-            // Assert: permission removed, change persisted
+            // Assert
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getPermissions()).doesNotContain(Permission.MODERATE_REVIEWS);
 
-            // Assert: auditable event recorded
+            // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
             assertThat(eventCaptor.getValue().getEventType()).isEqualTo(StatusEventType.PERMISSION_REVOKED);
         }
@@ -400,18 +428,18 @@ class UserServiceImplTest {
         @Test
         @DisplayName("Edge Case: revokePermission on an absent permission is idempotent (no error)")
         void revokePermission_isIdempotent() {
-            // Arrange: user does NOT hold the permission
+            // Arrange
             UUID userId = UUID.randomUUID();
             UUID actorId = UUID.randomUUID();
-            ApplicationUser user = createSampleUser(userId); // no permissions
+            ApplicationUser user = createSampleUser(userId);
             ApplicationUser actor = createSampleUser(actorId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.findById(actorId)).willReturn(Optional.of(actor));
 
-            // Act: revoking something not present should not throw
+            // Act
             userService.revokePermission(userId, Permission.MODERATE_REVIEWS, "Cleanup", actorId);
 
-            // Assert: still saved + audited, set simply stays empty
+            // Assert
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getPermissions()).doesNotContain(Permission.MODERATE_REVIEWS);
             verify(accountStatusEventRepository).save(any(AccountStatusEvent.class));
@@ -420,7 +448,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("Error Case: grantPermission should reject a non-ApplicationUser target (e.g. an admin)")
         void grantPermission_shouldRejectAdminTarget() {
-            // Arrange: target resolves to an AdminUser, not an ApplicationUser
+            // Arrange
             UUID adminTargetId = UUID.randomUUID();
             AdminUser adminTarget = new AdminUser();
             adminTarget.setId(adminTargetId);
@@ -433,7 +461,7 @@ class UserServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PERMISSION_TARGET_INVALID);
 
-            // Assert: rejected before any persistence
+            // Assert
             verify(userRepository, never()).save(any());
             verifyNoInteractions(accountStatusEventRepository);
         }

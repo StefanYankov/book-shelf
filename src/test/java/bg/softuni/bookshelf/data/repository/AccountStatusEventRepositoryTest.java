@@ -20,6 +20,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,6 +68,23 @@ class AccountStatusEventRepositoryTest {
         userRepository.save(adminUser);
     }
 
+    private void saveLock(ApplicationUser owner, Instant expiry) {
+        AccountStatusEvent e = new AccountStatusEvent();
+        e.setUser(owner);
+        e.setActor(adminUser);
+        e.setEventType(StatusEventType.ACCOUNT_LOCKED);
+        e.setExpiryDate(expiry);
+        accountStatusEventRepository.saveAndFlush(e);
+    }
+
+    private void saveUnlock(ApplicationUser owner) {
+        AccountStatusEvent e = new AccountStatusEvent();
+        e.setUser(owner);
+        e.setActor(adminUser);
+        e.setEventType(StatusEventType.ACCOUNT_UNLOCKED);
+        accountStatusEventRepository.saveAndFlush(e);
+    }
+
     @Nested
     @DisplayName("findMostRecentEventForUser Tests")
     class FindMostRecentEventForUserTests {
@@ -74,19 +93,9 @@ class AccountStatusEventRepositoryTest {
         @DisplayName("Happy Path: Should return the latest event with actor fetched")
         void shouldReturnLatestEvent() throws InterruptedException {
             // Arrange
-            AccountStatusEvent oldEvent = new AccountStatusEvent();
-            oldEvent.setUser(testUser);
-            oldEvent.setActor(adminUser);
-            oldEvent.setEventType(StatusEventType.ACCOUNT_LOCKED);
-            accountStatusEventRepository.save(oldEvent);
-
+            saveLock(testUser, null);
             Thread.sleep(10);
-
-            AccountStatusEvent newEvent = new AccountStatusEvent();
-            newEvent.setUser(testUser);
-            newEvent.setActor(adminUser);
-            newEvent.setEventType(StatusEventType.ACCOUNT_UNLOCKED);
-            accountStatusEventRepository.save(newEvent);
+            saveUnlock(testUser);
 
             // Act
             List<AccountStatusEvent> result = accountStatusEventRepository.findMostRecentEventForUser(testUser.getId(), PageRequest.of(0, 1));
@@ -120,15 +129,70 @@ class AccountStatusEventRepositoryTest {
             otherUser.setFirstName("Other");
             otherUser.setLastName("User");
             userRepository.save(otherUser);
-
-            AccountStatusEvent otherUserEvent = new AccountStatusEvent();
-            otherUserEvent.setUser(otherUser);
-            otherUserEvent.setActor(adminUser);
-            otherUserEvent.setEventType(StatusEventType.ACCOUNT_LOCKED);
-            accountStatusEventRepository.save(otherUserEvent);
+            saveLock(otherUser, null);
 
             // Act
             List<AccountStatusEvent> result = accountStatusEventRepository.findMostRecentEventForUser(testUser.getId(), PageRequest.of(0, 1));
+
+            // Assert
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("findExpiredActiveLocks Tests")
+    class FindExpiredActiveLocksTests {
+
+        @Test
+        @DisplayName("Returns a temporary lock whose expiry has passed and is still the latest event")
+        void shouldReturnExpiredActiveLock() {
+            // Arrange
+            saveLock(testUser, Instant.now().minus(Duration.ofHours(1)));   // expired
+
+            // Act
+            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
+
+            // Assert
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getUser().getId()).isEqualTo(testUser.getId());
+        }
+
+        @Test
+        @DisplayName("Excludes a permanent lock (null expiry)")
+        void shouldExcludePermanentLock() {
+            // Arrange
+            saveLock(testUser, null);   // permanent
+
+            // Act
+            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
+
+            // Assert
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Excludes a temporary lock that has not yet expired")
+        void shouldExcludeUnexpiredLock() {
+            // Arrange
+            saveLock(testUser, Instant.now().plus(Duration.ofHours(1)));   // future
+
+            // Act
+            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
+
+            // Assert
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Excludes an expired lock already superseded by a later event")
+        void shouldExcludeExpiredLockAlreadySuperseded() throws InterruptedException {
+            // Arrange
+            saveLock(testUser, Instant.now().minus(Duration.ofHours(1)));
+            Thread.sleep(10);
+            saveUnlock(testUser);
+
+            // Act
+            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
 
             // Assert
             assertThat(result).isEmpty();

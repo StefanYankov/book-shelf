@@ -74,7 +74,7 @@ class VerificationTokenRepositoryTest {
         void shouldFindTokenWhenExists() {
             // Arrange
             User user = createAndSaveUser("tokenuser1");
-            String hash = "a".repeat(64); // Simulate SHA-256 hash
+            String hash = "a".repeat(64);
             createAndSaveToken(user, hash, TokenType.EMAIL_VERIFICATION, Instant.now().plus(1, ChronoUnit.HOURS));
 
             // Act
@@ -110,7 +110,7 @@ class VerificationTokenRepositoryTest {
             String newHash = "b".repeat(64);
 
             createAndSaveToken(user, oldHash, TokenType.PASSWORD_RESET, Instant.now().plus(1, ChronoUnit.HOURS));
-            Thread.sleep(10); // Ensure distinct 'createdAt' timestamps
+            Thread.sleep(10);
             createAndSaveToken(user, newHash, TokenType.PASSWORD_RESET, Instant.now().plus(1, ChronoUnit.HOURS));
 
             // Act
@@ -139,6 +139,42 @@ class VerificationTokenRepositoryTest {
             assertThat(result).isPresent();
             assertThat(result.get().getTokenHash()).isEqualTo(resetHash);
             assertThat(result.get().getTokenType()).isEqualTo(TokenType.PASSWORD_RESET);
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteByExpiryDateBefore(Instant) Tests")
+    class DeleteByExpiryDateBeforeTests {
+
+        @Test
+        @DisplayName("Deletes only tokens whose expiry has passed, leaving valid ones")
+        void shouldDeleteOnlyExpiredTokens() {
+            // Arrange
+            User user = createAndSaveUser("purge-user");
+            createAndSaveToken(user, "e".repeat(64), TokenType.EMAIL_VERIFICATION, Instant.now().minus(1, ChronoUnit.HOURS)); // expired
+            createAndSaveToken(user, "f".repeat(64), TokenType.PASSWORD_RESET, Instant.now().plus(1, ChronoUnit.HOURS));       // valid
+
+            // Act
+            int deleted = verificationTokenRepository.deleteByExpiryDateBefore(Instant.now());
+
+            // Assert
+            assertThat(deleted).isEqualTo(1);
+            assertThat(verificationTokenRepository.findByTokenHash("e".repeat(64))).isEmpty();
+            assertThat(verificationTokenRepository.findByTokenHash("f".repeat(64))).isPresent();
+        }
+
+        @Test
+        @DisplayName("Deletes nothing when all tokens are still valid")
+        void shouldDeleteNothingWhenAllValid() {
+            // Arrange
+            User user = createAndSaveUser("valid-only-user");
+            createAndSaveToken(user, "g".repeat(64), TokenType.EMAIL_VERIFICATION, Instant.now().plus(1, ChronoUnit.HOURS));
+
+            // Act
+            int deleted = verificationTokenRepository.deleteByExpiryDateBefore(Instant.now());
+
+            // Assert
+            assertThat(deleted).isZero();
         }
     }
 }

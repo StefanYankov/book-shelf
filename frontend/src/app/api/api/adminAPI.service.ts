@@ -289,7 +289,7 @@ export class AdminAPIService extends BaseService {
 
     /**
      * Lock a user account
-     * Locks a user\&#39;s account, preventing them from logging in.
+     * Locks a user\&#39;s account, preventing them from logging in. Provide a positive lockDurationHours for a temporary lock; omit it for a permanent lock.
      * @endpoint post /api/admin/users/{userId}/lock
      * @param userId The UUID of the user to lock.
      * @param lockUserRequestDto
