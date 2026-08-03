@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.service.book;
 
+import bg.softuni.bookshelf.config.CacheConfig;
 import bg.softuni.bookshelf.data.entity.*;
 import bg.softuni.bookshelf.data.entity.value.Image;
 import bg.softuni.bookshelf.data.repository.*;
@@ -13,6 +14,8 @@ import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadS
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.UploadResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -74,6 +77,7 @@ public class BookServiceImpl extends BaseService implements BookService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.BOOKS_CACHE, key = "#id")
     public BookDetailsDto getById(UUID id) {
         log.debug("Fetching book by ID: {}", id);
         Book book = findOrThrow(() -> bookRepository.findBookDetailsById(id), ErrorCode.BOOK_NOT_FOUND, id);
@@ -90,8 +94,65 @@ public class BookServiceImpl extends BaseService implements BookService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.BOOKS_CACHE, key = "#id")
     public BookDetailsDto updateBook(UUID id, BookUpdateDto updateDto) {
-        log.debug("Attempting to update shipment {}", id);
+        return applyUpdate(id, updateDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable) {
+        log.debug("Fetching books for author ID: {} with pagination", authorId);
+        return bookRepository.findAllByAuthorId(authorId, pageable)
+                .map(bookMapper::toBookSummaryDto);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheConfig.BOOKS_CACHE, key = "#id")
+    public void deleteBook(UUID id) {
+        log.debug("Attempting to delete a book with ID: {}", id);
+        Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);
+
+        Book bookToDelete = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
+        bookRepository.delete(bookToDelete);
+
+        log.info("Successfully deleted book with ID: {}", id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable) {
+        log.info("Faceted catalog search initialization. Filters: {}", filters);
+
+        Specification<Book> spec = BookSpecification.filterCatalog(filters);
+        Page<Book> matchingBooks = bookRepository.findAll(spec, pageable);
+
+        log.debug("Found {} database records matching current catalog search parameters", matchingBooks.getTotalElements());
+
+        return PagedResponse.from(matchingBooks.map(bookMapper::toBookSummaryDto));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheConfig.BOOKS_CACHE, key = "#bookId")
+    public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
+        log.info("ADMIN ACTION: catalog moderation executed for book with ID: {}", bookId);
+        return applyUpdate(bookId, updateDto);
+    }
+
+    /**
+     * Applies a partial update to a book. Kept private so both {@code updateBook} and
+     * {@code moderateBook} share the logic while each carries its own authorization,
+     * caching, and audit concerns on the public boundary — avoiding self-invocation
+     * that would bypass the proxied annotations.
+     *
+     * @param id        the UUID of the book to update.
+     * @param updateDto the fields to update.
+     * @return the updated book view.
+     */
+    private BookDetailsDto applyUpdate(UUID id, BookUpdateDto updateDto) {
+        log.debug("Applying update to book {}", id);
         Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
 
         Book existingBook = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
@@ -143,51 +204,5 @@ public class BookServiceImpl extends BaseService implements BookService {
         log.info("Successfully updated book with ID: {}", updatedBook.getId());
 
         return bookMapper.toBookDetailsDto(updatedBook);
-    }
-
-    @Override
-    @Transactional
-    public void deleteBook(UUID id) {
-        log.debug("Attempting to delete a book with ID: {}", id);
-        Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);
-
-        Book bookToDelete = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
-        bookRepository.delete(bookToDelete);
-
-        log.info("Successfully deleted book with ID: {}", id);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<BookSummaryDto> findAllByAuthor(UUID authorId, Pageable pageable) {
-        log.debug("Fetching books for author ID: {} with pagination", authorId);
-        return bookRepository.findAllByAuthorId(authorId, pageable)
-                .map(bookMapper::toBookSummaryDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable) {
-        log.info("Faceted catalog search initialization. Filters: {}", filters);
-
-        Specification<Book> spec = BookSpecification.filterCatalog(filters);
-        Page<Book> matchingBooks = bookRepository.findAll(spec, pageable);
-
-        log.debug("Found {} database records matching current catalog search parameters", matchingBooks.getTotalElements());
-
-        return PagedResponse.from(matchingBooks.map(bookMapper::toBookSummaryDto));
-    }
-
-    @Override
-    @Transactional
-    public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
-        log.info("ADMIN ACTION: catalog moderation executed for book with ID: {}", bookId);
-        Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
-
-        // TODO(permissions): gate catalog moderation behind a delegatable MODERATE_BOOKS
-        //   permission (mirroring MODERATE_REVIEWS), so an admin can grant trusted users
-        //   the ability to curate titles/summaries without granting full admin rights.
-        //   Roles stay coarse; permissions carry the fine-grained, admin-managed capability.
-        return this.updateBook(bookId, updateDto);
     }
 }
