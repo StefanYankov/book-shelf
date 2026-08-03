@@ -11,6 +11,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AccountStatusService Unit Tests")
 class AccountStatusServiceImplTest {
 
     @Mock
@@ -27,6 +30,13 @@ class AccountStatusServiceImplTest {
 
     @InjectMocks
     private AccountStatusServiceImpl accountStatusService;
+
+    private AccountStatusEvent event(StatusEventType type, Instant expiry) {
+        AccountStatusEvent e = new AccountStatusEvent();
+        e.setEventType(type);
+        e.setExpiryDate(expiry);
+        return e;
+    }
 
     @Nested
     @DisplayName("isUserActive Tests")
@@ -39,11 +49,8 @@ class AccountStatusServiceImplTest {
             UUID userId = UUID.randomUUID();
             given(accountStatusEventRepository.findMostRecentEventForUser(any(), any())).willReturn(Collections.emptyList());
 
-            // Act
-            boolean isActive = accountStatusService.isUserActive(userId);
-
-            // Assert
-            assertThat(isActive).isTrue();
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isTrue();
         }
 
         @Test
@@ -51,15 +58,11 @@ class AccountStatusServiceImplTest {
         void shouldReturnTrue_WhenLatestEventIsUnlocked() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            AccountStatusEvent event = new AccountStatusEvent();
-            event.setEventType(StatusEventType.ACCOUNT_UNLOCKED);
-            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any())).willReturn(List.of(event));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_UNLOCKED, null)));
 
-            // Act
-            boolean isActive = accountStatusService.isUserActive(userId);
-
-            // Assert
-            assertThat(isActive).isTrue();
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isTrue();
         }
 
         @Test
@@ -67,31 +70,23 @@ class AccountStatusServiceImplTest {
         void shouldReturnTrue_WhenLatestEventIsUnbanned() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            AccountStatusEvent event = new AccountStatusEvent();
-            event.setEventType(StatusEventType.ACCOUNT_UNBANNED);
-            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any())).willReturn(List.of(event));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_UNBANNED, null)));
 
-            // Act
-            boolean isActive = accountStatusService.isUserActive(userId);
-
-            // Assert
-            assertThat(isActive).isTrue();
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isTrue();
         }
 
         @Test
-        @DisplayName("Should return false if latest event is LOCKED")
-        void shouldReturnFalse_WhenLatestEventIsLocked() {
+        @DisplayName("Should return false if latest event is a permanent LOCK (null expiry)")
+        void shouldReturnFalse_WhenLatestEventIsPermanentLock() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            AccountStatusEvent event = new AccountStatusEvent();
-            event.setEventType(StatusEventType.ACCOUNT_LOCKED);
-            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any())).willReturn(List.of(event));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_LOCKED, null)));
 
-            // Act
-            boolean isActive = accountStatusService.isUserActive(userId);
-
-            // Assert
-            assertThat(isActive).isFalse();
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isFalse();
         }
 
         @Test
@@ -99,15 +94,37 @@ class AccountStatusServiceImplTest {
         void shouldReturnFalse_WhenLatestEventIsBanned() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            AccountStatusEvent event = new AccountStatusEvent();
-            event.setEventType(StatusEventType.ACCOUNT_BANNED);
-            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any())).willReturn(List.of(event));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_BANNED, null)));
 
-            // Act
-            boolean isActive = accountStatusService.isUserActive(userId);
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isFalse();
+        }
 
-            // Assert
-            assertThat(isActive).isFalse();
+        @Test
+        @DisplayName("Should return false for a temporary LOCK that has NOT yet expired")
+        void shouldReturnFalse_WhenTemporaryLockStillActive() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            Instant future = Instant.now().plus(Duration.ofHours(1));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_LOCKED, future)));
+
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isFalse();
+        }
+
+        @Test
+        @DisplayName("Should return true for a temporary LOCK whose expiry has already passed")
+        void shouldReturnTrue_WhenTemporaryLockExpired() {
+            // Arrange
+            UUID userId = UUID.randomUUID();
+            Instant past = Instant.now().minus(Duration.ofHours(1));
+            given(accountStatusEventRepository.findMostRecentEventForUser(any(), any()))
+                    .willReturn(List.of(event(StatusEventType.ACCOUNT_LOCKED, past)));
+
+            // Act & Assert
+            assertThat(accountStatusService.isUserActive(userId)).isTrue();
         }
     }
 }

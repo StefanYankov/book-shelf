@@ -28,6 +28,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
@@ -63,7 +64,8 @@ public class AdminController {
             operationId = "lockUser",
             summary = "Lock a user account",
             security = @SecurityRequirement(name = "bearerAuth"),
-            description = "Locks a user's account, preventing them from logging in."
+            description = "Locks a user's account, preventing them from logging in. Provide a positive "
+                    + "lockDurationHours for a temporary lock; omit it for a permanent lock."
     )
     @ApiResponses({
             @ApiResponse(
@@ -82,7 +84,10 @@ public class AdminController {
             @Valid @RequestBody LockUserRequestDto dto,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails principal) {
         log.info("API POST request to lock user {} by admin {}.", userId, principal.getUsername());
-        userService.lockUser(userId, dto.reason(), principal.getId());
+        Duration duration = dto.lockDurationHours() == null
+                ? null
+                : Duration.ofHours(dto.lockDurationHours());
+        userService.lockUser(userId, dto.reason(), principal.getId(), duration);
         return ResponseEntity.noContent().build();
     }
 
