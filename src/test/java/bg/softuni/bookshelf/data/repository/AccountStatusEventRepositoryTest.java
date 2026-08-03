@@ -23,6 +23,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -131,11 +132,43 @@ class AccountStatusEventRepositoryTest {
             userRepository.save(otherUser);
             saveLock(otherUser, null);
 
-            // Act
             List<AccountStatusEvent> result = accountStatusEventRepository.findMostRecentEventForUser(testUser.getId(), PageRequest.of(0, 1));
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("findAllByUserIds Tests")
+    class FindAllByUserIdsTests {
+
+        @Test
+        @DisplayName("Returns all events for the given users only")
+        void shouldReturnEventsForGivenUsers() {
+            // Arrange
+            saveLock(testUser, null);
+            saveUnlock(testUser);
+            saveLock(adminUser, null);
+
+            // Act: query only testUser
+            List<AccountStatusEvent> result = accountStatusEventRepository.findAllByUserIds(Set.of(testUser.getId()));
 
             // Assert
-            assertThat(result).isEmpty();
+            assertThat(result).hasSize(2);
+            assertThat(result).allSatisfy(e -> assertThat(e.getUser().getId()).isEqualTo(testUser.getId()));
+        }
+
+        @Test
+        @DisplayName("Returns events across multiple users in one query")
+        void shouldReturnEventsAcrossUsers() {
+            // Arrange
+            saveLock(testUser, null);
+            saveLock(adminUser, null);
+
+            // Act
+            List<AccountStatusEvent> result = accountStatusEventRepository.findAllByUserIds(Set.of(testUser.getId(), adminUser.getId()));
+
+            // Assert
+            assertThat(result).hasSize(2);
         }
     }
 
@@ -161,26 +194,20 @@ class AccountStatusEventRepositoryTest {
         @DisplayName("Excludes a permanent lock (null expiry)")
         void shouldExcludePermanentLock() {
             // Arrange
-            saveLock(testUser, null);   // permanent
-
-            // Act
-            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
+            saveLock(testUser, null);
 
             // Assert
-            assertThat(result).isEmpty();
+            assertThat(accountStatusEventRepository.findExpiredActiveLocks(Instant.now())).isEmpty();
         }
 
         @Test
         @DisplayName("Excludes a temporary lock that has not yet expired")
         void shouldExcludeUnexpiredLock() {
             // Arrange
-            saveLock(testUser, Instant.now().plus(Duration.ofHours(1)));   // future
-
-            // Act
-            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
+            saveLock(testUser, Instant.now().plus(Duration.ofHours(1)));
 
             // Assert
-            assertThat(result).isEmpty();
+            assertThat(accountStatusEventRepository.findExpiredActiveLocks(Instant.now())).isEmpty();
         }
 
         @Test
@@ -191,11 +218,8 @@ class AccountStatusEventRepositoryTest {
             Thread.sleep(10);
             saveUnlock(testUser);
 
-            // Act
-            List<AccountStatusEvent> result = accountStatusEventRepository.findExpiredActiveLocks(Instant.now());
-
             // Assert
-            assertThat(result).isEmpty();
+            assertThat(accountStatusEventRepository.findExpiredActiveLocks(Instant.now())).isEmpty();
         }
     }
 }

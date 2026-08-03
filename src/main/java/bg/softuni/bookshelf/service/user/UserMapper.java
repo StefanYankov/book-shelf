@@ -1,15 +1,11 @@
 package bg.softuni.bookshelf.service.user;
 
-import bg.softuni.bookshelf.data.entity.identity.AccountStatusEvent;
 import bg.softuni.bookshelf.data.entity.identity.AdminUser;
 import bg.softuni.bookshelf.data.entity.identity.ApplicationUser;
 import bg.softuni.bookshelf.data.entity.identity.User;
-import bg.softuni.bookshelf.data.enums.StatusEventType;
 import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.UserProfileDto;
 import org.springframework.stereotype.Component;
-
-import java.util.Comparator;
 
 /**
  * Component responsible for mapping between User entities and their corresponding DTOs.
@@ -39,7 +35,7 @@ public class UserMapper {
      * @param user The persistent User entity.
      * @return An {@link AdminUserViewDto} containing detailed user information for administrative purposes.
      */
-    public AdminUserViewDto toAdminUserViewDto(User user) {
+    public AdminUserViewDto toAdminUserViewDto(User user, boolean isActive) {
         AdminUserViewDto.AdminUserViewDtoBuilder builder = AdminUserViewDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -48,19 +44,13 @@ public class UserMapper {
                 .lastName(user.getLastName());
 
         if (user instanceof ApplicationUser appUser) {
-            // Derives the user's current active status from their event history.
-            boolean isActive = appUser.getStatusEvents().stream()
-                    .max(Comparator.comparing(AccountStatusEvent::getCreatedAt))
-                    .map(latestEvent -> latestEvent.getEventType() == StatusEventType.ACCOUNT_UNLOCKED || latestEvent.getEventType() == StatusEventType.ACCOUNT_UNBANNED)
-                    .orElse(true);
-
             builder.isActive(isActive)
-                   .isEmailVerified(appUser.isEmailVerified())
-                   .role("ROLE_USER");
+                    .isEmailVerified(appUser.isEmailVerified())
+                    .role("ROLE_USER");
         } else if (user instanceof AdminUser) {
             builder.isActive(true)
-                   .isEmailVerified(true)
-                   .role("ROLE_ADMIN");
+                    .isEmailVerified(true)
+                    .role("ROLE_ADMIN");
         }
 
         return builder.build();

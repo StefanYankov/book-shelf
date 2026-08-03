@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -32,6 +34,7 @@ public class UserServiceImpl extends BaseService implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AccountStatusEventRepository accountStatusEventRepository;
+    private final AccountStatusService accountStatusService;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,7 +77,12 @@ public class UserServiceImpl extends BaseService implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<AdminUserViewDto> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toAdminUserViewDto);
+        Page<User> userPage = userRepository.findAll(pageable);
+        List<UUID> userIds = userPage.getContent().stream().map(User::getId).toList();
+        Map<UUID, Boolean> activeStatus = accountStatusService.getActiveStatus(userIds);
+
+        return userPage.map(user ->
+                userMapper.toAdminUserViewDto(user, activeStatus.getOrDefault(user.getId(), true)));
     }
 
     @Override
