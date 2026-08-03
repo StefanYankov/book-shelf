@@ -1,6 +1,6 @@
 > [!IMPORTANT]
 > **Project Status: In Development**
-> This repository contains the final project for the "Java Web - May 2026" course, part of the "Spring Fundamentals" module at SoftUni.
+> This repository contains the **final project** for the "Java Web - May 2026" module at **Software University**.
 
 ---
 # Book Shelf (Goodreads clone)
@@ -34,6 +34,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Containerization**: Docker and Docker Compose
 - **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
 - **Inter-service communication**: Spring Cloud OpenFeign — the main application consumes the reading challenge microservice via a Feign client, forwarding the caller's JWT and translating downstream errors into the application's standard problem response.
+- **Scheduling & Caching**: Spring's scheduling (`@Scheduled`) runs periodic maintenance jobs; Spring's caching abstraction (`@Cacheable`/`@CacheEvict`) caches the book catalog with eviction on writes.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
     - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ, WireMock (Spring Cloud Contract)
@@ -92,10 +93,14 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Administrative Services**:
     -   Decoupled web layer projections utilizing `UserSecurityDto` and `UserSecurityViewDto` to protect JPA boundaries.
     -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize("hasRole('ADMIN')")` declarations.
-    -   Stateful user locking and unlocking operations writing history to a persistent account-status event track.
+    -   Stateful user locking and unlocking operations writing history to a persistent account-status event track. Locks may be permanent or temporary (time-boxed), with expired temporary locks reconciled automatically.
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
     -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
     -   Administrative metadata override (`moderateBook`) implemented in the core catalog domain for curating titles and summaries.
+-   **Scheduling and Caching**:
+    -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes.
+    -   A cron job purges expired verification and password-reset tokens nightly.
+    -   A fixed-delay job reconciles expired temporary account locks into unlock events; temporary locks (with an expiry) are lifted automatically, while permanent locks persist until an explicit administrative unlock.
 -   **Reading Challenge Integration**:
     -   `ReadingChallengeClient` — a Feign client mirroring the microservice's REST contract.
     -   `FeignClientConfig` — forwards the caller's `Authorization` header to the microservice and translates downstream HTTP errors into `BusinessException` so clients receive the standard problem response.
@@ -124,7 +129,7 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `AdminLayout`: Isolated control panel shell entirely segregated from user layouts to provide system-level administration interfaces.
     -   `AdminHeader`: Dynamically restricts layout navigation paths when a forced credential rotation is active.
     -   `AdminHome`: A dedicated, lightweight dashboard landing station for the administrative root layout view.
-    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock and on-demand permission management — a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
+    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock (permanent or temporary) and on-demand permission management — a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
     -   `ContentModeration`: Multi-tab interface featuring non-blocking reactive dialog structures to let administrators sanitize book summaries and fields.
     -   `AdminProfile`: Decoupled profile component using complexity rules to enforce administrative credential changes.
 -   **Core Views & Components:**
@@ -158,7 +163,7 @@ book-shelf/
 │   ├── 📂 main/
 │   │   ├── 📂 java/bg/softuni/bookshelf/
 │   │   │   ├── 📜 BookShelfApplication.java
-│   │   │   ├── 📂 config/              # Spring Security, Feign, and App configuration
+│   │   │   ├── 📂 config/              # Spring Security, Feign, caching, scheduling, and App configuration
 │   │   │   ├── 📂 data/                # JPA Entities and Repositories
 │   │   │   ├── 📂 service/             # Service layer (business logic, Feign client)
 │   │   │   ├── 📂 shared/              # Cross-cutting concerns
@@ -249,6 +254,8 @@ The local configuration environment seeds the following testing user definitions
 - **Admin**: `admin` / `admin`
 > [!IMPORTANT]
 > The admin user is required to change their password on first login. The admin password is encoded by the runtime encoder on first boot, so it always matches — the salt-sync workaround below does not apply to the admin.
+>
+> Admin accounts do not use the self-service "forgot password" flow (which is restricted to standard users). If an administrator is locked out, use the Admin Recovery CLI described below, or reset the development database.
 
 
 - **Standard User 1**: `user1` / `password`
