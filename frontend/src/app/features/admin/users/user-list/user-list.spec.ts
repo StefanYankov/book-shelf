@@ -16,6 +16,8 @@ import {PagedResponseAdminUserViewDto, PermissionRequestDto} from '../../../../a
  */
 interface UserListInternals {
   inputReason: { set(value: string): void };
+  lockType: { set(value: 'permanent' | 'temporary'): void };
+  lockDurationHours: { set(value: number): void };
 
   currentPage(): number;
 
@@ -135,7 +137,7 @@ describe('UserList Component Deep-Linking Spec Tests', () => {
     });
   });
 
-  it('should invoke lockUser on submit and trigger reloading routines', async () => {
+  it('should invoke lockUser permanently on submit and trigger reloading routines', async () => {
     await stabilizeState();
     internals().openActionForm('1', 'test', 'LOCK');
     await stabilizeState();
@@ -144,8 +146,39 @@ describe('UserList Component Deep-Linking Spec Tests', () => {
     internals().submitAdministrativeAction();
     await stabilizeState();
 
-    expect(mockAdminUserService.lockUser).toHaveBeenCalledWith('1', 'Violation of Terms of Service');
+    // permanent lock -> duration is undefined
+    expect(mockAdminUserService.lockUser).toHaveBeenCalledWith('1', 'Violation of Terms of Service', undefined);
     expect(mockToastService.showSuccess).toHaveBeenCalled();
+  });
+
+  it('should invoke lockUser with a duration for a temporary lock', async () => {
+    await stabilizeState();
+    internals().openActionForm('1', 'test', 'LOCK');
+    await stabilizeState();
+    internals().inputReason.set('Cooling-off period');
+    internals().lockType.set('temporary');
+    internals().lockDurationHours.set(48);
+
+    internals().submitAdministrativeAction();
+    await stabilizeState();
+
+    expect(mockAdminUserService.lockUser).toHaveBeenCalledWith('1', 'Cooling-off period', 48);
+    expect(mockToastService.showSuccess).toHaveBeenCalled();
+  });
+
+  it('should reject a temporary lock submitted with a non-positive duration', async () => {
+    await stabilizeState();
+    internals().openActionForm('1', 'test', 'LOCK');
+    await stabilizeState();
+    internals().inputReason.set('Cooling-off period');
+    internals().lockType.set('temporary');
+    internals().lockDurationHours.set(0);
+
+    internals().submitAdministrativeAction();
+    await stabilizeState();
+
+    expect(mockAdminUserService.lockUser).not.toHaveBeenCalled();
+    expect(mockToastService.showError).toHaveBeenCalled();
   });
 
   describe('Permission management', () => {

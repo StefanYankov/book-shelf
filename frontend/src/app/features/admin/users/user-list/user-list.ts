@@ -13,7 +13,7 @@ import {PermissionActionState} from '../../../../core/models/permission-action-s
 /**
  * Component for displaying and managing a paginated list of users in the admin panel.
  * Synchronizes pagination state directly to route query parameters to support bookmarking.
- * Supports lock/unlock and on-demand fine-grained permission management.
+ * Supports lock/unlock (permanent or temporary) and on-demand fine-grained permission management.
  */
 @Component({
   selector: 'app-user-list',
@@ -37,6 +37,12 @@ export class UserList implements OnInit, OnDestroy {
   protected readonly inputReason = signal<string>('');
   protected readonly currentPage = signal(0);
 
+  // --- Lock duration state (only relevant when the active action is a LOCK) ---
+  /** Whether the pending lock is permanent or time-boxed. */
+  protected readonly lockType = signal<'permanent' | 'temporary'>('permanent');
+  /** Duration in hours for a temporary lock. */
+  protected readonly lockDurationHours = signal<number>(24);
+
   // --- Permission management (on-demand) state ---
   /** The user whose permission panel is open, or null when closed. */
   protected readonly permissionPanelUser = signal<{ id: string; username: string } | null>(null);
@@ -53,7 +59,7 @@ export class UserList implements OnInit, OnDestroy {
     // Pipeline 1: Administrative user loader stream
     this.loadUsers$.pipe(
       tap(() => this.loading.set(true)),
-        switchMap(() => this.adminUserService.getAllUsers({page: this.currentPage(), size: 10}))
+      switchMap(() => this.adminUserService.getAllUsers({page: this.currentPage(), size: 10}))
     ).subscribe({
       next: (response) => {
         this.data.set(response);
@@ -93,7 +99,9 @@ export class UserList implements OnInit, OnDestroy {
    */
   protected openActionForm(userId: string, username: string, type: 'LOCK' | 'UNLOCK'): void {
     this.inputReason.set('');
-    this.activeAction.set({ userId, username, type });
+    this.lockType.set('permanent');
+    this.lockDurationHours.set(24);
+    this.activeAction.set({userId, username, type});
   }
 
   /**
@@ -102,10 +110,12 @@ export class UserList implements OnInit, OnDestroy {
   protected cancelAction(): void {
     this.activeAction.set(null);
     this.inputReason.set('');
+    this.lockType.set('permanent');
   }
 
   /**
    * Submits the lock/unlock state transition request with the inputted reason metadata.
+   * A temporary lock additionally carries a positive duration in hours.
    */
   protected submitAdministrativeAction(): void {
     const action = this.activeAction();
@@ -116,9 +126,18 @@ export class UserList implements OnInit, OnDestroy {
       return;
     }
 
-    const apiCall = action.type === 'LOCK'
-        ? this.adminUserService.lockUser(action.userId, reason)
-        : this.adminUserService.unlockUser(action.userId, reason);
+    let apiCall;
+    if (action.type === 'LOCK') {
+      const isTemporary = this.lockType() === 'temporary';
+      const hours = this.lockDurationHours();
+      if (isTemporary && (hours == null || hours < 1)) {
+        this.toastService.showError('A temporary lock requires a positive duration in hours.');
+        return;
+      }
+      apiCall = this.adminUserService.lockUser(action.userId, reason, isTemporary ? hours : undefined);
+    } else {
+      apiCall = this.adminUserService.unlockUser(action.userId, reason);
+    }
 
     apiCall.subscribe({
       next: () => {
@@ -197,8 +216,8 @@ export class UserList implements OnInit, OnDestroy {
     }
 
     const apiCall = action.type === 'GRANT'
-        ? this.adminUserService.grantPermission(action.userId, action.permission, reason)
-        : this.adminUserService.revokePermission(action.userId, action.permission, reason);
+      ? this.adminUserService.grantPermission(action.userId, action.permission, reason)
+      : this.adminUserService.revokePermission(action.userId, action.permission, reason);
 
     apiCall.subscribe({
       next: () => {
@@ -235,7 +254,7 @@ export class UserList implements OnInit, OnDestroy {
   private updatePageRoute(page: number): void {
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { page },
+      queryParams: {page},
       queryParamsHandling: 'merge'
     });
   }

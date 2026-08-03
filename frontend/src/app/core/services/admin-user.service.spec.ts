@@ -98,9 +98,14 @@ describe('AdminUserService', () => {
   });
 
   describe('lockUser', () => {
-    it('should delegate with a reason DTO', () => {
+    it('should delegate a permanent lock with just the reason', () => {
       service.lockUser(userId, 'Spam').subscribe();
       expect(mockAdminApiService.lockUser).toHaveBeenCalledWith(userId, {reason: 'Spam'});
+    });
+
+    it('should delegate a temporary lock with the duration in hours', () => {
+      service.lockUser(userId, 'Cooling-off', 24).subscribe();
+      expect(mockAdminApiService.lockUser).toHaveBeenCalledWith(userId, {reason: 'Cooling-off', lockDurationHours: 24});
     });
   });
 

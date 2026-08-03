@@ -65,13 +65,16 @@ export class AdminUserService {
   }
 
   /**
-   * Locks a user's account.
+   * Locks a user's account, permanently or for a fixed duration.
    * @param userId The UUID of the user to lock.
    * @param reason The administrative reason for the action.
+   * @param lockDurationHours Optional lock duration in hours; omit for a permanent lock.
    * @returns An observable that completes when the lock succeeds.
    */
-  lockUser(userId: string, reason: string): Observable<void> {
-    const dto: LockUserRequestDto = {reason};
+  lockUser(userId: string, reason: string, lockDurationHours?: number): Observable<void> {
+    const dto: LockUserRequestDto = lockDurationHours == null
+      ? {reason}
+      : {reason, lockDurationHours};
     return this.adminApiService.lockUser(userId, dto) as Observable<void>;
   }
 
