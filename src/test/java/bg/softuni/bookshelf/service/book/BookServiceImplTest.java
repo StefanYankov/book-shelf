@@ -1,10 +1,6 @@
 package bg.softuni.bookshelf.service.book;
 
-import bg.softuni.bookshelf.data.entity.Author;
-import bg.softuni.bookshelf.data.entity.Book;
-import bg.softuni.bookshelf.data.entity.Genre;
-import bg.softuni.bookshelf.data.entity.Language;
-import bg.softuni.bookshelf.data.entity.Publisher;
+import bg.softuni.bookshelf.data.entity.*;
 import bg.softuni.bookshelf.data.repository.*;
 import bg.softuni.bookshelf.service.book.dto.*;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
@@ -342,6 +338,135 @@ class BookServiceImplTest {
 
             verify(bookRepository, never()).save(any());
         }
+
+        @Test
+        @DisplayName("Happy Path: Should apply all scalar fields when provided")
+        void shouldUpdateAllScalarFields() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder()
+                    .title("New Title")
+                    .isbn("9780000000009")
+                    .pages(512)
+                    .yearPublished(2021)
+                    .summary("New Summary")
+                    .format(bg.softuni.bookshelf.data.enums.BookFormat.HARDCOVER)
+                    .build();
+            Book existingBook = new Book();
+
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(existingBook));
+            given(bookRepository.save(any(Book.class))).willReturn(existingBook);
+            given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
+
+            // Act
+            bookServiceImpl.updateBook(bookId, updateDto);
+
+            // Assert
+            verify(bookRepository).save(bookCaptor.capture());
+            Book saved = bookCaptor.getValue();
+            assertThat(saved.getTitle()).isEqualTo("New Title");
+            assertThat(saved.getISBN()).isEqualTo("9780000000009");
+            assertThat(saved.getPages()).isEqualTo(512);
+            assertThat(saved.getYearPublished()).isEqualTo(2021);
+            assertThat(saved.getSummary()).isEqualTo("New Summary");
+            assertThat(saved.getFormat()).isEqualTo(bg.softuni.bookshelf.data.enums.BookFormat.HARDCOVER);
+        }
+
+        @Test
+        @DisplayName("Happy Path: Should update relational language, publisher, and genres")
+        void shouldUpdateRelationalCollections() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            UUID languageId = UUID.randomUUID();
+            UUID publisherId = UUID.randomUUID();
+            UUID genreId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder()
+                    .languageId(languageId)
+                    .publisherId(publisherId)
+                    .genreIds(Set.of(genreId))
+                    .build();
+            Book existingBook = new Book();
+            Language language = new Language();
+            language.setId(languageId);
+            Publisher publisher = new Publisher();
+            publisher.setId(publisherId);
+            Genre genre = new Genre();
+            genre.setId(genreId);
+
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(existingBook));
+            given(languageRepository.findById(languageId)).willReturn(Optional.of(language));
+            given(publisherRepository.findById(publisherId)).willReturn(Optional.of(publisher));
+            given(genreRepository.findById(genreId)).willReturn(Optional.of(genre));
+            given(bookRepository.save(any(Book.class))).willReturn(existingBook);
+            given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
+
+            // Act
+            bookServiceImpl.updateBook(bookId, updateDto);
+
+            // Assert
+            verify(bookRepository).save(bookCaptor.capture());
+            Book saved = bookCaptor.getValue();
+            assertThat(saved.getLanguage().getId()).isEqualTo(languageId);
+            assertThat(saved.getPublisher().getId()).isEqualTo(publisherId);
+            assertThat(saved.getGenres()).extracting(Genre::getId).containsExactly(genreId);
+        }
+
+        @Test
+        @DisplayName("Error Case: Should throw when new language is not found")
+        void shouldThrowWhenLanguageNotFound() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            UUID languageId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder().languageId(languageId).build();
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
+            given(languageRepository.findById(languageId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.LANGUAGE_NOT_FOUND);
+
+            verify(bookRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Error Case: Should throw when new publisher is not found")
+        void shouldThrowWhenPublisherNotFound() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            UUID publisherId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder().publisherId(publisherId).build();
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
+            given(publisherRepository.findById(publisherId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.PUBLISHER_NOT_FOUND);
+
+            verify(bookRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Error Case: Should throw when a new genre is not found")
+        void shouldThrowWhenGenreNotFound() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            UUID genreId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder().genreIds(Set.of(genreId)).build();
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
+            given(genreRepository.findById(genreId)).willReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.GENRE_NOT_FOUND);
+
+            verify(bookRepository, never()).save(any());
+        }
     }
 
     @Nested
@@ -375,7 +500,6 @@ class BookServiceImplTest {
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.BOOK_NOT_FOUND);
 
-            // Explicitly target the delete(Book) signature to resolve compiler ambiguity
             verify(bookRepository, never()).delete(any(Book.class));
         }
     }
