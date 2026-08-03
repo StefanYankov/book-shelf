@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +31,16 @@ public interface AccountStatusEventRepository extends JpaRepository<AccountStatu
     List<AccountStatusEvent> findMostRecentEventForUser(UUID userId, Pageable pageable);
 
     /**
+     * Fetches all status events for a set of users in a single query. Used to derive each user's
+     * active status for a page of users without issuing one query per user (avoids N+1).
+     *
+     * @param userIds the users whose events are required.
+     * @return every status event belonging to any of the given users.
+     */
+    @Query("SELECT e FROM AccountStatusEvent e WHERE e.user.id IN :userIds")
+    List<AccountStatusEvent> findAllByUserIds(@Param("userIds") Collection<UUID> userIds);
+
+    /**
      * Finds temporary lock events whose expiry has passed and which are still the user's most
      * recent status event (i.e. the lock has not already been superseded by a later event).
      * <p>
@@ -41,8 +52,7 @@ public interface AccountStatusEventRepository extends JpaRepository<AccountStatu
      *       which by design must never be auto-unlocked. Excluding NULL here is precisely what makes
      *       permanence work: permanent locks are structurally invisible to this query.</li>
      *   <li>{@code expiryDate < :now} — the temporary lock's window has elapsed.</li>
-     *   <li>No later event exists for the same user — the lock is still in effect (not already
-     *       unlocked, banned, etc. by a subsequent event).</li>
+     *   <li>No later event exists for the same user — the lock is still in effect.</li>
      * </ul>
      *
      * @param now the current instant; lock events with an expiry strictly before this are due.

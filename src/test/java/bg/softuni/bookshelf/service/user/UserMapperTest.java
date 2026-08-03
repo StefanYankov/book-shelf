@@ -55,13 +55,13 @@ class UserMapperTest {
     class ToAdminUserViewDtoTests {
 
         @Test
-        @DisplayName("An application user with no status events maps as active")
-        void applicationUserWithNoEvents_isActive() {
+        @DisplayName("Maps an application user as active when the supplied status is active")
+        void applicationUser_active() {
             // Arrange
             ApplicationUser user = applicationUser();
 
             // Act
-            AdminUserViewDto dto = userMapper.toAdminUserViewDto(user);
+            AdminUserViewDto dto = userMapper.toAdminUserViewDto(user, true);
 
             // Assert
             assertThat(dto.isActive()).isTrue();
@@ -72,7 +72,21 @@ class UserMapperTest {
         }
 
         @Test
-        @DisplayName("An admin user maps as active, verified, and ROLE_ADMIN")
+        @DisplayName("Maps an application user as inactive when the supplied status is inactive")
+        void applicationUser_inactive() {
+            // Arrange
+            ApplicationUser user = applicationUser();
+
+            // Act
+            AdminUserViewDto dto = userMapper.toAdminUserViewDto(user, false);
+
+            // Assert
+            assertThat(dto.isActive()).isFalse();
+            assertThat(dto.role()).isEqualTo("ROLE_USER");
+        }
+
+        @Test
+        @DisplayName("Maps an admin user as active, verified, and ROLE_ADMIN regardless of supplied status")
         void adminUser_mapsAsAdmin() {
             // Arrange
             AdminUser admin = new AdminUser();
@@ -83,7 +97,7 @@ class UserMapperTest {
             admin.setLastName("Admin");
 
             // Act
-            AdminUserViewDto dto = userMapper.toAdminUserViewDto(admin);
+            AdminUserViewDto dto = userMapper.toAdminUserViewDto(admin, false);
 
             // Assert
             assertThat(dto.isActive()).isTrue();

@@ -31,12 +31,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -48,6 +50,9 @@ class UserServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private AccountStatusEventRepository accountStatusEventRepository;
+
+    @Mock
+    private AccountStatusService accountStatusService;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
@@ -217,26 +222,30 @@ class UserServiceImplTest {
     class GetAllUsersTests {
 
         @Test
-        @DisplayName("Happy Path: Should return paged admin user view DTOs")
+        @DisplayName("Happy Path: Should map users with active status resolved via a single batched lookup")
         void shouldReturnPagedAdminUserViewDtos() {
             // Arrange
             PageRequest pageable = PageRequest.of(0, 10);
-            Page<User> userPage = new PageImpl<>(Collections.singletonList(createSampleUser(UUID.randomUUID())), pageable, 1);
+            ApplicationUser user = createSampleUser(UUID.randomUUID());
+            Page<User> userPage = new PageImpl<>(Collections.singletonList(user), pageable, 1);
             given(userRepository.findAll(pageable)).willReturn(userPage);
+            given(accountStatusService.getActiveStatus(any())).willReturn(Map.of(user.getId(), true));
 
             // Act
             userService.getAllUsers(pageable);
 
-            // Assert
-            verify(userMapper).toAdminUserViewDto(any(ApplicationUser.class));
+            // Assert: active status resolved once for the page, and passed to the mapper
+            verify(accountStatusService).getActiveStatus(any());
+            verify(userMapper).toAdminUserViewDto(any(ApplicationUser.class), anyBoolean());
         }
 
         @Test
-        @DisplayName("Edge Case: Should return empty page when no users exist")
+        @DisplayName("Edge Case: Should return empty page without mapping when no users exist")
         void shouldReturnEmptyPage_WhenNoUsersExist() {
             // Arrange
             PageRequest pageable = PageRequest.of(0, 10);
             given(userRepository.findAll(pageable)).willReturn(Page.empty());
+            given(accountStatusService.getActiveStatus(any())).willReturn(Map.of());
 
             // Act
             Page<?> result = userService.getAllUsers(pageable);
@@ -391,8 +400,6 @@ class UserServiceImplTest {
             // Assert
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getPermissions()).contains(Permission.MODERATE_REVIEWS);
-
-            // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
             AccountStatusEvent event = eventCaptor.getValue();
             assertThat(event.getEventType()).isEqualTo(StatusEventType.PERMISSION_GRANTED);
@@ -419,8 +426,6 @@ class UserServiceImplTest {
             // Assert
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getPermissions()).doesNotContain(Permission.MODERATE_REVIEWS);
-
-            // Assert
             verify(accountStatusEventRepository).save(eventCaptor.capture());
             assertThat(eventCaptor.getValue().getEventType()).isEqualTo(StatusEventType.PERMISSION_REVOKED);
         }
@@ -461,7 +466,6 @@ class UserServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PERMISSION_TARGET_INVALID);
 
-            // Assert
             verify(userRepository, never()).save(any());
             verifyNoInteractions(accountStatusEventRepository);
         }
@@ -524,7 +528,7 @@ class UserServiceImplTest {
         void getUserPermissions_shouldReturnEmptyWhenNone() {
             // Arrange
             UUID userId = UUID.randomUUID();
-            ApplicationUser user = createSampleUser(userId); // no permissions
+            ApplicationUser user = createSampleUser(userId);
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // Act
