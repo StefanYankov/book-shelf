@@ -27,9 +27,15 @@ import {ToastService} from '../../../core/services/toast.service';
   styleUrl: './book-moderation.css',
 })
 export class BookModeration {
-  protected moderationForm = signal<{ id: string, title: string, summary: string } | null>(null);
   private readonly moderationApiService = inject(ModerationAPIService);
   private readonly bookApiService = inject(BookAPIService);
+  protected moderationForm = signal<{ id: string, title: string, summary: string } | null>(null);
+  private readonly toast = inject(ToastService);
+  private readonly fb = inject(FormBuilder);
+
+  // --- Search Functionality ---
+  // searchControl MUST be declared before searchResults, which reads it in its initializer.
+  protected searchControl = this.fb.control('');
   protected searchResults = toSignal(
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
@@ -48,10 +54,6 @@ export class BookModeration {
       } as PagedResponseBookSummaryDto
     }
   );
-  private readonly toast = inject(ToastService);
-  private readonly fb = inject(FormBuilder);
-  // --- Search Functionality ---
-  protected searchControl = this.fb.control('');
 
   /**
    * Loads a book's full details into the moderation form.
