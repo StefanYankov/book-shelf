@@ -15,19 +15,17 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = AdminModerationController.class)
-@DisplayName("AdminModerationController Access Bounds and Validation Tests")
-class AdminModerationControllerTest extends AbstractControllerTestBase {
+@WebMvcTest(controllers = ModerationController.class)
+@DisplayName("ModerationController Access Bounds and Validation Tests")
+class ModerationControllerTest extends AbstractControllerTestBase {
 
-    private static final String BASE_URL = "/api/admin/moderation";
+    private static final String BASE_URL = "/api/moderation";
 
     @Nested
     @DisplayName("PUT " + BASE_URL + "/books/{bookId}")
@@ -35,7 +33,7 @@ class AdminModerationControllerTest extends AbstractControllerTestBase {
 
         @Test
         @WithMockApplicationUser(roles = "ADMIN")
-        @DisplayName("Happy Path: Should allow authorized administrator to moderate book metadata")
+        @DisplayName("Happy Path: Should allow an administrator to moderate book metadata")
         void shouldAllowAdminToModerateBook() throws Exception {
             UUID bookId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().title("Sanitized Title").build();
@@ -54,9 +52,27 @@ class AdminModerationControllerTest extends AbstractControllerTestBase {
         }
 
         @Test
+        @WithMockApplicationUser(roles = "USER", permissions = "MODERATE_BOOKS")
+        @DisplayName("Delegation: Should allow a non-admin holding MODERATE_BOOKS to moderate a book")
+        void shouldAllowModeratorPermissionToModerateBook() throws Exception {
+            UUID bookId = UUID.randomUUID();
+            BookUpdateDto updateDto = BookUpdateDto.builder().title("Sanitized Title").build();
+            BookDetailsDto detailsDto = BookDetailsDto.builder().id(bookId).title("Sanitized Title").build();
+
+            given(bookService.moderateBook(any(UUID.class), any(BookUpdateDto.class))).willReturn(detailsDto);
+
+            mockMvc.perform(put(BASE_URL + "/books/{bookId}", bookId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updateDto)))
+                    .andExpect(status().isOk());
+
+            verify(bookService).moderateBook(eq(bookId), any(BookUpdateDto.class));
+        }
+
+        @Test
         @WithMockApplicationUser(roles = "USER")
-        @DisplayName("Security Error: Should block standard users from moderating book details")
-        void shouldBlockUserFromBookModeration() throws Exception {
+        @DisplayName("Security Error: Should block a standard user without MODERATE_BOOKS from moderating a book")
+        void shouldBlockUserWithoutPermissionFromBookModeration() throws Exception {
             UUID bookId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().title("Sanitized Title").build();
 
@@ -75,7 +91,7 @@ class AdminModerationControllerTest extends AbstractControllerTestBase {
 
         @Test
         @WithMockApplicationUser(roles = "ADMIN")
-        @DisplayName("Happy Path: Should allow authorized administrator to moderate user bookshelves")
+        @DisplayName("Happy Path: Should allow an administrator to moderate user bookshelves")
         void shouldAllowAdminToModerateShelf() throws Exception {
             UUID shelfId = UUID.randomUUID();
             BookshelfUpdateDto updateDto = BookshelfUpdateDto.builder().name("Sanitized Title").build();
@@ -94,9 +110,9 @@ class AdminModerationControllerTest extends AbstractControllerTestBase {
         }
 
         @Test
-        @WithMockApplicationUser(roles = "USER")
-        @DisplayName("Security Error: Should block standard users from moderating user bookshelves")
-        void shouldBlockUserFromShelfModeration() throws Exception {
+        @WithMockApplicationUser(roles = "USER", permissions = "MODERATE_BOOKS")
+        @DisplayName("Security Error: Should block shelf moderation even for a MODERATE_BOOKS holder (books-only permission)")
+        void shouldBlockBookModeratorFromShelfModeration() throws Exception {
             UUID shelfId = UUID.randomUUID();
             BookshelfUpdateDto updateDto = BookshelfUpdateDto.builder().name("Sanitized Title").build();
 
@@ -115,7 +131,7 @@ class AdminModerationControllerTest extends AbstractControllerTestBase {
 
         @Test
         @WithMockApplicationUser(roles = "ADMIN")
-        @DisplayName("Happy Path: Should allow authorized administrator to forcibly delete user bookshelves")
+        @DisplayName("Happy Path: Should allow an administrator to forcibly delete user bookshelves")
         void shouldAllowAdminToDeleteShelf() throws Exception {
             UUID shelfId = UUID.randomUUID();
             doNothing().when(bookshelfService).deleteShelf(shelfId);

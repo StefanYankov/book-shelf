@@ -91,13 +91,14 @@ public interface BookService {
     PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable);
 
     /**
-     * Moderates a book's metadata fields using power-user administrative privileges.
-     * Delegates internally to reuse relational mapping engines while maintaining separate audit trails.
+     * Moderates a book's metadata fields. Available to administrators and to standard users who
+     * have been granted the delegatable {@code MODERATE_BOOKS} permission — mirroring how review
+     * moderation is delegated via {@code MODERATE_REVIEWS}.
      *
      * @param bookId    The UUID of the book to moderate.
      * @param updateDto The DTO carrying updated catalog details.
      * @return          The updated detailed view DTO of the book.
      */
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MODERATE_BOOKS')")
     BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto);
 }

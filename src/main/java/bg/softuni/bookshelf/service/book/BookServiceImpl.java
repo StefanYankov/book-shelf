@@ -137,7 +137,7 @@ public class BookServiceImpl extends BaseService implements BookService {
     @Transactional
     @CacheEvict(value = CacheConfig.BOOKS_CACHE, key = "#bookId")
     public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
-        log.info("ADMIN ACTION: catalog moderation executed for book with ID: {}", bookId);
+        log.info("MODERATION ACTION: catalog moderation executed for book with ID: {}", bookId);
         return applyUpdate(bookId, updateDto);
     }
 
