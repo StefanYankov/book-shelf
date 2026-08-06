@@ -38,6 +38,8 @@ application:
       secret-key: ${JWT_SECRET_KEY}
       expiration: 3600000 # 60 minutes (limits lock-bypass window; see refresh-token note)
     auto-seed-admin: false
+  scheduling:
+    enabled: true
 
 # CORS configuration
 app:

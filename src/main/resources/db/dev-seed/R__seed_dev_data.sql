@@ -1,9 +1,19 @@
 -- 1. BASE USERS TABLE
+-- Passwords use the {noop}__SEED_DEFAULT__ sentinel; UserInitializationSeeder replaces it on boot
+-- with a runtime-encoded hash, so credentials always match the active PasswordEncoder.
 INSERT INTO users (id, version, username, email, password, first_name, last_name, created_at, updated_at, password_change_required)
-VALUES
-    ('11111111-0000-0000-0000-000000000001', 0, 'admin', 'admin@bookshelf.com', '{noop}__ADMIN_DEFAULT__', 'System', 'Administrator', NOW(), NOW(), false),
-    ('22222222-0000-0000-0000-000000000001', 0, 'user1', 'user1@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Alice', 'Reader', NOW(), NOW(), false),
-    ('22222222-0000-0000-0000-000000000002', 0, 'user2', 'user2@bookshelf.com', '$2a$10$W2neF9.6Agi6kAKVq8q3fec5dHW8KUA.b0VSIGdIZyUravWu.rY7G', 'Bob', 'Bookworm', NOW(), NOW(), false)
+VALUES ('11111111-0000-0000-0000-000000000001', 0, 'admin', 'admin@bookshelf.com', '{noop}__SEED_DEFAULT__', 'System',
+        'Administrator', NOW(), NOW(), false),
+       ('22222222-0000-0000-0000-000000000001', 0, 'user1', 'user1@bookshelf.com', '{noop}__SEED_DEFAULT__', 'Alice',
+        'Reader', NOW(), NOW(), false),
+       ('22222222-0000-0000-0000-000000000002', 0, 'user2', 'user2@bookshelf.com', '{noop}__SEED_DEFAULT__', 'Bob',
+        'Bookworm', NOW(), NOW(), false),
+       ('22222222-0000-0000-0000-000000000003', 0, 'user3', 'user3@bookshelf.com', '{noop}__SEED_DEFAULT__', 'Carol',
+        'Critic', NOW(), NOW(), false),
+       ('22222222-0000-0000-0000-000000000004', 0, 'user4', 'user4@bookshelf.com', '{noop}__SEED_DEFAULT__', 'Dave',
+        'Editor', NOW(), NOW(), false),
+       ('22222222-0000-0000-0000-000000000005', 0, 'user5', 'user5@bookshelf.com', '{noop}__SEED_DEFAULT__', 'Erin',
+        'Newcomer', NOW(), NOW(), false)
 ON CONFLICT (username) DO NOTHING;
 
 -- 2. ROLE REALIZATION VIA JOINED TABLES
@@ -14,8 +24,20 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO application_users (id, email_verified)
 VALUES
     ('22222222-0000-0000-0000-000000000001', true),
-    ('22222222-0000-0000-0000-000000000002', true)
+    ('22222222-0000-0000-0000-000000000002', true),
+    ('22222222-0000-0000-0000-000000000003', true),
+    ('22222222-0000-0000-0000-000000000004', true),
+    ('22222222-0000-0000-0000-000000000005', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Delegated permissions (mapped to Spring Security authorities at authentication time).
+-- user3 can moderate reviews; user4 can moderate books.
+INSERT INTO user_permissions (user_id, permission)
+VALUES ('22222222-0000-0000-0000-000000000003', 'MODERATE_REVIEWS'),
+       ('22222222-0000-0000-0000-000000000004', 'MODERATE_BOOKS')
+ON CONFLICT
+    (user_id, permission)
+    DO NOTHING;
 
 -- Languages
 INSERT INTO languages (id, version, name, created_at, updated_at) VALUES

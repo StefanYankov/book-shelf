@@ -5,5 +5,6 @@ package bg.softuni.bookshelf.data.enums;
  * changing the user's role.
  */
 public enum Permission {
-    MODERATE_REVIEWS
+    MODERATE_REVIEWS,
+    MODERATE_BOOKS
 }

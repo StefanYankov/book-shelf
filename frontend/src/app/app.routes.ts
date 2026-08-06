@@ -6,6 +6,7 @@ import {authGuard} from './core/guards/auth/auth.guard';
 import {adminGuard} from './core/guards/admin/admin.guard';
 import {userGuard} from './core/guards/user/user.guard';
 import {landingGuard} from './core/guards/landing/landing.guard';
+import {permissionGuard} from './core/guards/permission/permission.guard';
 import {APP_TITLE} from './core/constants';
 
 export const routes: Routes = [
@@ -52,6 +53,12 @@ export const routes: Routes = [
         path: 'challenges',
         title: `${APP_TITLE} | Reading Challenge`,
         loadComponent: () => import('./features/challenges/reading-challenge/reading-challenge').then(m => m.ReadingChallenge)
+      },
+      {
+        path: 'moderation',
+        title: `${APP_TITLE} | Book Moderation`,
+        canActivate: [permissionGuard('MODERATE_BOOKS')],
+        loadComponent: () => import('./features/moderation/book-moderation/book-moderation').then(m => m.BookModeration)
       },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]

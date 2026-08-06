@@ -3,10 +3,10 @@ README.md
 api.base.service.ts
 api.module.ts
 api/adminAPI.service.ts
-api/adminModerationAPI.service.ts
 api/api.ts
 api/authenticationAPI.service.ts
 api/bookAPI.service.ts
+api/moderationAPI.service.ts
 api/readingChallengeAPI.service.ts
 api/reviewAPI.service.ts
 api/userProfileAPI.service.ts

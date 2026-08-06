@@ -47,7 +47,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
 -   **Identity and Access Management (IAM)**:
     -   Full Spring Security integration with stateless JWT (JSON Web Token) generation and validation.
     -   Role-based access control (`USER`, `ADMIN`).
-    -   Permissions layered on top of roles: an administrator can grant or revoke specific capabilities (e.g. `MODERATE_REVIEWS`) to standard users. Permissions are embedded in the JWT as authorities alongside the role, and every grant/revoke is written to an auditable account-status event track.
+    -   Permissions layered on top of roles: an administrator can grant or revoke specific capabilities (e.g. `MODERATE_REVIEWS`, `MODERATE_BOOKS`) to standard users. Permissions are embedded in the JWT as authorities alongside the role, and every grant/revoke is written to an auditable account-status event track.
     -   Secure email verification and single-use password recovery tokens.
     -   Public self-registration endpoint for new users with proactive duplication checks.
     -   Declarative test harness via customized `@WithMockApplicationUser` annotations supporting role and permission slicing in unit tests.
@@ -63,6 +63,10 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Full CRUD with ownership rules — a review may be edited only by its author and deleted by its author, an administrator, or a user holding the `MODERATE_REVIEWS` permission — enforced at the service layer.
     -   Paginated listing that resolves author names through a single batched lookup (avoids the N+1 query pattern).
     -   Composite uniqueness on `(user, target)` preventing duplicate reviews for the same target.
+-   **Content Moderation**:
+    -   Book moderation is available to administrators and to standard users granted the delegatable `MODERATE_BOOKS` permission — mirroring how review moderation is delegated via `MODERATE_REVIEWS`.
+    -   Authorization is enforced per action at the API layer (`hasRole('ADMIN') or hasAuthority('MODERATE_BOOKS')`), so a delegated moderator is a genuine, first-class capability rather than a UI-only affordance.
+    -   Administrators retain the full moderation surface (books and bookshelves); delegated moderators receive a books-only moderation page.
 -   **Reading Challenges** (backed by the reading challenge microservice):
     -   Users set a yearly reading goal and adjust their progress from the frontend; the main application proxies these operations to the microservice via a Feign client.
     -   Progress is set to an absolute value, and completion is recomputed on every change, so reducing progress below the goal un-completes a challenge — allowing users to correct mistakes.
@@ -92,11 +96,11 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
 -   **Administrative Services**:
     -   Decoupled web layer projections utilizing `UserSecurityDto` and `UserSecurityViewDto` to protect JPA boundaries.
-    -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize("hasRole('ADMIN')")` declarations.
+    -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize` declarations.
     -   Stateful user locking and unlocking operations writing history to a persistent account-status event track. Locks may be permanent or temporary (time-boxed), with expired temporary locks reconciled automatically.
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
     -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
-    -   Administrative metadata override (`moderateBook`) implemented in the core catalog domain for curating titles and summaries.
+    -   Content moderation endpoints (`/api/moderation`): book moderation delegatable via `MODERATE_BOOKS`, bookshelf moderation and deletion administrator-only, each gated per action so URL-level role rules do not pre-empt method security.
 -   **Scheduling and Caching**:
     -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes.
     -   A cron job purges expired verification and password-reset tokens nightly.
@@ -116,21 +120,23 @@ The Angular frontend is built with a standalone component architecture and follo
     -   `LandingGuard`: Evaluates unauthenticated views and landing redirects for incoming public traffic.
     -   `AuthGuard`: Validates session states and enforces global password rotation routes by checking `pwd_chg_req` status.
     -   `UserGuard` / `AdminGuard`: Subsystem isolation gates that completely shield matching layout workspaces from conflicting roles.
+    -   `permissionGuard(permission)`: Functional guard factory admitting only users holding a specific authority, enabling permission-delegated routes (e.g. a `MODERATE_BOOKS` holder reaching the book moderation page).
 -   **Public Zone (`features/public` and `features/auth`):**
     -   `PublicLayout`: Provides a shared public shell (Catalog browsing, Login, Registration) and footer for unauthenticated guest entry points.
     -   `Login`, `Register`, `ForgotPassword`, `ResetPassword`: User authentication and account management forms.
 -   **Authenticated User Zone (`layout/app-layout`):**
     -   `AppLayout`: Dedicated workspace shell providing the core catalog interface and bookshelves for authenticated users.
-    -   `AuthenticatedHeader`: Navigation shell linking the catalog, bookshelves, reading challenge, and profile.
+    -   `AuthenticatedHeader`: Navigation shell linking the catalog, bookshelves, reading challenge, and profile; a moderation link is shown only to users holding `MODERATE_BOOKS`.
     -   `Home`: Dashboard landing view with a reading challenge prompt card linking to the challenge page.
     -   `Profile`: Component managing user details and personal security updates using reactive validation to enforce complexity parameters inline.
     -   `ReadingChallenge`: Yearly reading challenge page (`/app/challenges`) with set-goal, progress, and completed states; progress is adjusted with +1 / -1 steppers that set the absolute books-read value.
+    -   `BookModeration`: Books-only moderation page (`/app/moderation`) for `MODERATE_BOOKS` holders, guarded by `permissionGuard`.
 -   **Administrative Zone (`layout/admin-layout`):**
     -   `AdminLayout`: Isolated control panel shell entirely segregated from user layouts to provide system-level administration interfaces.
     -   `AdminHeader`: Dynamically restricts layout navigation paths when a forced credential rotation is active.
     -   `AdminHome`: A dedicated, lightweight dashboard landing station for the administrative root layout view.
     -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock (permanent or temporary) and on-demand permission management — a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
-    -   `ContentModeration`: Multi-tab interface featuring non-blocking reactive dialog structures to let administrators sanitize book summaries and fields.
+    -   `ContentModeration`: Administrator content moderation for books and bookshelves.
     -   `AdminProfile`: Decoupled profile component using complexity rules to enforce administrative credential changes.
 -   **Core Views & Components:**
     -   `BookList`: Integrates a contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block to streamline item grouping tasks.
@@ -249,34 +255,39 @@ http://localhost:8080/swagger-ui.html
 
 ## Test Credentials
 
-The local configuration environment seeds the following testing user definitions automatically on application startup.
+The development environment seeds the following accounts on startup. Their passwords are encoded at boot using the application's runtime `PasswordEncoder`, so the credentials below always work against a freshly seeded database.
 
-- **Admin**: `admin` / `admin`
+| Username | Password | Role | Delegated permission |
+|----------|----------|------|----------------------|
+| `admin`  | `admin`  | ADMIN | — |
+| `user1`  | `password` | USER | — |
+| `user2`  | `password` | USER | — |
+| `user3`  | `password` | USER | `MODERATE_REVIEWS` |
+| `user4`  | `password` | USER | `MODERATE_BOOKS` |
+| `user5`  | *(reset required)* | USER | — |
+
 > [!IMPORTANT]
-> The admin user is required to change their password on first login. The admin password is encoded by the runtime encoder on first boot, so it always matches — the salt-sync workaround below does not apply to the admin.
->
-> Admin accounts do not use the self-service "forgot password" flow (which is restricted to standard users). If an administrator is locked out, use the Admin Recovery CLI described below, or reset the development database.
-
-
-- **Standard User 1**: `user1` / `password`
-- **Standard User 2**: `user2` / `password`
+> The `admin` account is required to change its password on first login. Admin accounts do not use the self-service "forgot password" flow (which is restricted to standard users); if an administrator is locked out, use the Admin Recovery CLI described below, or reset the development database.
 
 > [!NOTE]
-> The seeded standard users (user1, user2) use static, pre-computed password hashes baked into the reference-data migration, which may not align with your runtime encoder configuration. If authentication requests decline these credentials, use the Password Reset interface to assign a valid runtime hash.
+> **Delegated permissions take effect on next login.** Authorities are embedded in the JWT at authentication time, so a permission granted to a currently logged-in user appears only after they log out and back in (a fresh token). `user3` and `user4` are pre-seeded with their permissions, so they demonstrate review and book moderation immediately after logging in.
 
-#### **Resolving Pre-seeded Login Failures:**
+> [!NOTE]
+> **`user5` demonstrates the password-reset flow.** It is seeded with an unrecoverable password, so there are no known credentials — use the **Forgot Password** page with `user5@bookshelf.com`, then open the backend console for the dispatched reset link (see below) to set a working password.
 
-If you cannot authenticate using the default credentials, use the **Password Reset Flow** to sync the password with your runtime encoder salt:
+#### Resolving Login via Password Reset
+
+For any account without known credentials (e.g. `user5`), use the reset flow to assign a password hashed with the current runtime encoder:
 
 1. Navigate to the **Forgot Password** page in the UI.
-2. Enter the email address of the pre-seeded account you wish to access (e.g., admin@example.com or user1@example.com).
-3. Open your backend console to locate the dispatched reset link:
+2. Enter the account's email (e.g. `user5@bookshelf.com`).
+3. Open the backend console to locate the dispatched reset link:
+   ```text
    📧 MOCK EMAIL DISPATCHED
    Type: PASSWORD RESET
    Link: http://localhost:4200/reset-password?token=some-reset-token-uuid
-
-4. Copy the link, paste it into your browser, and set a new password (e.g., password).
-5. This saves a freshly hashed password using the current runtime salt configuration, allowing you to log in successfully.
+   ```
+4. Copy the link, paste it into your browser, and set a new password.
 
 ## Admin Recovery CLI
 

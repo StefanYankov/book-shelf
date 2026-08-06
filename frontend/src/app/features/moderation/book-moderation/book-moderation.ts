@@ -13,37 +13,51 @@ import {toSignal} from '@angular/core/rxjs-interop';
 import {debounceTime, distinctUntilChanged, startWith, switchMap} from 'rxjs/operators';
 import {ToastService} from '../../../core/services/toast.service';
 
+/**
+ * Book moderation page for users holding the MODERATE_BOOKS permission (non-administrators).
+ * Provides only book curation — shelf moderation and deletion remain in the administrator-only
+ * content moderation view. Kept separate from that admin view so each surface exposes exactly the
+ * capabilities its audience is authorized for.
+ */
 @Component({
-  selector: 'app-content-moderation',
+  selector: 'app-book-moderation',
+  standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
-  templateUrl: './content-moderation.html',
-  styleUrl: './content-moderation.css',
+  templateUrl: './book-moderation.html',
+  styleUrl: './book-moderation.css',
 })
-export class ContentModeration {
+export class BookModeration {
   private readonly moderationApiService = inject(ModerationAPIService);
   private readonly bookApiService = inject(BookAPIService);
+  protected moderationForm = signal<{ id: string, title: string, summary: string } | null>(null);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
-  protected activeTab = signal<'BOOKS' | 'SHELVES'>('BOOKS');
-  protected moderationForm = signal<{ id: string, title: string, summary: string } | null>(null);
-
   // --- Search Functionality ---
+  // searchControl MUST be declared before searchResults, which reads it in its initializer.
   protected searchControl = this.fb.control('');
   protected searchResults = toSignal(
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       startWith(''),
-      switchMap(query => this.bookApiService.searchBooks({ page: 0, size: 10 }, query || undefined))
+      switchMap(query => this.bookApiService.searchBooks({page: 0, size: 10}, query || undefined))
     ),
-    { initialValue: { content: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 10, isLast: true } as PagedResponseBookSummaryDto }
+    {
+      initialValue: {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        pageNumber: 0,
+        pageSize: 10,
+        isLast: true
+      } as PagedResponseBookSummaryDto
+    }
   );
 
   /**
-   * Sets up a book for moderation by populating the form.
-   * Fetches full details to retrieve the existing summary.
-   * @param book The book summary to be moderated.
+   * Loads a book's full details into the moderation form.
+   * @param book The book summary chosen from the search results.
    */
   protected selectBookForModeration(book: BookSummaryDto): void {
     if (!book.id || !book.title) {
@@ -64,13 +78,13 @@ export class ContentModeration {
   }
 
   /**
-   * Submits the moderation update for a book.
+   * Submits the moderated title and summary for the selected book.
    */
   protected submitBookModeration(): void {
     const form = this.moderationForm();
     if (!form) return;
 
-    const dto: BookUpdateDto = { title: form.title, summary: form.summary };
+    const dto: BookUpdateDto = {title: form.title, summary: form.summary};
 
     this.moderationApiService.moderateBook(form.id, dto).subscribe({
       next: (updatedBook: BookDetailsDto) => {

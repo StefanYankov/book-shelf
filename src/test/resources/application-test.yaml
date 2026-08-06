@@ -21,3 +21,5 @@ application:
       # A valid Base64 encoded 256-bit key for testing purposes.
       secret-key: "bXlzdXBlcnNlY3JldGtleWZvcnRlc3RpbmdwdXJwb3NlczEyMzQ1Njc4OTA="
       expiration: 60000
+  scheduling:
+    enabled: false

@@ -1,7 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import {Component, computed, inject} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {Router, RouterLink, RouterLinkActive} from '@angular/router';
+import {AuthService} from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-authenticated-header',
@@ -15,6 +15,9 @@ export class AuthenticatedHeader {
   private router = inject(Router);
 
   protected isAdmin = computed(() => this.authService.userRole() === 'ROLE_ADMIN');
+
+  /** Whether the current user may moderate books (holds the delegated MODERATE_BOOKS permission). */
+  protected canModerateBooks = computed(() => this.authService.hasAuthority('MODERATE_BOOKS'));
 
   logout(): void {
     this.authService.logout();

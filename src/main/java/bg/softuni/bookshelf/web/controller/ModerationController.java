@@ -21,29 +21,34 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * Endpoints for content moderation. Authorization is declared per action rather than at the class
+ * level, because moderation capabilities differ: book moderation is delegatable to holders of the
+ * {@code MODERATE_BOOKS} permission, while bookshelf moderation and deletion remain administrator-only.
+ */
 @Slf4j
 @RestController
-@RequestMapping(value = "/api/admin/moderation", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/moderation", produces = MediaType.APPLICATION_JSON_VALUE)
 @ApiStandardResponses
-@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-@Tag(name = "Admin Moderation API", description = "Endpoints for system-wide administrative content curation and moderation.")
-public class AdminModerationController {
+@Tag(name = "Moderation API", description = "Endpoints for content curation and moderation.")
+public class ModerationController {
 
     private final BookshelfService bookshelfService;
     private final BookService bookService;
 
     @Operation(
             operationId = "moderateBook",
-            summary = "Forcibly moderate book details",
-            description = "Rewrites a book's metadata (e.g. title, author, genres, format) to sanitize profanity or fix editorial issues."
+            summary = "Moderate book details",
+            description = "Rewrites a book's metadata (e.g. title, author, genres, format) to sanitize profanity or fix editorial issues. Available to administrators and users granted the MODERATE_BOOKS permission."
     )
     @ApiResponse(responseCode = "200", description = "Book moderated successfully.")
     @PutMapping("/books/{bookId}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MODERATE_BOOKS')")
     public ResponseEntity<BookDetailsDto> moderateBook(
             @Parameter(description = "The UUID of the book to moderate") @PathVariable UUID bookId,
             @Valid @RequestBody BookUpdateDto updateDto) {
-        log.warn("ADMIN ACTION: Moderating book {} details.", bookId);
+        log.warn("MODERATION ACTION: Moderating book {} details.", bookId);
         BookDetailsDto moderatedBook = bookService.moderateBook(bookId, updateDto);
         return ResponseEntity.ok(moderatedBook);
     }
@@ -55,6 +60,7 @@ public class AdminModerationController {
     )
     @ApiResponse(responseCode = "200", description = "Bookshelf moderated successfully.")
     @PutMapping("/shelves/{shelfId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookshelfDetailsDto> moderateShelf(
             @Parameter(description = "The UUID of the shelf to moderate") @PathVariable UUID shelfId,
             @Valid @RequestBody BookshelfUpdateDto updateDto) {
@@ -70,6 +76,7 @@ public class AdminModerationController {
     )
     @ApiResponse(responseCode = "204", description = "Bookshelf deleted successfully.")
     @DeleteMapping("/shelves/{shelfId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> forceDeleteShelf(
             @Parameter(description = "The UUID of the shelf to delete") @PathVariable UUID shelfId) {
         log.warn("ADMIN ACTION: Forcibly deleting bookshelf {}.", shelfId);

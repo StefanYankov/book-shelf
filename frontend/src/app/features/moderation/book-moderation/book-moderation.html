@@ -1,0 +1,55 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0">Book Moderation</h2>
+    <span class="badge bg-warning text-dark">Moderator</span>
+  </div>
+
+  <div class="card p-3">
+    @if (moderationForm(); as form) {
+      <div class="moderation-form">
+        <h4 class="mb-3">Moderating Book: <span class="moderated-title">{{ form.title }}</span></h4>
+        <div class="mb-3">
+          <label class="form-label" for="modTitle">Title</label>
+          <input [(ngModel)]="form.title" class="form-control" id="modTitle" type="text">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="modSummary">Summary</label>
+          <textarea [(ngModel)]="form.summary" class="form-control" id="modSummary" rows="4"></textarea>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <button (click)="cancelModeration()" class="btn btn-secondary">Cancel</button>
+          <button (click)="submitBookModeration()" class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    } @else {
+      <div class="mb-3">
+        <input [formControl]="searchControl" class="form-control" placeholder="Search for books to moderate..."
+               type="text">
+      </div>
+      <table class="table table-hover">
+        <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th class="text-end">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (book of searchResults()?.content; track book.id) {
+            <tr>
+              <td>{{ book.title }}</td>
+              <td>{{ book.authorName }}</td>
+              <td class="text-end">
+                <button (click)="selectBookForModeration(book)" class="btn btn-sm btn-outline-primary">Moderate</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="text-center text-muted" colspan="3">No books found for the current search query.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
