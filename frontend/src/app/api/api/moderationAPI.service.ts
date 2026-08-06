@@ -33,7 +33,7 @@ import {BaseService} from '../api.base.service';
 @Injectable({
   providedIn: 'root'
 })
-export class AdminModerationAPIService extends BaseService {
+export class ModerationAPIService extends BaseService {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
@@ -42,7 +42,7 @@ export class AdminModerationAPIService extends BaseService {
     /**
      * Forcibly delete bookshelf
      * Permanently deletes offensive user bookshelves. Associations with books are cleaned automatically.
-     * @endpoint delete /api/admin/moderation/shelves/{shelfId}
+     * @endpoint delete /api/moderation/shelves/{shelfId}
      * @param shelfId The UUID of the shelf to delete
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -81,7 +81,15 @@ export class AdminModerationAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/admin/moderation/shelves/${this.configuration.encodeParam({name: "shelfId", value: shelfId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
+      let localVarPath = `/api/moderation/shelves/${this.configuration.encodeParam({
+        name: "shelfId",
+        value: shelfId,
+        in: "path",
+        style: "simple",
+        explode: false,
+        dataType: "string",
+        dataFormat: "uuid"
+      })}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<any>('delete', `${basePath}${localVarPath}`,
             {
@@ -97,9 +105,9 @@ export class AdminModerationAPIService extends BaseService {
     }
 
     /**
-     * Forcibly moderate book details
-     * Rewrites a book\&#39;s metadata (e.g. title, author, genres, format) to sanitize profanity or fix editorial issues.
-     * @endpoint put /api/admin/moderation/books/{bookId}
+     * Moderate book details
+     * Rewrites a book\&#39;s metadata (e.g. title, author, genres, format) to sanitize profanity or fix editorial issues. Available to administrators and users granted the MODERATE_BOOKS permission.
+     * @endpoint put /api/moderation/books/{bookId}
      * @param bookId The UUID of the book to moderate
      * @param bookUpdateDto
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -151,7 +159,15 @@ export class AdminModerationAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/admin/moderation/books/${this.configuration.encodeParam({name: "bookId", value: bookId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
+      let localVarPath = `/api/moderation/books/${this.configuration.encodeParam({
+        name: "bookId",
+        value: bookId,
+        in: "path",
+        style: "simple",
+        explode: false,
+        dataType: "string",
+        dataFormat: "uuid"
+      })}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<BookDetailsDto>('put', `${basePath}${localVarPath}`,
             {
@@ -170,7 +186,7 @@ export class AdminModerationAPIService extends BaseService {
     /**
      * Forcibly moderate bookshelf details
      * Rewrites a user\&#39;s bookshelf details (e.g. name, description) to remove offensive content.
-     * @endpoint put /api/admin/moderation/shelves/{shelfId}
+     * @endpoint put /api/moderation/shelves/{shelfId}
      * @param shelfId The UUID of the shelf to moderate
      * @param bookshelfUpdateDto
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -222,7 +238,15 @@ export class AdminModerationAPIService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/admin/moderation/shelves/${this.configuration.encodeParam({name: "shelfId", value: shelfId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
+      let localVarPath = `/api/moderation/shelves/${this.configuration.encodeParam({
+        name: "shelfId",
+        value: shelfId,
+        in: "path",
+        style: "simple",
+        explode: false,
+        dataType: "string",
+        dataFormat: "uuid"
+      })}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<BookshelfDetailsDto>('put', `${basePath}${localVarPath}`,
             {

@@ -12,12 +12,14 @@ describe('AuthenticatedHeader Component Tests', () => {
   let router: Router;
   let mockAuthService: {
     userRole: WritableSignal<string | null>;
+    hasAuthority: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     mockAuthService = {
       userRole: signal<string | null>(null),
+      hasAuthority: vi.fn().mockReturnValue(false),
       logout: vi.fn()
     };
 
@@ -75,6 +77,35 @@ describe('AuthenticatedHeader Component Tests', () => {
       // Assert
       expect(challengeLink).toBeDefined();
       expect(challengeLink!.nativeElement.getAttribute('routerLink')).toBe('/app/challenges');
+    });
+  });
+
+  describe('Moderation Link Visibility', () => {
+    it('should NOT render the moderation link when the user lacks MODERATE_BOOKS', () => {
+      // Arrange
+      fixture.detectChanges();
+
+      // Act
+      const moderationLink = fixture.debugElement.queryAll(By.css('a.nav-link'))
+        .find(el => el.nativeElement.getAttribute('routerLink') === '/app/moderation');
+
+      // Assert
+      expect(moderationLink).toBeUndefined();
+    });
+
+    it('should render the moderation link when the user holds MODERATE_BOOKS', () => {
+      // Arrange
+      mockAuthService.hasAuthority.mockReturnValue(true);
+      fixture.detectChanges();
+
+      // Act
+      const moderationLink = fixture.debugElement.queryAll(By.css('a.nav-link'))
+        .find(el => el.nativeElement.getAttribute('routerLink') === '/app/moderation');
+
+      // Assert
+      expect(mockAuthService.hasAuthority).toHaveBeenCalledWith('MODERATE_BOOKS');
+      expect(moderationLink).toBeDefined();
+      expect(moderationLink!.nativeElement.textContent.trim()).toBe('Moderation');
     });
   });
 

@@ -13,6 +13,11 @@
           <li class="nav-item">
             <a class="nav-link" routerLink="/app/challenges" routerLinkActive="active">Challenge</a>
           </li>
+          @if (canModerateBooks()) {
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/app/moderation" routerLinkActive="active">Moderation</a>
+            </li>
+          }
         </ul>
         <ul class="navbar-nav">
           <li class="nav-item">

@@ -15,7 +15,8 @@ export interface PermissionRequestDto {
 }
 export namespace PermissionRequestDto {
   export const PermissionEnum = {
-    ModerateReviews: 'MODERATE_REVIEWS'
+    ModerateReviews: 'MODERATE_REVIEWS',
+    ModerateBooks: 'MODERATE_BOOKS'
   } as const;
   export type PermissionEnum = typeof PermissionEnum[keyof typeof PermissionEnum];
 }

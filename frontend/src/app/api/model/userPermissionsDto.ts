@@ -15,7 +15,8 @@ export interface UserPermissionsDto {
 }
 export namespace UserPermissionsDto {
   export const PermissionsEnum = {
-    ModerateReviews: 'MODERATE_REVIEWS'
+    ModerateReviews: 'MODERATE_REVIEWS',
+    ModerateBooks: 'MODERATE_BOOKS'
   } as const;
   export type PermissionsEnum = typeof PermissionsEnum[keyof typeof PermissionsEnum];
 }
