@@ -30,7 +30,6 @@ public class GenreServiceImpl implements GenreService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public GenreDto createGenre(GenreCreateDto createDto) {
         log.debug("Attempting to create a new genre");
 
@@ -67,7 +66,6 @@ public class GenreServiceImpl implements GenreService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public GenreDto updateGenre(UUID id, GenreUpdateDto updateDto) {
         log.debug("Attempting to update genre with ID: {}", id);
         Objects.requireNonNull(updateDto, DeveloperErrors.DTO_NULL);
@@ -97,7 +95,6 @@ public class GenreServiceImpl implements GenreService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public void deleteGenre(UUID id) {
         log.debug("Attempting to delete a genre with ID: {}", id);
         Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);

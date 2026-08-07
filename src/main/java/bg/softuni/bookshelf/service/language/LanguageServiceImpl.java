@@ -30,7 +30,6 @@ public class LanguageServiceImpl implements LanguageService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public LanguageDto createLanguage(LanguageCreateDto createDto) {
         log.debug("Attempting to create a new language");
 

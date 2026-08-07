@@ -5,9 +5,13 @@ import bg.softuni.bookshelf.config.SecurityConfig;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.auth.AuthenticationService;
 import bg.softuni.bookshelf.service.auth.JwtService;
+import bg.softuni.bookshelf.service.author.AuthorService;
 import bg.softuni.bookshelf.service.book.BookService;
 import bg.softuni.bookshelf.service.bookshelf.BookshelfService;
 import bg.softuni.bookshelf.service.challenge.ReadingChallengeProxyService;
+import bg.softuni.bookshelf.service.genre.GenreService;
+import bg.softuni.bookshelf.service.language.LanguageService;
+import bg.softuni.bookshelf.service.publisher.PublisherService;
 import bg.softuni.bookshelf.service.review.ReviewService;
 import bg.softuni.bookshelf.service.user.UserService;
 import bg.softuni.bookshelf.web.GlobalExceptionHandler;
@@ -54,6 +58,18 @@ public abstract class AbstractControllerTestBase {
 
     @MockitoBean
     protected ReviewService reviewService;
+
+    @MockitoBean
+    protected AuthorService authorService;
+
+    @MockitoBean
+    protected GenreService genreService;
+
+    @MockitoBean
+    protected LanguageService languageService;
+
+    @MockitoBean
+    protected PublisherService publisherService;
 
     @MockitoBean
     protected ReadingChallengeProxyService readingChallengeProxyService;
