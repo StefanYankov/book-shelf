@@ -7,6 +7,8 @@ import bg.softuni.bookshelf.data.repository.*;
 import bg.softuni.bookshelf.service.base.BaseService;
 import bg.softuni.bookshelf.service.book.dto.*;
 import bg.softuni.bookshelf.shared.DeveloperErrors;
+import bg.softuni.bookshelf.shared.aop.Audited;
+import bg.softuni.bookshelf.shared.aop.LogExecutionTime;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
@@ -42,8 +44,7 @@ public class BookServiceImpl extends BaseService implements BookService {
     private final GenreRepository genreRepository;
     private final BookMapper bookMapper;
     private final ImageUploadService imageUploadService;
-    // Placeholder public id returned by the no-op image service; never a real Cloudinary asset,
-    // so it must not trigger a remote delete.
+    // Placeholder public id returned by the no-op image service.
     private static final String PLACEHOLDER_PUBLIC_ID = "noop";
     private final ApplicationEventPublisher eventPublisher;
 
@@ -92,6 +93,7 @@ public class BookServiceImpl extends BaseService implements BookService {
 
     @Override
     @Transactional(readOnly = true)
+    @LogExecutionTime
     public Page<BookSummaryDto> getAll(Pageable pageable) {
         log.debug("Fetching all books with pagination");
         Page<Book> bookPage = bookRepository.findAllWithAuthors(pageable);
@@ -137,6 +139,7 @@ public class BookServiceImpl extends BaseService implements BookService {
 
     @Override
     @Transactional(readOnly = true)
+    @LogExecutionTime
     public PagedResponse<BookSummaryDto> searchBooks(BookSearchFilters filters, Pageable pageable) {
         log.info("Faceted catalog search initialization. Filters: {}", filters);
 
@@ -151,6 +154,7 @@ public class BookServiceImpl extends BaseService implements BookService {
     @Override
     @Transactional
     @CacheEvict(value = CacheConfig.BOOKS_CACHE, key = "#bookId")
+    @Audited
     public BookDetailsDto moderateBook(UUID bookId, BookUpdateDto updateDto) {
         log.info("MODERATION ACTION: catalog moderation executed for book with ID: {}", bookId);
         return applyUpdate(bookId, updateDto);
