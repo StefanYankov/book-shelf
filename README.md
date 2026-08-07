@@ -36,6 +36,7 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
 - **Inter-service communication**: Spring Cloud OpenFeign - the main application consumes the reading challenge microservice via a Feign client, forwarding the caller's JWT and translating downstream errors into the application's standard problem response.
 - **Scheduling and Caching**: Spring's scheduling (`@Scheduled`) runs periodic maintenance jobs; Spring's caching abstraction (`@Cacheable`/`@CacheEvict`) caches the book catalog with eviction on writes.
+- **Aspect-Oriented Programming**: Spring AOP provides execution-time logging (`@LogExecutionTime`) and audit logging of sensitive operations (`@Audited`).
 - **Image storage**: Cloudinary, behind an `ImageUploadService` abstraction. Cloudinary is used when enabled by configuration; otherwise a no-op implementation is used, so the application runs without a Cloudinary account.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
@@ -84,6 +85,9 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Consistent RFC 7807 `ProblemDetail` responses for both HTTP 401 (unauthenticated) and 403 (forbidden) failures raised in the security filter chain, matching the format emitted by the controller advice.
     -   JSR-380 input validation on all DTOs.
     -   Automated Flyway database migrations.
+-   **Cross-cutting Concerns (AOP)**:
+    -   `@LogExecutionTime` - an `@Around` aspect logging method duration, applied to catalog reads.
+    -   `@Audited` - an `@Around` aspect recording the principal, operation, optional UUID target, and outcome for sensitive administrative and moderation operations; method arguments are not logged, to avoid recording sensitive data. This is distinct from the account-status event trail, which drives account state.
 -   **Domain Model**:
     -   A complete JPA entity model with relationships (`Book`, `Author`, `User`, etc.).
     -   `@Version` annotation on base entities for optimistic locking.
@@ -178,7 +182,7 @@ book-shelf/
 │   │   │   ├── 📂 config/              # Spring Security, Feign, caching, scheduling, async, Cloudinary, and App configuration
 │   │   │   ├── 📂 data/                # JPA Entities and Repositories
 │   │   │   ├── 📂 service/             # Service layer (business logic, Feign client)
-│   │   │   ├── 📂 shared/              # Cross-cutting concerns
+│   │   │   ├── 📂 shared/              # Cross-cutting concerns (including AOP aspects)
 │   │   │   └── 📂 web/                 # Controllers and Exception Handling
 │   │   └── 📂 resources/
 │   │       ├── 📂 db/migration/        # Flyway SQL scripts
