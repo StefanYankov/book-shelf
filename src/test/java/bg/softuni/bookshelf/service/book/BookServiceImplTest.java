@@ -1,11 +1,13 @@
 package bg.softuni.bookshelf.service.book;
 
 import bg.softuni.bookshelf.data.entity.*;
+import bg.softuni.bookshelf.data.entity.value.Image;
 import bg.softuni.bookshelf.data.repository.*;
 import bg.softuni.bookshelf.service.book.dto.*;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
+import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.BookImageDeletionEvent;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.UploadResult;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +19,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -51,11 +54,17 @@ class BookServiceImplTest {
     @Mock
     private ImageUploadService imageUploadService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private BookServiceImpl bookServiceImpl;
 
     @Captor
     private ArgumentCaptor<Book> bookCaptor;
+
+    @Captor
+    private ArgumentCaptor<BookImageDeletionEvent> eventCaptor;
 
     // --- TEST DATA FACTORY ---
     private BookCreateDto.BookCreateDtoBuilder createValidDtoBuilder() {
@@ -74,7 +83,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Defense in Depth: Should throw NullPointerException when DTO is null")
         void shouldThrowExceptionWhenDtoIsNull() {
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.createBook(null, null))
                     .isInstanceOf(NullPointerException.class);
 
@@ -84,7 +92,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should create book successfully with image upload")
         void shouldCreateBookWithImage() {
-            // Arrange
             BookCreateDto dto = createValidDtoBuilder().build();
             MockMultipartFile imageFile = new MockMultipartFile("image", "image.jpg", "image/jpeg", new byte[]{1, 2, 3});
             UploadResult mockUploadResult = new UploadResult("https://example.com/image.jpg", "public-id");
@@ -101,10 +108,8 @@ class BookServiceImplTest {
             given(bookRepository.save(mappedBook)).willReturn(savedBook);
             given(bookMapper.toBookDetailsDto(savedBook)).willReturn(expectedDto);
 
-            // Act
             BookDetailsDto result = bookServiceImpl.createBook(dto, imageFile);
 
-            // Assert
             assertThat(result).isEqualTo(expectedDto);
 
             verify(bookRepository).save(bookCaptor.capture());
@@ -117,7 +122,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should create book successfully without an image")
         void shouldCreateBookWithoutImage() {
-            // Arrange
             BookCreateDto dto = createValidDtoBuilder().build();
             Book mappedBook = new Book();
             Book savedBook = new Book();
@@ -131,10 +135,8 @@ class BookServiceImplTest {
             given(bookRepository.save(mappedBook)).willReturn(savedBook);
             given(bookMapper.toBookDetailsDto(savedBook)).willReturn(expectedDto);
 
-            // Act
             BookDetailsDto result = bookServiceImpl.createBook(dto, null);
 
-            // Assert
             assertThat(result).isEqualTo(expectedDto);
             verifyNoInteractions(imageUploadService);
             verify(bookRepository).save(bookCaptor.capture());
@@ -144,11 +146,9 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw BusinessException when author is not found")
         void shouldThrowExceptionWhenAuthorNotFound() {
-            // Arrange
             BookCreateDto dto = createValidDtoBuilder().build();
             given(authorRepository.findById(dto.authorId())).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.createBook(dto, null))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -166,7 +166,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("getById: Should return DTO when book is found")
         void getById_shouldReturnDtoWhenBookFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             Book mockBook = new Book();
             BookDetailsDto expectedDto = new BookDetailsDto(bookId, "Found Book", null, 0, 0, null, null, null, null, null, null, null);
@@ -174,21 +173,17 @@ class BookServiceImplTest {
             given(bookRepository.findBookDetailsById(bookId)).willReturn(Optional.of(mockBook));
             given(bookMapper.toBookDetailsDto(mockBook)).willReturn(expectedDto);
 
-            // Act
             BookDetailsDto result = bookServiceImpl.getById(bookId);
 
-            // Assert
             assertThat(result).isEqualTo(expectedDto);
         }
 
         @Test
         @DisplayName("getById: Should throw BusinessException when book is not found")
         void getById_shouldThrowExceptionWhenBookNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             given(bookRepository.findBookDetailsById(bookId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.getById(bookId))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -200,7 +195,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("getAll: Should return paginated DTOs")
         void getAll_shouldReturnPaginatedDtos() {
-            // Arrange
             Pageable pageable = PageRequest.of(0, 10);
             Book mockBook = new Book();
             Page<Book> bookPage = new PageImpl<>(List.of(mockBook), pageable, 1);
@@ -209,10 +203,8 @@ class BookServiceImplTest {
             given(bookRepository.findAllWithAuthors(pageable)).willReturn(bookPage);
             given(bookMapper.toBookSummaryDto(mockBook)).willReturn(summaryDto);
 
-            // Act
             Page<BookSummaryDto> result = bookServiceImpl.getAll(pageable);
 
-            // Assert
             assertThat(result).isNotNull();
             assertThat(result.getTotalElements()).isEqualTo(1);
             assertThat(result.getContent()).hasSize(1);
@@ -222,7 +214,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("findAllByAuthor: Should return correct paginated DTOs")
         void findAllByAuthor_shouldReturnCorrectDtos() {
-            // Arrange
             UUID authorId = UUID.randomUUID();
             Pageable pageable = PageRequest.of(0, 10);
             Book mockBook = new Book();
@@ -232,10 +223,8 @@ class BookServiceImplTest {
             given(bookRepository.findAllByAuthorId(authorId, pageable)).willReturn(bookPage);
             given(bookMapper.toBookSummaryDto(mockBook)).willReturn(summaryDto);
 
-            // Act
             Page<BookSummaryDto> result = bookServiceImpl.findAllByAuthor(authorId, pageable);
 
-            // Assert
             assertThat(result.getTotalElements()).isEqualTo(1);
             assertThat(result.getContent().getFirst()).isEqualTo(summaryDto);
         }
@@ -248,7 +237,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Defense in Depth: Should throw NullPointerException when DTO is null")
         void shouldThrowExceptionWhenDtoIsNull() {
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(UUID.randomUUID(), null))
                     .isInstanceOf(NullPointerException.class);
             verifyNoInteractions(bookRepository);
@@ -257,12 +245,10 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw BusinessException when book not found")
         void shouldThrowExceptionWhenBookNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().title("New Title").build();
             given(bookRepository.findById(bookId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -272,7 +258,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should update only the title")
         void shouldUpdateOnlyTitle() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().title("New Title").build();
             Book existingBook = new Book();
@@ -283,10 +268,8 @@ class BookServiceImplTest {
             given(bookRepository.save(any(Book.class))).willReturn(existingBook);
             given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
 
-            // Act
             bookServiceImpl.updateBook(bookId, updateDto);
 
-            // Assert
             verify(bookRepository).save(bookCaptor.capture());
             Book capturedBook = bookCaptor.getValue();
             assertThat(capturedBook.getTitle()).isEqualTo("New Title");
@@ -296,7 +279,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should update relational author")
         void shouldUpdateRelationalAuthor() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID newAuthorId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().authorId(newAuthorId).build();
@@ -310,10 +292,8 @@ class BookServiceImplTest {
             given(bookRepository.save(any(Book.class))).willReturn(existingBook);
             given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
 
-            // Act
             bookServiceImpl.updateBook(bookId, updateDto);
 
-            // Assert
             verify(bookRepository).save(bookCaptor.capture());
             assertThat(bookCaptor.getValue().getAuthor().getId()).isEqualTo(newAuthorId);
         }
@@ -321,7 +301,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw BusinessException when new author is not found")
         void shouldThrowExceptionWhenNewAuthorNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID newAuthorId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().authorId(newAuthorId).build();
@@ -330,7 +309,6 @@ class BookServiceImplTest {
             given(bookRepository.findById(bookId)).willReturn(Optional.of(existingBook));
             given(authorRepository.findById(newAuthorId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -342,7 +320,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should apply all scalar fields when provided")
         void shouldUpdateAllScalarFields() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder()
                     .title("New Title")
@@ -358,10 +335,8 @@ class BookServiceImplTest {
             given(bookRepository.save(any(Book.class))).willReturn(existingBook);
             given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
 
-            // Act
             bookServiceImpl.updateBook(bookId, updateDto);
 
-            // Assert
             verify(bookRepository).save(bookCaptor.capture());
             Book saved = bookCaptor.getValue();
             assertThat(saved.getTitle()).isEqualTo("New Title");
@@ -375,7 +350,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Happy Path: Should update relational language, publisher, and genres")
         void shouldUpdateRelationalCollections() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID languageId = UUID.randomUUID();
             UUID publisherId = UUID.randomUUID();
@@ -400,10 +374,8 @@ class BookServiceImplTest {
             given(bookRepository.save(any(Book.class))).willReturn(existingBook);
             given(bookMapper.toBookDetailsDto(any(Book.class))).willReturn(mock(BookDetailsDto.class));
 
-            // Act
             bookServiceImpl.updateBook(bookId, updateDto);
 
-            // Assert
             verify(bookRepository).save(bookCaptor.capture());
             Book saved = bookCaptor.getValue();
             assertThat(saved.getLanguage().getId()).isEqualTo(languageId);
@@ -414,14 +386,12 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw when new language is not found")
         void shouldThrowWhenLanguageNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID languageId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().languageId(languageId).build();
             given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
             given(languageRepository.findById(languageId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -433,14 +403,12 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw when new publisher is not found")
         void shouldThrowWhenPublisherNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID publisherId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().publisherId(publisherId).build();
             given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
             given(publisherRepository.findById(publisherId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -452,14 +420,12 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Error Case: Should throw when a new genre is not found")
         void shouldThrowWhenGenreNotFound() {
-            // Arrange
             UUID bookId = UUID.randomUUID();
             UUID genreId = UUID.randomUUID();
             BookUpdateDto updateDto = BookUpdateDto.builder().genreIds(Set.of(genreId)).build();
             given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
             given(genreRepository.findById(genreId)).willReturn(Optional.empty());
 
-            // Act & Assert
             assertThatThrownBy(() -> bookServiceImpl.updateBook(bookId, updateDto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
@@ -474,8 +440,8 @@ class BookServiceImplTest {
     class DeleteBookTests {
 
         @Test
-        @DisplayName("Happy Path: Should delete book when found")
-        void shouldDeleteBookWhenFound() {
+        @DisplayName("Happy Path: Should delete a book without a cover and publish no image-deletion event")
+        void shouldDeleteBookWithoutCover() {
             // Arrange
             UUID bookId = UUID.randomUUID();
             given(bookRepository.findById(bookId)).willReturn(Optional.of(new Book()));
@@ -485,6 +451,42 @@ class BookServiceImplTest {
 
             // Assert
             verify(bookRepository).delete(any(Book.class));
+            verify(eventPublisher, never()).publishEvent(any(BookImageDeletionEvent.class));
+        }
+
+        @Test
+        @DisplayName("Happy Path: Should publish an image-deletion event carrying the cover's public id")
+        void shouldPublishEventWhenCoverExists() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            Book book = new Book();
+            book.setCoverImage(Image.builder().url("https://cdn/x.jpg").publicId("books/x").build());
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+
+            // Act
+            bookServiceImpl.deleteBook(bookId);
+
+            // Assert
+            verify(bookRepository).delete(book);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getValue().publicId()).isEqualTo("books/x");
+        }
+
+        @Test
+        @DisplayName("Edge Case: Should NOT publish an event for the no-op placeholder public id")
+        void shouldNotPublishForPlaceholder() {
+            // Arrange
+            UUID bookId = UUID.randomUUID();
+            Book book = new Book();
+            book.setCoverImage(Image.builder().url("https://placehold.co/x").publicId("noop").build());
+            given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+
+            // Act
+            bookServiceImpl.deleteBook(bookId);
+
+            // Assert
+            verify(bookRepository).delete(book);
+            verify(eventPublisher, never()).publishEvent(any(BookImageDeletionEvent.class));
         }
 
         @Test
@@ -501,6 +503,7 @@ class BookServiceImplTest {
                     .isEqualTo(ErrorCode.BOOK_NOT_FOUND);
 
             verify(bookRepository, never()).delete(any(Book.class));
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
@@ -512,7 +515,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Search: Should call findAll when query is null")
         void shouldCallFindAllWhenQueryIsNull() {
-            // Arrange
             BookSearchFilters filters = new BookSearchFilters(null, Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
@@ -521,10 +523,8 @@ class BookServiceImplTest {
             when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
-            // Act
             PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
-            // Assert
             assertThat(result).isNotNull();
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
@@ -533,7 +533,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Search: Should call findAll when query is empty string")
         void shouldCallFindAllWhenQueryIsEmpty() {
-            // Arrange
             BookSearchFilters filters = new BookSearchFilters("", Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
@@ -542,10 +541,8 @@ class BookServiceImplTest {
             when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
-            // Act
             PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
-            // Assert
             assertThat(result).isNotNull();
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
@@ -554,7 +551,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Search: Should call findAll when query is only whitespace")
         void shouldCallFindAllWhenQueryIsBlank() {
-            // Arrange
             BookSearchFilters filters = new BookSearchFilters("   ", Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
@@ -563,10 +559,8 @@ class BookServiceImplTest {
             when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
-            // Act
             PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
-            // Assert
             assertThat(result).isNotNull();
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }
@@ -575,7 +569,6 @@ class BookServiceImplTest {
         @Test
         @DisplayName("Search: Should call findAll when query is a valid string")
         void shouldCallSearchWhenQueryIsValid() {
-            // Arrange
             BookSearchFilters filters = new BookSearchFilters("Tolkien", Collections.emptySet(), null, null, null);
             Pageable pageable = PageRequest.of(0, 10);
             Page<Book> mockBookPage = new PageImpl<>(List.of(new Book()), pageable, 1);
@@ -584,10 +577,8 @@ class BookServiceImplTest {
             when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(mockBookPage);
             when(bookMapper.toBookSummaryDto(any(Book.class))).thenReturn(mockDto);
 
-            // Act
             PagedResponse<BookSummaryDto> result = bookServiceImpl.searchBooks(filters, pageable);
 
-            // Assert
             assertThat(result).isNotNull();
             verify(bookRepository).findAll(any(Specification.class), eq(pageable));
         }

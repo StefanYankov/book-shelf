@@ -10,12 +10,14 @@ import bg.softuni.bookshelf.shared.DeveloperErrors;
 import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
+import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.BookImageDeletionEvent;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.UploadResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,6 +42,10 @@ public class BookServiceImpl extends BaseService implements BookService {
     private final GenreRepository genreRepository;
     private final BookMapper bookMapper;
     private final ImageUploadService imageUploadService;
+    // Placeholder public id returned by the no-op image service; never a real Cloudinary asset,
+    // so it must not trigger a remote delete.
+    private static final String PLACEHOLDER_PUBLIC_ID = "noop";
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -115,7 +121,16 @@ public class BookServiceImpl extends BaseService implements BookService {
         Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);
 
         Book bookToDelete = findOrThrow(() -> bookRepository.findById(id), ErrorCode.BOOK_NOT_FOUND, id);
+
+        // Capture the image's public id before deletion; the actual image removal is deferred to a
+        // post-commit listener so it runs only if this deletion commits.
+        String coverPublicId = coverPublicIdOf(bookToDelete);
+
         bookRepository.delete(bookToDelete);
+
+        if (coverPublicId != null) {
+            eventPublisher.publishEvent(new BookImageDeletionEvent(coverPublicId));
+        }
 
         log.info("Successfully deleted book with ID: {}", id);
     }
@@ -204,5 +219,15 @@ public class BookServiceImpl extends BaseService implements BookService {
         log.info("Successfully updated book with ID: {}", updatedBook.getId());
 
         return bookMapper.toBookDetailsDto(updatedBook);
+    }
+
+    // Returns the cover's real public id, or null when there is no cover or it is the no-op
+    // placeholder — the latter is not a real remote asset and must not be scheduled for deletion.
+    private String coverPublicIdOf(Book book) {
+        Image cover = book.getCoverImage();
+        if (cover == null || cover.getPublicId() == null || PLACEHOLDER_PUBLIC_ID.equals(cover.getPublicId())) {
+            return null;
+        }
+        return cover.getPublicId();
     }
 }
