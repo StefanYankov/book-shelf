@@ -9,6 +9,7 @@ import bg.softuni.bookshelf.data.repository.AccountStatusEventRepository;
 import bg.softuni.bookshelf.data.repository.UserRepository;
 import bg.softuni.bookshelf.service.base.BaseService;
 import bg.softuni.bookshelf.service.user.dto.*;
+import bg.softuni.bookshelf.shared.aop.Audited;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +88,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
+    @Audited
     public void lockUser(UUID userId, String reason, UUID actorId, Duration duration) {
         if (userId.equals(actorId)) {
             throw new BusinessException(ErrorCode.SELF_LOCK_PREVENTION);
@@ -95,8 +97,7 @@ public class UserServiceImpl extends BaseService implements UserService {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
 
-        // A null duration is a permanent lock: it leaves the event's expiry null, which the
-        // reconciliation job never selects. A duration produces a temporary lock.
+        // A null duration is a permanent lock. A duration produces a temporary lock.
         Instant expiry = duration == null ? null : Instant.now().plus(duration);
 
         recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_LOCKED, expiry);
@@ -106,6 +107,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
+    @Audited
     public void unlockUser(UUID userId, String reason, UUID actorId) {
         User user = findOrThrow(() -> userRepository.findById(userId), ErrorCode.USER_NOT_FOUND, userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
@@ -116,6 +118,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
+    @Audited
     public void grantPermission(UUID userId, Permission permission, String reason, UUID actorId) {
         ApplicationUser user = findApplicationUserOrThrow(userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
@@ -129,6 +132,7 @@ public class UserServiceImpl extends BaseService implements UserService {
 
     @Override
     @Transactional
+    @Audited
     public void revokePermission(UUID userId, Permission permission, String reason, UUID actorId) {
         ApplicationUser user = findApplicationUserOrThrow(userId);
         User actor = findOrThrow(() -> userRepository.findById(actorId), ErrorCode.USER_NOT_FOUND, actorId);
