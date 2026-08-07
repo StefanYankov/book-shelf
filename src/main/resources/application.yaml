@@ -48,3 +48,8 @@ app:
 reading-challenge:
   service:
     url: ${READING_CHALLENGE_SERVICE_URL:http://localhost:8081}
+cloudinary:
+  enabled: ${CLOUDINARY_ENABLED:false}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}

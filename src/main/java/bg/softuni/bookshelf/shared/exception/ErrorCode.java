@@ -15,6 +15,7 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND("E0001", "The requested resource could not be found.", HttpStatus.NOT_FOUND),
     VALIDATION_FAILED("E0002", "Input validation failed.", HttpStatus.BAD_REQUEST),
     ACCESS_DENIED("E0003", "You do not have permission to perform this action.", HttpStatus.FORBIDDEN),
+    IMAGE_UPLOAD_FAILED("E0004", "Failed to upload the image. Please try again.", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // --- Authentication (E1000 - E1099) ---
     USERNAME_ALREADY_EXISTS("E1000", "A user with this username already exists.", HttpStatus.CONFLICT),

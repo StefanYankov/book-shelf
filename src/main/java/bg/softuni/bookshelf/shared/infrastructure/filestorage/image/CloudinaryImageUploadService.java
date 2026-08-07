@@ -1,43 +1,53 @@
 package bg.softuni.bookshelf.shared.infrastructure.filestorage.image;
 
+import bg.softuni.bookshelf.shared.exception.BusinessException;
+import bg.softuni.bookshelf.shared.exception.ErrorCode;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Map;
+
 /**
- * Concrete implementation of the {@link ImageUploadService} using the Cloudinary platform.
- * This service contains all Cloudinary-specific API calls and logic.
+ * Cloudinary-backed {@link ImageUploadService}. Active only when {@code cloudinary.enabled=true},
+ * so it coexists with the no-op implementation and is selected by configuration.
  */
+@Slf4j
 @Service
+@ConditionalOnProperty(name = "cloudinary.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class CloudinaryImageUploadService implements ImageUploadService {
 
-    // TODO: Inject the configured Cloudinary SDK client here.
-    // private final Cloudinary cloudinary;
+    private final Cloudinary cloudinary;
 
     @Override
     public UploadResult uploadImage(MultipartFile file) {
-        // This is a placeholder implementation.
-        // The actual implementation will involve:
-        // 1. Using the Cloudinary SDK to upload the file's byte stream.
-        // 2. Extracting the "secure_url" and "public_id" from the Cloudinary API response.
-        // 3. Returning them in a new UploadResult record.
-        //
-        // Example (conceptual):
-        // Map response = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-        // String url = (String) response.get("secure_url");
-        // String publicId = (String) response.get("public_id");
-        // return new UploadResult(url, publicId);
-
-        // For now, return dummy data to allow dependent services to compile.
-        return new UploadResult("https://res.cloudinary.com/dummy/image/upload/v1/dummy.jpg", "dummy_public_id");
+        try {
+            Map<?, ?> response = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            String url = (String) response.get("secure_url");
+            String publicId = (String) response.get("public_id");
+            log.info("Uploaded image to Cloudinary with public id {}", publicId);
+            return new UploadResult(url, publicId);
+        } catch (IOException e) {
+            log.error("Cloudinary image upload failed", e);
+            throw new BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED);
+        }
     }
 
     @Override
     public void deleteImage(String publicId) {
-        // This is a placeholder implementation.
-        // The actual implementation will involve:
-        // 1. Using the Cloudinary SDK to call the destroy method with the publicId.
-        //
-        // Example (conceptual):
-        // cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+        try {
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            log.info("Deleted image {} from Cloudinary", publicId);
+        } catch (IOException e) {
+            // Best-effort: a failed remote delete must not break the calling operation. The orphaned
+            // asset can be reconciled later (see the orphan-cleanup backlog item).
+            log.warn("Failed to delete image {} from Cloudinary", publicId, e);
+        }
     }
 }
