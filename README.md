@@ -35,12 +35,12 @@ The **Book Shelf API** is a Java-based web application developed as a final proj
 - **Containerization**: Docker and Docker Compose
 - **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
 - **Inter-service communication**: Spring Cloud OpenFeign - the main application consumes the reading challenge microservice via a Feign client, forwarding the caller's JWT and translating downstream errors into the application's standard problem response.
-- **Scheduling and Caching**: Spring's scheduling (`@Scheduled`) runs periodic maintenance jobs; Spring's caching abstraction (`@Cacheable`/`@CacheEvict`) caches the book catalog with eviction on writes.
+- **Scheduling and Caching**: Spring's scheduling (`@Scheduled`) runs periodic maintenance jobs; Spring's caching abstraction (`@Cacheable`/`@CacheEvict`) caches the book catalog with eviction on writes. The cache backend is selected by `spring.cache.type`: Redis where available, in-memory otherwise.
 - **Aspect-Oriented Programming**: Spring AOP provides execution-time logging (`@LogExecutionTime`) and audit logging of sensitive operations (`@Audited`).
 - **Image storage**: Cloudinary, behind an `ImageUploadService` abstraction. Cloudinary is used when enabled by configuration; otherwise a no-op implementation is used, so the application runs without a Cloudinary account.
 - **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
 - **Testing**:
-    - **Backend**: JUnit 5, Testcontainers, Mockito, AssertJ, WireMock (Spring Cloud Contract)
+    - **Backend**: JUnit 5, Testcontainers (PostgreSQL, Redis), Mockito, AssertJ, WireMock (Spring Cloud Contract)
     - **Frontend**: Vitest, JSDOM
 
 ## Implemented Features
@@ -117,7 +117,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Catalog management API: admin-only controllers under `/api/admin/{authors,genres,languages,publishers}` for creating, reading, updating, and deleting each taxonomy resource, secured by both the URL rule and a class-level `@PreAuthorize("hasRole('ADMIN')")`.
     -   Content moderation endpoints (`/api/moderation`): book moderation delegatable via `MODERATE_BOOKS`, bookshelf moderation and deletion administrator-only, each gated per action so URL-level role rules do not pre-empt method security.
 -   **Scheduling and Caching**:
-    -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes.
+    -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes. Cached values are stored with a 30-minute time-to-live; the backend is Redis when `spring.cache.type=redis`, and in-memory otherwise.
     -   A cron job purges expired verification and password-reset tokens nightly.
     -   A fixed-delay job reconciles expired temporary account locks into unlock events; temporary locks (with an expiry) are lifted automatically, while permanent locks persist until an explicit administrative unlock.
 -   **Reading Challenge Integration**:
@@ -163,6 +163,7 @@ The Angular frontend is built with a standalone component architecture and follo
 - **Reading Challenge Microservice**: The main application delegates reading challenge operations to a separate Spring Boot REST microservice through a Feign client. The main application authenticates the user and forwards the JWT; the microservice independently validates the token and owns the reading challenge data in its own PostgreSQL database.
     - Microservice repository: https://github.com/StefanYankov/reading-challenge-svc
 - **Cloudinary**: Book cover images are stored in Cloudinary when the integration is enabled. See [Configuration Toggles](#configuration-toggles).
+- **Redis**: Used as the book-cache backend when `spring.cache.type=redis`. See [Configuration Toggles](#configuration-toggles).
 
 ## Project Structure
 The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
@@ -199,13 +200,13 @@ book-shelf/
 │   └── 📂 test/
 │
 ├── 📄 build.gradle                     # Backend build script
-├── 📄 compose.yaml                     # Docker Compose (Postgres setup)
+├── 📄 compose.yaml                     # Docker Compose (Postgres and Redis)
 └── 📄 README.md                        # Project documentation
 ```
 
 ## Installation and Setup
 
-The application is designed to be run with Docker Compose for the database and local servers for the backend and frontend.
+The application is designed to be run with Docker Compose for the infrastructure and local servers for the backend and frontend.
 
 > [!NOTE]
 > The reading challenge features require the reading challenge microservice to be running (default `http://localhost:8081`). See its repository for setup. When the microservice is not running, the main application returns an error for challenge operations but otherwise functions normally.
@@ -214,6 +215,7 @@ The application is designed to be run with Docker Compose for the database and l
     ```bash
     docker compose up -d
     ```
+    This starts PostgreSQL and Redis.
 
 2. **Run Backend**:
     -   Open the project in IntelliJ IDEA.
@@ -242,6 +244,15 @@ The application is designed to be run with Docker Compose for the database and l
 ## Configuration Toggles
 
 The application runs with sensible defaults and does not require any optional integration to be configured. The following toggles are provided for reviewers who want to activate optional or environment-specific behavior.
+
+### Cache backend (Redis or in-memory)
+
+The book cache is provider-agnostic and selected by `spring.cache.type`:
+
+- `simple` (default in the base configuration and tests) - an in-memory cache, no Redis required.
+- `redis` (the `dev` profile) - a Redis-backed cache, storing values as JSON with a 30-minute time-to-live. Redis host/port are read from `spring.data.redis.host`/`spring.data.redis.port` (default `localhost:6379`, provided by Docker Compose).
+
+Cached service methods are unchanged regardless of backend. To point at an external Redis, set `CACHE_TYPE=redis`, `REDIS_HOST`, and `REDIS_PORT`.
 
 ### Cloudinary image storage (optional)
 
