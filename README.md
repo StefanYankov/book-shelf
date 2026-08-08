@@ -58,6 +58,11 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Public-facing REST endpoints for searching and viewing books.
     -   A Signal-based Angular UI for real-time book searching with debouncing.
     -   A dedicated, routed component for viewing the full details of a single book.
+-   **Catalog Management (administrators)**:
+    -   Administrators create, edit, and delete authors, genres, languages, and publishers through dedicated pages under `/admin`.
+    -   Each resource is served by an admin-only REST controller under `/api/admin`, secured by both the URL rule and a class-level `@PreAuthorize("hasRole('ADMIN')")`.
+    -   Author creation accepts an optional profile image, uploaded through the same `ImageUploadService` abstraction as book covers.
+    -   Deletes that would break referential integrity (e.g. a genre still used by a book) return a conflict rather than failing.
 -   **Bookshelf Management**:
     -   Custom user-defined bookshelf entities with database-level pagination tracking.
     -   Dedicated controller endpoints for adding, listing, and removing items.
@@ -109,6 +114,7 @@ The project is being developed using a strict **Domain-Driven Design (DDD)** app
     -   Stateful user locking and unlocking operations writing history to a persistent account-status event track. Locks may be permanent or temporary (time-boxed), with expired temporary locks reconciled automatically.
     -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
     -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
+    -   Catalog management API: admin-only controllers under `/api/admin/{authors,genres,languages,publishers}` for creating, reading, updating, and deleting each taxonomy resource, secured by both the URL rule and a class-level `@PreAuthorize("hasRole('ADMIN')")`.
     -   Content moderation endpoints (`/api/moderation`): book moderation delegatable via `MODERATE_BOOKS`, bookshelf moderation and deletion administrator-only, each gated per action so URL-level role rules do not pre-empt method security.
 -   **Scheduling and Caching**:
     -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes.
@@ -143,8 +149,9 @@ The Angular frontend is built with a standalone component architecture and follo
 -   **Administrative Zone (`layout/admin-layout`):**
     -   `AdminLayout`: Control panel shell segregated from user layouts to provide system-level administration interfaces.
     -   `AdminHeader`: Restricts layout navigation paths when a forced credential rotation is active.
-    -   `AdminHome`: Dashboard landing view for the administrative root layout.
+    -   `AdminHome`: Dashboard landing view for the administrative root layout, with quick-action cards linking to the catalog management pages.
     -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock (permanent or temporary) and on-demand permission management - a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
+    -   `AuthorManagement`, `GenreManagement`, `LanguageManagement`, `PublisherManagement`: Catalog management pages that list each resource and support create, edit, and delete with a confirmation step; author creation accepts an optional profile image. Each page talks to a dedicated facade over the generated API client.
     -   `ContentModeration`: Administrator content moderation for books and bookshelves.
     -   `AdminProfile`: Profile component using complexity rules to enforce administrative credential changes.
 -   **Core Views and Components:**
