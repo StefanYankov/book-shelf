@@ -7,15 +7,15 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import {SortObject} from './sortObject';
+import {GenreDto} from './genreDto';
 
 
-export interface PageableObject {
-    offset?: number;
-    sort?: SortObject;
+export interface PagedResponseGenreDto {
+  content?: Array<GenreDto>;
   pageNumber?: number;
   pageSize?: number;
-  paged?: boolean;
-  unpaged?: boolean;
+  totalElements?: number;
+  totalPages?: number;
+  isLast?: boolean;
 }
 

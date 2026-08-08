@@ -7,15 +7,15 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import {SortObject} from './sortObject';
+import {LanguageDto} from './languageDto';
 
 
-export interface PageableObject {
-    offset?: number;
-    sort?: SortObject;
+export interface PagedResponseLanguageDto {
+  content?: Array<LanguageDto>;
   pageNumber?: number;
   pageSize?: number;
-  paged?: boolean;
-  unpaged?: boolean;
+  totalElements?: number;
+  totalPages?: number;
+  isLast?: boolean;
 }
 

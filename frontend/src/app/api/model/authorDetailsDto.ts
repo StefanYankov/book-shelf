@@ -7,11 +7,14 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import {PageBookSummaryDto} from './pageBookSummaryDto';
 
 
-export interface SortObject {
-    empty?: boolean;
-  sorted?: boolean;
-  unsorted?: boolean;
+export interface AuthorDetailsDto {
+  id?: string;
+  name?: string;
+  summary?: string;
+  imageUrl?: string;
+  books?: PageBookSummaryDto;
 }
 

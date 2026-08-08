@@ -9,9 +9,8 @@
  */
 
 
-export interface SortObject {
-    empty?: boolean;
-  sorted?: boolean;
-  unsorted?: boolean;
+export interface GenreUpdateDto {
+  name?: string;
+  description?: string;
 }
 

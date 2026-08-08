@@ -9,9 +9,7 @@
  */
 
 
-export interface SortObject {
-    empty?: boolean;
-  sorted?: boolean;
-  unsorted?: boolean;
+export interface LanguageCreateDto {
+  name: string;
 }
 

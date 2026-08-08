@@ -9,9 +9,9 @@
  */
 
 
-export interface SortObject {
-    empty?: boolean;
-  sorted?: boolean;
-  unsorted?: boolean;
+export interface AuthorSummaryDto {
+  id?: string;
+  name?: string;
+  imageUrl?: string;
 }
 
