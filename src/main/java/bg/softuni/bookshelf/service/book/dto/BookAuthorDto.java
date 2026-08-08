@@ -5,7 +5,7 @@ import java.util.UUID;
 /**
  * A simple DTO representing an Author's basic information.
  */
-public record AuthorDto(
+public record BookAuthorDto(
         UUID id,
         String name
 ) {

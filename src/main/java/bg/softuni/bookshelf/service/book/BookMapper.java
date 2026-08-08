@@ -1,10 +1,6 @@
 package bg.softuni.bookshelf.service.book;
 
-import bg.softuni.bookshelf.data.entity.Author;
-import bg.softuni.bookshelf.data.entity.Book;
-import bg.softuni.bookshelf.data.entity.Genre;
-import bg.softuni.bookshelf.data.entity.Language;
-import bg.softuni.bookshelf.data.entity.Publisher;
+import bg.softuni.bookshelf.data.entity.*;
 import bg.softuni.bookshelf.service.book.dto.*;
 import org.springframework.stereotype.Component;
 
@@ -81,19 +77,19 @@ public class BookMapper {
         );
     }
 
-    private AuthorDto toAuthorDto(Author author) {
-        return new AuthorDto(author.getId(), author.getName());
+    private BookAuthorDto toAuthorDto(Author author) {
+        return new BookAuthorDto(author.getId(), author.getName());
     }
 
-    private LanguageDto toLanguageDto(Language language) {
-        return new LanguageDto(language.getId(), language.getName());
+    private BookLanguageDto toLanguageDto(Language language) {
+        return new BookLanguageDto(language.getId(), language.getName());
     }
 
-    private PublisherDto toPublisherDto(Publisher publisher) {
-        return new PublisherDto(publisher.getId(), publisher.getName());
+    private BookPublisherDto toPublisherDto(Publisher publisher) {
+        return new BookPublisherDto(publisher.getId(), publisher.getName());
     }
 
-    private GenreDto toGenreDto(Genre genre) {
-        return new GenreDto(genre.getId(), genre.getName());
+    private BookGenreDto toGenreDto(Genre genre) {
+        return new BookGenreDto(genre.getId(), genre.getName());
     }
 }

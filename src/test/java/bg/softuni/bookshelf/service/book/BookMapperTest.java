@@ -5,8 +5,8 @@ import bg.softuni.bookshelf.data.entity.value.Image;
 import bg.softuni.bookshelf.data.enums.BookFormat;
 import bg.softuni.bookshelf.service.book.dto.BookCreateDto;
 import bg.softuni.bookshelf.service.book.dto.BookDetailsDto;
+import bg.softuni.bookshelf.service.book.dto.BookGenreDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
-import bg.softuni.bookshelf.service.book.dto.GenreDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -112,7 +112,7 @@ class BookMapperTest {
         assertThat(dto.author().name()).isEqualTo("Frank Herbert");
         assertThat(dto.language().name()).isEqualTo("English");
         assertThat(dto.publisher().name()).isEqualTo("Chilton");
-        assertThat(dto.genres()).extracting(GenreDto::name).containsExactly("Sci-Fi");
+        assertThat(dto.genres()).extracting(BookGenreDto::name).containsExactly("Sci-Fi");
         assertThat(dto.coverImageUrl()).isEqualTo("https://cdn/dune.jpg");
     }
 

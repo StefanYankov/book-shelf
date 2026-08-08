@@ -18,10 +18,10 @@ public record BookDetailsDto(
         int yearPublished,
         String summary,
         BookFormat format,
-        AuthorDto author,
-        LanguageDto language,
-        PublisherDto publisher,
-        Set<GenreDto> genres,
+        BookAuthorDto author,
+        BookLanguageDto language,
+        BookPublisherDto publisher,
+        Set<BookGenreDto> genres,
         String coverImageUrl
 ) {
 }
