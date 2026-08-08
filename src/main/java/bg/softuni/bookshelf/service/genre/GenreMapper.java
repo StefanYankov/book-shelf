@@ -1,10 +1,9 @@
 package bg.softuni.bookshelf.service.genre;
 
-import org.springframework.stereotype.Component;
-
 import bg.softuni.bookshelf.data.entity.Genre;
 import bg.softuni.bookshelf.service.genre.dto.GenreCreateDto;
 import bg.softuni.bookshelf.service.genre.dto.GenreDto;
+import org.springframework.stereotype.Component;
 
 /**
  * Component responsible for mapping between Genre entities and their corresponding DTOs.
@@ -31,6 +30,7 @@ public class GenreMapper {
     public Genre toEntity(GenreCreateDto dto) {
         Genre genre = new Genre();
         genre.setName(dto.name());
+        genre.setDescription(dto.description());
         return genre;
     }
 }

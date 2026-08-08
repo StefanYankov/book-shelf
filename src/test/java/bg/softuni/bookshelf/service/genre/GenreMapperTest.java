@@ -35,7 +35,7 @@ class GenreMapperTest {
     }
 
     @Test
-    @DisplayName("toEntity maps the name")
+    @DisplayName("toEntity maps name and description")
     void toEntity() {
         // Arrange
         GenreCreateDto dto = GenreCreateDto.builder().name("Fantasy").description("Magic.").build();
@@ -45,5 +45,20 @@ class GenreMapperTest {
 
         // Assert
         assertThat(result.getName()).isEqualTo("Fantasy");
+        assertThat(result.getDescription()).isEqualTo("Magic.");
+    }
+
+    @Test
+    @DisplayName("toEntity maps a null description")
+    void toEntity_nullDescription() {
+        // Arrange
+        GenreCreateDto dto = GenreCreateDto.builder().name("Fantasy").build();
+
+        // Act
+        Genre result = mapper.toEntity(dto);
+
+        // Assert
+        assertThat(result.getName()).isEqualTo("Fantasy");
+        assertThat(result.getDescription()).isNull();
     }
 }
