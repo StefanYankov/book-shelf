@@ -12,6 +12,8 @@ spring:
       pageable:
         max-page-size: 200
         default-page-size: 20
+  cache:
+    type: ${CACHE_TYPE:simple}
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -34,9 +36,8 @@ logging:
 application:
   security:
     jwt:
-      # This MUST be provided via an environment variable in production
       secret-key: ${JWT_SECRET_KEY}
-      expiration: 3600000 # 60 minutes (limits lock-bypass window; see refresh-token note)
+      expiration: 3600000 # 60 minutes
     auto-seed-admin: false
   scheduling:
     enabled: true
