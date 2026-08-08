@@ -44,10 +44,6 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
      * @return a fully populated custom user record containing the UUID (never {@code null})
      * @throws UsernameNotFoundException if the user could not be found.
      */
-    // TODO(caching, Redis): re-introduce caching here ONLY together with eviction on
-    //   lock/unlock. Caching UserDetails caches the isEnabled flag at load time, which would
-    //   make account-lock revocation strictly worse (a locked user stays cached as enabled).
-    //   Pair any @Cacheable("users") with @CacheEvict on AccountStatusService lock/unlock.
     @Override
     public UserDetails loadUserByUsername(String username)  throws UsernameNotFoundException {
         log.debug("Attempting to load user by username: {}", username);

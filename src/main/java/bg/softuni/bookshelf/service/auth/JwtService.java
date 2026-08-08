@@ -114,7 +114,6 @@ public class JwtService {
 
         // KNOWN LIMITATION (stateless JWT): principal rebuilt from claims; isEnabled hardcoded true.
         // Lock/ban and permission changes do NOT revoke a live token until it expires.
-        // TODO(revocation, Redis): per-user token-version / deny-list here for instant revocation.
         return new CustomUserDetails(
                 UUID.fromString(userId),
                 claims.getSubject(),
