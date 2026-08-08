@@ -11,7 +11,6 @@ import org.hibernate.validator.constraints.ISBN;
 import java.util.HashSet;
 import java.util.Set;
 
-// TODO: split books from editions, as we have shared book properties across multiple editions. Make book abstract
 @Entity
 @Table(name = "books")
 @Getter
@@ -44,7 +43,6 @@ public class Book extends BaseUUIDEntity {
     @Builder.Default
     private Set<Genre> genres = new HashSet<>();
 
-    // TODO: Add support for multiple images (gallery) by converting this to a @OneToMany with a BookImage entity.
     @Embedded
     private Image coverImage;
 

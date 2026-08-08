@@ -35,7 +35,6 @@ public abstract class User extends BaseUUIDEntity {
     @Column(name = "last_name", nullable = false, length = ValidationConstants.User.MAX_LAST_NAME_LENGTH)
     private String lastName;
 
-    // TODO: Expand this to a more robust, event-based system if more scenarios require it.
     @Column(name = "password_change_required", nullable = false)
     private boolean passwordChangeRequired = false;
 }

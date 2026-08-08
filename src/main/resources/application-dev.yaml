@@ -4,6 +4,12 @@ spring:
   docker:
     compose:
       enabled: true
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   flyway:
     locations: classpath:db/migration,classpath:db/dev-seed
 
@@ -19,8 +25,7 @@ application:
       secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     auto-seed-admin: true
 
-# --- NEW: localhost origin lives ONLY in the dev profile ---
-# When running with the 'dev' profile active, this overrides the production default above.
+# --- localhost origin lives ONLY in the dev profile ---
 app:
   cors:
     allowed-origins:
