@@ -24,15 +24,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -120,24 +120,25 @@ class AuthorServiceImplTest {
     @DisplayName("getById Tests")
     class GetByIdTests {
         @Test
-        @DisplayName("Happy Path: Should return author with paginated books")
+        @DisplayName("Happy Path: Should return author with the requested page of books")
         void shouldReturnAuthorWithBooks() {
             // Arrange
             UUID authorId = UUID.randomUUID();
+            Pageable booksPageable = PageRequest.of(0, 20);
             Author mockAuthor = createMockAuthor(authorId, "Tolkien");
             Page<BookSummaryDto> bookPage = new PageImpl<>(Collections.emptyList());
             AuthorDetailsDto expectedDto = new AuthorDetailsDto(authorId, "Tolkien", null, null, bookPage);
 
             given(authorRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
-            given(bookService.findAllByAuthor(eq(authorId), any())).willReturn(bookPage);
+            given(bookService.findAllByAuthor(authorId, booksPageable)).willReturn(bookPage);
             given(authorMapper.toDetailsDto(mockAuthor, bookPage)).willReturn(expectedDto);
 
             // Act
-            AuthorDetailsDto result = authorService.getById(authorId);
+            AuthorDetailsDto result = authorService.getById(authorId, booksPageable);
 
             // Assert
             assertThat(result).isEqualTo(expectedDto);
-            verify(bookService).findAllByAuthor(eq(authorId), any());
+            verify(bookService).findAllByAuthor(authorId, booksPageable);
         }
 
         @Test
@@ -145,10 +146,11 @@ class AuthorServiceImplTest {
         void shouldThrowWhenAuthorNotFound() {
             // Arrange
             UUID authorId = UUID.randomUUID();
+            Pageable booksPageable = PageRequest.of(0, 20);
             given(authorRepository.findById(authorId)).willReturn(Optional.empty());
 
             // Act & Assert
-            assertThatThrownBy(() -> authorService.getById(authorId))
+            assertThatThrownBy(() -> authorService.getById(authorId, booksPageable))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.AUTHOR_NOT_FOUND);

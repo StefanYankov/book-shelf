@@ -31,15 +31,13 @@ public interface AuthorService {
     AuthorDetailsDto createAuthor(AuthorCreateDto createDto, MultipartFile imageFile);
 
     /**
-     * Retrieves a single author by their unique ID.
-     * <p>
-     * The 'get' prefix implies a contract that an {@link AuthorDetailsDto} will be returned.
-     * If the author is not found, a business-specific exception will be thrown.
+     * Retrieves a single author by their unique ID, with a page of their books.
      *
-     * @param id The UUID of the author.
-     * @return A detailed view DTO of the author, including their books.
+     * @param id           The UUID of the author.
+     * @param booksPageable The pagination information for the author's books.
+     * @return A detailed view DTO of the author, including the requested page of their books.
      */
-    AuthorDetailsDto getById(UUID id);
+    AuthorDetailsDto getById(UUID id, Pageable booksPageable);
 
     /**
      * Retrieves a paginated list of all authors in a summary format.

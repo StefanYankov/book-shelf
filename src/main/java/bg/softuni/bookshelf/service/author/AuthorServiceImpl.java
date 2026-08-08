@@ -33,6 +33,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthorServiceImpl implements AuthorService {
 
+    private static final Pageable DEFAULT_BOOKS_PAGE = PageRequest.of(0, 20);
+
     private final AuthorRepository authorRepository;
     private final AuthorMapper authorMapper;
     private final ImageUploadService imageUploadService;
@@ -40,7 +42,6 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public AuthorDetailsDto createAuthor(AuthorCreateDto createDto, MultipartFile imageFile) {
         Objects.requireNonNull(createDto, DeveloperErrors.DTO_NULL);
         log.debug("Attempting to create new author with name: {}", createDto.name());
@@ -67,11 +68,10 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     @Transactional(readOnly = true)
-    public AuthorDetailsDto getById(UUID id) {
+    public AuthorDetailsDto getById(UUID id, Pageable booksPageable) {
         log.debug("Fetching author by ID: {}", id);
         Author author = findAuthorOrThrow(id);
-        // TODO: dynamicall fetch more than the first page of books.
-        Page<BookSummaryDto> books = bookService.findAllByAuthor(id, PageRequest.of(0, 20));
+        Page<BookSummaryDto> books = bookService.findAllByAuthor(id, booksPageable);
         return authorMapper.toDetailsDto(author, books);
     }
 
@@ -106,19 +106,17 @@ public class AuthorServiceImpl implements AuthorService {
         Author updatedAuthor = authorRepository.save(authorToUpdate);
         log.info("Successfully updated author with ID: {}", updatedAuthor.getId());
 
-        Page<BookSummaryDto> books = bookService.findAllByAuthor(id, PageRequest.of(0, 20));
+        Page<BookSummaryDto> books = bookService.findAllByAuthor(id, DEFAULT_BOOKS_PAGE);
         return authorMapper.toDetailsDto(updatedAuthor, books);
     }
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public void deleteAuthor(UUID id) {
         log.debug("Attempting to delete author with ID: {}", id);
         Author authorToDelete = findAuthorOrThrow(id);
 
         try {
-            // This assumes that if an author has books, the DB will prevent deletion.
             authorRepository.delete(authorToDelete);
 
             if (authorToDelete.getImage() != null && authorToDelete.getImage().getPublicId() != null) {
@@ -132,7 +130,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     /**
-     * Centralized lookup and exception logic to DRY up the service methods.
+     * Centralized lookup and exception logic shared by the service methods.
      */
     private Author findAuthorOrThrow(UUID id) {
         return authorRepository.findById(id)

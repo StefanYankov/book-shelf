@@ -91,7 +91,6 @@ public class PublisherServiceImpl implements PublisherService {
 
     @Override
     @Transactional
-    //TODO: add defence in depth @PreAuthorize("hasRole('ADMIN'))
     public void deletePublisher(UUID id) {
         log.debug("Attempting to delete a publisher with ID: {}", id);
         Objects.requireNonNull(id, DeveloperErrors.ENTITY_ID_NULL);

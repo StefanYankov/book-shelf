@@ -4,7 +4,7 @@
       @if (isNavigationRestricted()) {
         <span class="navbar-brand">Admin Panel</span>
       } @else {
-        <a class="navbar-brand" routerLink="/admin/users">Admin Panel</a>
+        <a class="navbar-brand" routerLink="/admin">Admin Panel</a>
       }
 
       <div class="collapse navbar-collapse">
@@ -12,6 +12,18 @@
           @if (!isNavigationRestricted()) {
             <li class="nav-item">
               <a class="nav-link" routerLink="/admin/users" routerLinkActive="active">Users</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/authors" routerLinkActive="active">Authors</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/genres" routerLinkActive="active">Genres</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/languages" routerLinkActive="active">Languages</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/publishers" routerLinkActive="active">Publishers</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" routerLink="/admin/moderation" routerLinkActive="active">Moderation</a>

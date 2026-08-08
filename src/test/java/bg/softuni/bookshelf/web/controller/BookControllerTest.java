@@ -46,10 +46,10 @@ class BookControllerTest extends AbstractControllerTestBase {
                 1937,
                 "Fictional universe text description.",
                 BookFormat.HARDCOVER,
-                new AuthorDto(UUID.randomUUID(), "J.R.R. Tolkien"),
-                new LanguageDto(UUID.randomUUID(), "English"),
-                new PublisherDto(UUID.randomUUID(), "George Allen & Unwin"),
-                Set.of(new GenreDto(UUID.randomUUID(), "Fantasy")),
+                new BookAuthorDto(UUID.randomUUID(), "J.R.R. Tolkien"),
+                new BookLanguageDto(UUID.randomUUID(), "English"),
+                new BookPublisherDto(UUID.randomUUID(), "George Allen & Unwin"),
+                Set.of(new BookGenreDto(UUID.randomUUID(), "Fantasy")),
                 "https://res.cloudinary.com/bookshelf/image/upload/covers/hobbit.jpg"
         );
     }
