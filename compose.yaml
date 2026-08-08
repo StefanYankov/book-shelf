@@ -7,14 +7,25 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
-      -  "5432:5432"
+      - "5432:5432"
     volumes:
       - bookshelf_db_data:/var/lib/postgresql/data
     networks:
       - bookshelf_net
 
+  redis:
+    image: 'redis:7-alpine'
+    container_name: bookshelf-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - bookshelf_redis_data:/data
+    networks:
+      - bookshelf_net
+
 volumes:
   bookshelf_db_data:
+  bookshelf_redis_data:
 
 networks:
   bookshelf_net:
