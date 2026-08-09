@@ -7,8 +7,9 @@ on:
     branches: [ master ]
 
 jobs:
-  backend-test:
+  backend-check:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,10 +21,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Make gradlew executable
+      - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
 
-      - name: Run Backend Tests
-        run: ./gradlew test
+      - name: Run Backend Checks
+        run: ./gradlew check
         env:
           DOCKER_HOST: unix:///var/run/docker.sock
