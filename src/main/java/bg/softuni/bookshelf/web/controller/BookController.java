@@ -19,7 +19,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -43,7 +46,7 @@ public class BookController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of books")
     @GetMapping
-    public ResponseEntity<PagedResponse<BookSummaryDto>> getAllBooks(Pageable pageable) {
+    public ResponseEntity<PagedResponse<BookSummaryDto>> getAllBooks(@ParameterObject Pageable pageable) {
         log.info("API GET request for all books, pageable: {}", pageable);
         Page<BookSummaryDto> bookPage = bookService.getAll(pageable);
         return ResponseEntity.ok(PagedResponse.from(bookPage));
@@ -78,7 +81,7 @@ public class BookController {
     @GetMapping("/search")
     public ResponseEntity<PagedResponse<BookSummaryDto>> searchBooks(
             @ParameterObject @Valid BookSearchFilters filters,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         log.info("Faceted catalog search request. Filters: {}", filters);
         return ResponseEntity.ok(bookService.searchBooks(filters, pageable));

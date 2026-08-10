@@ -5,11 +5,8 @@ import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -100,6 +97,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problem.setType(URI.create("urn:bookshelf:token-expired"));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    /**
+     * Handles an invalid Pageable sort property (e.g. ?sort=doesNotExist).
+     */
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidSortProperty(PropertyReferenceException ex) {
+        log.warn("Invalid sort property requested: {}", ex.getPropertyName());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Invalid sort property: " + ex.getPropertyName());
+        problem.setTitle("Invalid Sort Parameter");
+        problem.setType(URI.create("urn:bookshelf:invalid-sort"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
     /**

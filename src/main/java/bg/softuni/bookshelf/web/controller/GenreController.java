@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,7 @@ public class GenreController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved the paginated genres.")
     @GetMapping
-    public ResponseEntity<PagedResponse<GenreDto>> getAllGenres(Pageable pageable) {
+    public ResponseEntity<PagedResponse<GenreDto>> getAllGenres(@ParameterObject Pageable pageable) {
         log.info("API GET request to list genres.");
         Page<GenreDto> page = genreService.getAll(pageable);
         return ResponseEntity.ok(PagedResponse.from(page));

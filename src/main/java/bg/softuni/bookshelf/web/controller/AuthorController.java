@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -46,7 +47,7 @@ public class AuthorController {
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved the paginated authors.")
     @GetMapping
-    public ResponseEntity<PagedResponse<AuthorSummaryDto>> getAllAuthors(Pageable pageable) {
+    public ResponseEntity<PagedResponse<AuthorSummaryDto>> getAllAuthors(@ParameterObject Pageable pageable) {
         log.info("API GET request to list authors.");
         Page<AuthorSummaryDto> page = authorService.getAll(pageable);
         return ResponseEntity.ok(PagedResponse.from(page));
@@ -61,7 +62,7 @@ public class AuthorController {
     @GetMapping("/{id}")
     public ResponseEntity<AuthorDetailsDto> getAuthorById(
             @Parameter(description = "The UUID of the author") @PathVariable UUID id,
-            Pageable pageable) {
+            @ParameterObject Pageable pageable) {
         log.info("API GET request for author {}.", id);
         return ResponseEntity.ok(authorService.getById(id, pageable));
     }

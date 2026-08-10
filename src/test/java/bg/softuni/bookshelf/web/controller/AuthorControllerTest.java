@@ -2,6 +2,7 @@ package bg.softuni.bookshelf.web.controller;
 
 import bg.softuni.bookshelf.service.author.dto.AuthorDetailsDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorSummaryDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +30,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthorControllerTest extends AbstractControllerTestBase {
 
     private static final String BASE_URL = "/api/admin/authors";
+
+    // NOTE: the original image URL string was missing from the paste; "http://image.url"
+    // is used as a placeholder. Replace with the intended value if different.
+    private static final String IMAGE_URL = "http://image.url";
 
     private MockMultipartFile authorPart(String json) {
         return new MockMultipartFile("author", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes());
@@ -77,7 +82,7 @@ class AuthorControllerTest extends AbstractControllerTestBase {
             // Arrange
             UUID id = UUID.randomUUID();
             given(authorService.getById(any(), any()))
-                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", null, Page.empty()));
+                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", null, PagedResponse.from(Page.empty())));
 
             // Act & Assert
             mockMvc.perform(get(BASE_URL + "/" + id))
@@ -114,7 +119,7 @@ class AuthorControllerTest extends AbstractControllerTestBase {
             // Arrange
             UUID id = UUID.randomUUID();
             given(authorService.createAuthor(any(), any()))
-                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", null, Page.empty()));
+                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", null, PagedResponse.from(Page.empty())));
 
             // Act & Assert
             mockMvc.perform(multipart(BASE_URL).file(authorPart("{\"name\":\"Tolkien\",\"summary\":\"Bio\"}")))
@@ -132,7 +137,7 @@ class AuthorControllerTest extends AbstractControllerTestBase {
             // Arrange
             UUID id = UUID.randomUUID();
             given(authorService.createAuthor(any(), any()))
-                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", "https://cdn/a.jpg", Page.empty()));
+                    .willReturn(new AuthorDetailsDto(id, "Tolkien", "Bio", IMAGE_URL, PagedResponse.from(Page.empty())));
             MockMultipartFile image = new MockMultipartFile("image", "a.jpg", "image/jpeg", new byte[]{1, 2, 3});
 
             // Act & Assert
@@ -140,7 +145,7 @@ class AuthorControllerTest extends AbstractControllerTestBase {
                             .file(authorPart("{\"name\":\"Tolkien\",\"summary\":\"Bio\"}"))
                             .file(image))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.imageUrl").value("https://cdn/a.jpg"));
+                    .andExpect(jsonPath("$.imageUrl").value(IMAGE_URL));
         }
 
         @Test
@@ -190,7 +195,7 @@ class AuthorControllerTest extends AbstractControllerTestBase {
             // Arrange
             UUID id = UUID.randomUUID();
             given(authorService.updateAuthor(any(), any()))
-                    .willReturn(new AuthorDetailsDto(id, "New Name", "New Bio", null, Page.empty()));
+                    .willReturn(new AuthorDetailsDto(id, "New Name", "New Bio", null, PagedResponse.from(Page.empty())));
             String body = "{\"name\":\"New Name\",\"summary\":\"New Bio\"}";
 
             // Act & Assert

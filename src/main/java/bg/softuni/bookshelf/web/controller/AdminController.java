@@ -14,11 +14,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -54,7 +54,7 @@ public class AdminController {
             )
     })
     @GetMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedResponse<AdminUserViewDto>> getAllUsers(Pageable pageable) {
+    public ResponseEntity<PagedResponse<AdminUserViewDto>> getAllUsers(@ParameterObject Pageable pageable) {
         log.info("API GET request to retrieve all users for admin.");
         Page<AdminUserViewDto> userPage = userService.getAllUsers(pageable);
         return ResponseEntity.ok(PagedResponse.from(userPage));
@@ -63,7 +63,6 @@ public class AdminController {
     @Operation(
             operationId = "lockUser",
             summary = "Lock a user account",
-            security = @SecurityRequirement(name = "bearerAuth"),
             description = "Locks a user's account, preventing them from logging in. Provide a positive "
                     + "lockDurationHours for a temporary lock; omit it for a permanent lock."
     )
@@ -94,7 +93,6 @@ public class AdminController {
     @Operation(
             operationId = "unlockUser",
             summary = "Unlock a user account",
-            security = @SecurityRequirement(name = "bearerAuth"),
             description = "Unlocks a previously locked user account."
     )
     @ApiResponses({
@@ -121,7 +119,6 @@ public class AdminController {
     @Operation(
             operationId = "grantPermission",
             summary = "Grant a permission to a user",
-            security = @SecurityRequirement(name = "bearerAuth"),
             description = "Grants a fine-grained permission (e.g. review moderation) to a standard user account."
     )
     @ApiResponses({
@@ -153,7 +150,6 @@ public class AdminController {
     @Operation(
             operationId = "revokePermission",
             summary = "Revoke a permission from a user",
-            security = @SecurityRequirement(name = "bearerAuth"),
             description = "Revokes a previously granted fine-grained permission from a standard user account."
     )
     @ApiResponses({
@@ -185,7 +181,6 @@ public class AdminController {
     @Operation(
             operationId = "getUserPermissions",
             summary = "Get a user's permissions",
-            security = @SecurityRequirement(name = "bearerAuth"),
             description = "Retrieves the fine-grained permissions currently granted to a standard user account."
     )
     @ApiResponses({

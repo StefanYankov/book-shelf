@@ -1,6 +1,7 @@
 package bg.softuni.bookshelf.service.publisher.dto;
 
 import bg.softuni.bookshelf.shared.ValidationConstants;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
@@ -11,6 +12,8 @@ import lombok.Builder;
  */
 @Builder
 public record PublisherUpdateDto(
+        @Schema(description = "New publisher name; must be unique (case-insensitive).",
+                example = "Penguin Classics")
         @Size(max = ValidationConstants.Publisher.MAX_NAME_LENGTH, message = "{validation.publisher.name.toolong}")
         String name
 ) {

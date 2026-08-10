@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class UserShelfController {
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<PagedResponse<BookshelfSummaryDto>> getUserShelves(
             @AuthenticationPrincipal CustomUserDetails principal,
-            Pageable pageable) {
+            @ParameterObject Pageable pageable) {
         PagedResponse<BookshelfSummaryDto> shelves = bookshelfService.getShelvesForUser(principal.getId(), pageable);
         return ResponseEntity.ok(shelves);
     }
@@ -88,7 +89,7 @@ public class UserShelfController {
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<PagedResponse<BookSummaryDto>> getBooksInShelf(
             @Parameter(description = "The UUID of the shelf") @PathVariable UUID shelfId,
-            Pageable pageable) {
+            @ParameterObject Pageable pageable) {
         PagedResponse<BookSummaryDto> books = bookshelfService.getBooksInShelf(shelfId, pageable);
         return ResponseEntity.ok(books);
     }
