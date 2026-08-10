@@ -5,6 +5,7 @@ import bg.softuni.bookshelf.service.author.dto.AuthorCreateDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorDetailsDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorSummaryDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,8 @@ public class AuthorMapper {
 
     /**
      * Maps an {@link Author} entity and a page of their books to an {@link AuthorDetailsDto}.
+     * The incoming {@link Page} is wrapped in the framework-agnostic {@link PagedResponse}
+     * so the API contract does not leak Spring's pagination type.
      *
      * @param author The persistent {@link Author} entity.
      * @param books  A paginated list of the author's books.
@@ -41,7 +44,7 @@ public class AuthorMapper {
                 author.getName(),
                 author.getSummary(),
                 author.getImage() != null ? author.getImage().getUrl() : null,
-                books
+                PagedResponse.from(books)
         );
     }
 

@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -10,8 +10,17 @@
 
 
 export interface GenreDto {
+  /**
+   * Unique genre identifier.
+   */
     id?: string;
+  /**
+   * Genre name.
+   */
     name?: string;
+  /**
+   * Short description of the genre.
+   */
   description?: string;
 }
 

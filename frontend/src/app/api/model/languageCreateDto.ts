@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -10,6 +10,9 @@
 
 
 export interface LanguageCreateDto {
+  /**
+   * Language name; must be unique (case-insensitive).
+   */
   name: string;
 }
 

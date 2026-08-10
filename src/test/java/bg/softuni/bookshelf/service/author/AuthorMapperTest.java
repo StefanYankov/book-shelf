@@ -6,6 +6,7 @@ import bg.softuni.bookshelf.service.author.dto.AuthorCreateDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorDetailsDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorSummaryDto;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
@@ -45,7 +46,7 @@ class AuthorMapperTest {
     }
 
     @Test
-    @DisplayName("toDetailsDto maps all fields including the image URL and books page")
+    @DisplayName("toDetailsDto maps all fields including the image URL and wraps the books page")
     void toDetailsDto_withImage() {
         // Arrange
         UUID id = UUID.randomUUID();
@@ -60,7 +61,7 @@ class AuthorMapperTest {
         assertThat(dto.name()).isEqualTo("Frank Herbert");
         assertThat(dto.summary()).isEqualTo("Sci-fi author.");
         assertThat(dto.imageUrl()).isEqualTo("https://cdn/a.jpg");
-        assertThat(dto.books()).isEqualTo(books);
+        assertThat(dto.books()).isEqualTo(PagedResponse.from(books));
     }
 
     @Test

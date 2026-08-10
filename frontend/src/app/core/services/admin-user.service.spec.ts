@@ -3,6 +3,7 @@ import {beforeEach, describe, expect, it, Mock, vi} from 'vitest';
 import {of} from 'rxjs';
 import {AdminUserService} from './admin-user.service';
 import {AdminAPIService, PermissionRequestDto, UserPermissionsDto} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 describe('AdminUserService', () => {
   let service: AdminUserService;
@@ -14,7 +15,6 @@ describe('AdminUserService', () => {
     lockUser: Mock;
     unlockUser: Mock;
   };
-
   const userId = 'user-123';
 
   beforeEach(() => {
@@ -29,7 +29,6 @@ describe('AdminUserService', () => {
       lockUser: vi.fn().mockReturnValue(of(undefined)),
       unlockUser: vi.fn().mockReturnValue(of(undefined)),
     };
-
     TestBed.configureTestingModule({
       providers: [
         AdminUserService,
@@ -44,10 +43,10 @@ describe('AdminUserService', () => {
   });
 
   describe('getAllUsers', () => {
-    it('should delegate to the API client with the pageable', () => {
-      const pageable = {page: 0, size: 10};
+    it('should unpack the pageable into positional page, size and sort', () => {
+      const pageable: PageQuery = {page: 0, size: 10, sort: ['username,asc']};
       service.getAllUsers(pageable);
-      expect(mockAdminApiService.getAllUsers).toHaveBeenCalledWith(pageable);
+      expect(mockAdminApiService.getAllUsers).toHaveBeenCalledWith(pageable.page, pageable.size, pageable.sort);
     });
   });
 
@@ -55,10 +54,8 @@ describe('AdminUserService', () => {
     it('should normalize the permission Set into a plain string array', () => {
       // Arrange handled in beforeEach (permissions = Set(['MODERATE_REVIEWS']))
       let result: string[] | undefined;
-
       // Act
       service.getUserPermissions(userId).subscribe(perms => (result = perms));
-
       // Assert
       expect(mockAdminApiService.getUserPermissions).toHaveBeenCalledWith(userId);
       expect(result).toEqual(['MODERATE_REVIEWS']);
@@ -68,10 +65,8 @@ describe('AdminUserService', () => {
       // Arrange: undefined permissions field
       mockAdminApiService.getUserPermissions.mockReturnValue(of({userId} as UserPermissionsDto));
       let result: string[] | undefined;
-
       // Act
       service.getUserPermissions(userId).subscribe(perms => (result = perms));
-
       // Assert
       expect(result).toEqual([]);
     });

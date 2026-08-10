@@ -35,7 +35,8 @@ export class ContentModeration {
       debounceTime(300),
       distinctUntilChanged(),
       startWith(''),
-      switchMap(query => this.bookApiService.searchBooks({ page: 0, size: 10 }, query || undefined))
+      // searchBooks positional args: (query, genres, format, yearMin, yearMax, page, size, sort)
+      switchMap(query => this.bookApiService.searchBooks(query || undefined, undefined, undefined, undefined, undefined, 0, 10))
     ),
     { initialValue: { content: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 10, isLast: true } as PagedResponseBookSummaryDto }
   );
@@ -71,7 +72,6 @@ export class ContentModeration {
     if (!form) return;
 
     const dto: BookUpdateDto = { title: form.title, summary: form.summary };
-
     this.moderationApiService.moderateBook(form.id, dto).subscribe({
       next: (updatedBook: BookDetailsDto) => {
         this.toast.showSuccess(`Book "${updatedBook.title}" moderated successfully.`);

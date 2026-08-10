@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -16,8 +16,6 @@ import {OpenApiHttpParams, QueryParamStyle} from '../query.params';
 
 // @ts-ignore
 import {BookDetailsDto} from '../model/bookDetailsDto';
-// @ts-ignore
-import {Pageable} from '../model/pageable';
 // @ts-ignore
 import {PagedResponseBookSummaryDto} from '../model/pagedResponseBookSummaryDto';
 // @ts-ignore
@@ -42,31 +40,67 @@ export class BookAPIService extends BaseService {
      * Get all books
      * Retrieves a paginated list of all books.
      * @endpoint get /api/books
-     * @param pageable
+     * @param page Zero-based page index (0..N)
+     * @param size The size of the page to be returned
+     * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getAllBooks(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public getAllBooks(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public getAllBooks(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public getAllBooks(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling getAllBooks.');
-        }
+    public getAllBooks(page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
+      httpHeaderAccept?: 'application/json',
+      context?: HttpContext,
+      transferCache?: boolean
+    }): Observable<PagedResponseBookSummaryDto>;
+  public getAllBooks(page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
+  public getAllBooks(page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
+  public getAllBooks(page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<any> {
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
-            'pageable',
-            <any>pageable,
+          'page',
+          <any>page,
+          QueryParamStyle.Form,
+          true,
+        );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
             QueryParamStyle.Form,
             true,
         );
 
 
         let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -126,6 +160,9 @@ export class BookAPIService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -168,23 +205,38 @@ export class BookAPIService extends BaseService {
      * Advanced book search
      * Performs a faceted search across the book catalog.
      * @endpoint get /api/books/search
-     * @param pageable
-     * @param query
-     * @param genres
-     * @param format
-     * @param yearMin
-     * @param yearMax
+     * @param query Free-text match against book titles or author names.
+     * @param genres Genre names to filter by.
+     * @param format Book format to filter by.
+     * @param yearMin Minimum publication year, inclusive.
+     * @param yearMax Maximum publication year, inclusive.
+     * @param page Zero-based page index (0..N)
+     * @param size The size of the page to be returned
+     * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public searchBooks(pageable: Pageable, query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling searchBooks.');
-        }
+    public searchBooks(query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
+      httpHeaderAccept?: 'application/json',
+      context?: HttpContext,
+      transferCache?: boolean
+    }): Observable<PagedResponseBookSummaryDto>;
+  public searchBooks(query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
+  public searchBooks(query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
+  public searchBooks(query?: string, genres?: Set<string>, format?: 'HARDCOVER' | 'PAPERBACK' | 'DIGITAL', yearMin?: number, yearMax?: number, page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<any> {
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
@@ -235,14 +287,35 @@ export class BookAPIService extends BaseService {
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
-            'pageable',
-            <any>pageable,
+          'page',
+          <any>page,
+          QueryParamStyle.Form,
+          true,
+        );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
             QueryParamStyle.Form,
             true,
         );
 
 
         let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

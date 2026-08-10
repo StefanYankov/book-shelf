@@ -1,13 +1,13 @@
 import {inject, Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 import {
-  Pageable,
   PagedResponseReviewViewDto,
   ReviewAPIService,
   ReviewCreateDto,
   ReviewUpdateDto,
   ReviewViewDto,
 } from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Review target types supported by the backend's polymorphic association.
@@ -34,9 +34,10 @@ export class ReviewService {
   getReviewsForTarget(
     targetId: string,
     targetType: ReviewTargetType,
-    pageable: Pageable,
+    pageable: PageQuery,
   ): Observable<PagedResponseReviewViewDto> {
-    return this.reviewApiService.getReviewsForTarget(targetId, targetType, pageable);
+    return this.reviewApiService.getReviewsForTarget(
+      targetId, targetType, pageable.page, pageable.size, pageable.sort);
   }
 
   /**

@@ -1,13 +1,7 @@
 import {inject, Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
-import {
-  AdminGenreAPIService,
-  GenreCreateDto,
-  GenreDto,
-  GenreUpdateDto,
-  Pageable,
-  PagedResponseGenreDto,
-} from '../../api';
+import {AdminGenreAPIService, GenreCreateDto, GenreDto, GenreUpdateDto, PagedResponseGenreDto,} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Administrative facade over the generated `AdminGenreAPIService`.
@@ -23,8 +17,8 @@ export class AdminGenreService {
    * @param pageable Pagination configuration.
    * @returns An observable emitting a paginated result of genres.
    */
-  getAllGenres(pageable: Pageable): Observable<PagedResponseGenreDto> {
-    return this.genreApi.getAllGenres(pageable);
+  getAllGenres(pageable: PageQuery): Observable<PagedResponseGenreDto> {
+    return this.genreApi.getAllGenres(pageable.page, pageable.size, pageable.sort);
   }
 
   /**

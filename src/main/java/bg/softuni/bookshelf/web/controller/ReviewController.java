@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -43,7 +44,7 @@ public class ReviewController {
     public ResponseEntity<PagedResponse<ReviewViewDto>> getReviewsForTarget(
             @RequestParam UUID targetId,
             @RequestParam String targetType,
-            Pageable pageable) {
+            @ParameterObject Pageable pageable) {
         Page<ReviewViewDto> reviews = reviewService.getReviewsForTarget(targetId, targetType, pageable);
         return ResponseEntity.ok(PagedResponse.from(reviews));
     }
@@ -62,9 +63,6 @@ public class ReviewController {
             @Valid @RequestBody ReviewCreateDto createDto,
             @AuthenticationPrincipal CustomUserDetails principal) {
         ReviewViewDto review = reviewService.addReview(createDto, targetId, targetType, principal.getId());
-        // 201 Created without a Location header: reviews have no canonical GET-by-id
-        // endpoint (reads are collection queries by target), so a Location URI would
-        // point at a non-existent resource. Location is optional per RFC 9110.
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }
 
@@ -95,8 +93,6 @@ public class ReviewController {
     public ResponseEntity<Void> deleteReview(
             @PathVariable UUID reviewId,
             @AuthenticationPrincipal CustomUserDetails principal) {
-        // The controller is the correct boundary to translate a security principal
-        // into the plain values the service understands.
         reviewService.deleteReview(
                 reviewId,
                 principal.getId(),

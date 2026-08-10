@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -14,17 +14,44 @@ import {BookGenreDto} from './bookGenreDto';
 
 
 export interface BookDetailsDto {
+  /**
+   * Unique book identifier.
+   */
     id?: string;
+  /**
+   * Book title.
+   */
     title?: string;
+  /**
+   * International Standard Book Number.
+   */
     isbn?: string;
+  /**
+   * Total number of pages.
+   */
     pages?: number;
+  /**
+   * Year of publication.
+   */
     yearPublished?: number;
+  /**
+   * Short synopsis of the book.
+   */
     summary?: string;
+  /**
+   * Physical or digital format of the book.
+   */
     format?: BookDetailsDto.FormatEnum;
   author?: BookAuthorDto;
   language?: BookLanguageDto;
   publisher?: BookPublisherDto;
+  /**
+   * Genres associated with the book.
+   */
   genres?: Set<BookGenreDto>;
+  /**
+   * URL of the cover image; empty when none is set.
+   */
     coverImageUrl?: string;
 }
 export namespace BookDetailsDto {

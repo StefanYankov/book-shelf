@@ -8,6 +8,7 @@ import bg.softuni.bookshelf.service.author.dto.AuthorDetailsDto;
 import bg.softuni.bookshelf.service.author.dto.AuthorUpdateDto;
 import bg.softuni.bookshelf.service.book.BookService;
 import bg.softuni.bookshelf.service.book.dto.BookSummaryDto;
+import bg.softuni.bookshelf.shared.dto.PagedResponse;
 import bg.softuni.bookshelf.shared.exception.BusinessException;
 import bg.softuni.bookshelf.shared.exception.ErrorCode;
 import bg.softuni.bookshelf.shared.infrastructure.filestorage.image.ImageUploadService;
@@ -39,6 +40,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthorService Unit Tests")
 class AuthorServiceImplTest {
+
+    // NOTE: the original image URL strings were missing from the paste; "http://image.url"
+    // is used as a placeholder. Replace with the intended value if different.
+    private static final String IMAGE_URL = "http://image.url";
 
     @Mock
     private AuthorRepository authorRepository;
@@ -76,13 +81,13 @@ class AuthorServiceImplTest {
             // Arrange
             AuthorCreateDto createDto = new AuthorCreateDto("Tolkien", "Bio");
             MockMultipartFile imageFile = new MockMultipartFile("img", "img.png", "image/png", new byte[]{1, 2, 3});
-            UploadResult uploadResult = new UploadResult("https://url", "publicId");
+            UploadResult uploadResult = new UploadResult(IMAGE_URL, "publicId");
             Author newAuthor = new Author();
             Author savedAuthor = createMockAuthor(UUID.randomUUID(), "Tolkien");
-            savedAuthor.setImage(new Image("https://url", "publicId"));
+            savedAuthor.setImage(new Image(IMAGE_URL, "publicId"));
 
-            Page<BookSummaryDto> emptyBookPage = Page.empty();
-            AuthorDetailsDto expectedDto = new AuthorDetailsDto(savedAuthor.getId(), "Tolkien", "Bio", "https://url", emptyBookPage);
+            AuthorDetailsDto expectedDto = new AuthorDetailsDto(
+                    savedAuthor.getId(), "Tolkien", "Bio", IMAGE_URL, PagedResponse.from(Page.empty()));
 
             given(authorRepository.findByNameIgnoreCase("Tolkien")).willReturn(Optional.empty());
             given(authorMapper.toEntity(createDto)).willReturn(newAuthor);
@@ -98,7 +103,7 @@ class AuthorServiceImplTest {
             verify(authorRepository).save(authorCaptor.capture());
             Author capturedAuthor = authorCaptor.getValue();
             assertThat(capturedAuthor.getImage()).isNotNull();
-            assertThat(capturedAuthor.getImage().getUrl()).isEqualTo("https://url");
+            assertThat(capturedAuthor.getImage().getUrl()).isEqualTo(IMAGE_URL);
         }
 
         @Test
@@ -127,7 +132,8 @@ class AuthorServiceImplTest {
             Pageable booksPageable = PageRequest.of(0, 20);
             Author mockAuthor = createMockAuthor(authorId, "Tolkien");
             Page<BookSummaryDto> bookPage = new PageImpl<>(Collections.emptyList());
-            AuthorDetailsDto expectedDto = new AuthorDetailsDto(authorId, "Tolkien", null, null, bookPage);
+            AuthorDetailsDto expectedDto = new AuthorDetailsDto(
+                    authorId, "Tolkien", null, null, PagedResponse.from(bookPage));
 
             given(authorRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
             given(bookService.findAllByAuthor(authorId, booksPageable)).willReturn(bookPage);
@@ -215,7 +221,7 @@ class AuthorServiceImplTest {
             // Arrange
             UUID authorId = UUID.randomUUID();
             Author mockAuthor = createMockAuthor(authorId, "Tolkien");
-            mockAuthor.setImage(new Image("https://url", "publicId"));
+            mockAuthor.setImage(new Image(IMAGE_URL, "publicId"));
 
             given(authorRepository.findById(authorId)).willReturn(Optional.of(mockAuthor));
 

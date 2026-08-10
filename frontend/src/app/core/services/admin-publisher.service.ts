@@ -2,12 +2,12 @@ import {inject, Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 import {
   AdminPublisherAPIService,
-  Pageable,
   PagedResponsePublisherDto,
   PublisherCreateDto,
   PublisherDto,
   PublisherUpdateDto,
 } from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Administrative facade over the generated `AdminPublisherAPIService`.
@@ -23,8 +23,8 @@ export class AdminPublisherService {
    * @param pageable Pagination configuration.
    * @returns An observable emitting a paginated result of publishers.
    */
-  getAllPublishers(pageable: Pageable): Observable<PagedResponsePublisherDto> {
-    return this.publisherApi.getAllPublishers(pageable);
+  getAllPublishers(pageable: PageQuery): Observable<PagedResponsePublisherDto> {
+    return this.publisherApi.getAllPublishers(pageable.page, pageable.size, pageable.sort);
   }
 
   /**

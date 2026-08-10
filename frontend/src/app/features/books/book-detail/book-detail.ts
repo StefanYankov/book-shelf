@@ -1,14 +1,19 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { switchMap, of } from 'rxjs';
-import { ReviewList } from '../../reviews/review-list/review-list';
-import { ReviewForm } from '../../reviews/review-form/review-form';
-import { BookAPIService, UserShelfAPIService } from '../../../api';
-import { ToastService } from '../../../core/services/toast.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { AddBookToBookshelfDto, PagedResponseBookshelfSummaryDto, ReviewViewDto } from '../../../api';
+import {Component, computed, inject, signal, viewChild} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {ActivatedRoute} from '@angular/router';
+import {toSignal} from '@angular/core/rxjs-interop';
+import {of, switchMap} from 'rxjs';
+import {ReviewList} from '../../reviews/review-list/review-list';
+import {ReviewForm} from '../../reviews/review-form/review-form';
+import {
+  AddBookToBookshelfDto,
+  BookAPIService,
+  PagedResponseBookshelfSummaryDto,
+  ReviewViewDto,
+  UserShelfAPIService
+} from '../../../api';
+import {ToastService} from '../../../core/services/toast.service';
+import {AuthService} from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-book-detail',
@@ -35,18 +40,16 @@ export class BookDetail {
   // --- User Shelves State ---
   userShelves = toSignal(
     this.authService.isLoggedIn()
-      ? this.userShelfApiService.getUserShelves({ page: 0, size: 100 })
+      // getUserShelves positional args: (page, size, sort)
+      ? this.userShelfApiService.getUserShelves(0, 100)
       : of({ content: [], totalPages: 0, pageNumber: 0, totalElements: 0, pageSize: 20, isLast: true } as PagedResponseBookshelfSummaryDto)
   );
 
   // --- Review coordination state ---
-
   /** The review currently being edited, or null when adding / not editing. */
   protected readonly editingReview = signal<ReviewViewDto | null>(null);
-
   /** Whether the add-review form is expanded (vs. showing the "Write a review" button). */
   protected readonly addFormOpen = signal(false);
-
   /** Reviews currently loaded by the child list (used to detect the user's own review). */
   private readonly loadedReviews = signal<ReviewViewDto[]>([]);
 

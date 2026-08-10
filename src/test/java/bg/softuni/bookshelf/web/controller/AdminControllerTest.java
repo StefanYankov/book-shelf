@@ -1,5 +1,6 @@
 package bg.softuni.bookshelf.web.controller;
 
+import bg.softuni.bookshelf.data.entity.identity.User;
 import bg.softuni.bookshelf.data.enums.Permission;
 import bg.softuni.bookshelf.service.user.dto.AdminUserViewDto;
 import bg.softuni.bookshelf.service.user.dto.LockUserRequestDto;
@@ -16,6 +17,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.data.util.TypeInformation;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -75,6 +78,27 @@ class AdminControllerTest extends AbstractControllerTestBase {
                     .andExpect(jsonPath("$.isLast").value(true));
 
             verify(userService).getAllUsers(any());
+        }
+
+        @Test
+        @DisplayName("Error Path: invalid sort property returns 400 ProblemDetail")
+        void shouldReturn400_WhenSortPropertyInvalid() throws Exception {
+            // Arrange
+            given(userService.getAllUsers(any()))
+                    .willThrow(new PropertyReferenceException(
+                            "doesNotExist",
+                            TypeInformation.of(
+                                    User.class),
+                            List.of()));
+
+            // Act
+            ResultActions result = mockMvc.perform(get(BASE_URL + "/users").param("sort", "doesNotExist"));
+
+            // Assert
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.title").value("Invalid Sort Parameter"))
+                    .andExpect(jsonPath("$.type").value("urn:bookshelf:invalid-sort"))
+                    .andExpect(jsonPath("$.detail").value("Invalid sort property: doesNotExist"));
         }
     }
 

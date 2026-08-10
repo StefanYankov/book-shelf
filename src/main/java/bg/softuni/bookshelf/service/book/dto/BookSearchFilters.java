@@ -1,6 +1,7 @@
 package bg.softuni.bookshelf.service.book.dto;
 
 import bg.softuni.bookshelf.data.enums.BookFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
 
@@ -15,10 +16,21 @@ import java.util.Set;
  * @param yearMax   The maximum publication year (inclusive).
  */
 public record BookSearchFilters(
+        @Schema(description = "Free-text match against book titles or author names.",
+                example = "dune")
         String query,
+
+        @Schema(description = "Genre names to filter by.",
+                example = "[\"Science Fiction\", \"Adventure\"]")
         Set<String> genres,
+
+        @Schema(description = "Book format to filter by.", example = "HARDCOVER")
         BookFormat format,
+
+        @Schema(description = "Minimum publication year, inclusive.", example = "1950")
         Integer yearMin,
+
+        @Schema(description = "Maximum publication year, inclusive.", example = "2000")
         Integer yearMax
 ) {
 }

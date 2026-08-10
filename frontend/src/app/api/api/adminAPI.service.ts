@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -16,8 +16,6 @@ import {OpenApiHttpParams, QueryParamStyle} from '../query.params';
 
 // @ts-ignore
 import {LockUserRequestDto} from '../model/lockUserRequestDto';
-// @ts-ignore
-import {Pageable} from '../model/pageable';
 // @ts-ignore
 import {PagedResponseAdminUserViewDto} from '../model/pagedResponseAdminUserViewDto';
 // @ts-ignore
@@ -46,31 +44,67 @@ export class AdminAPIService extends BaseService {
      * Get all users
      * Retrieves a paginated list of all users in the system.
      * @endpoint get /api/admin/users
-     * @param pageable
+     * @param page Zero-based page index (0..N)
+     * @param size The size of the page to be returned
+     * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getAllUsers(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseAdminUserViewDto>;
-    public getAllUsers(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseAdminUserViewDto>>;
-    public getAllUsers(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseAdminUserViewDto>>;
-    public getAllUsers(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling getAllUsers.');
-        }
+    public getAllUsers(page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
+      httpHeaderAccept?: 'application/json',
+      context?: HttpContext,
+      transferCache?: boolean
+    }): Observable<PagedResponseAdminUserViewDto>;
+  public getAllUsers(page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpResponse<PagedResponseAdminUserViewDto>>;
+  public getAllUsers(page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpEvent<PagedResponseAdminUserViewDto>>;
+  public getAllUsers(page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<any> {
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
-            'pageable',
-            <any>pageable,
+          'page',
+          <any>page,
+          QueryParamStyle.Form,
+          true,
+        );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
             QueryParamStyle.Form,
             true,
         );
 
 
         let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -145,6 +179,9 @@ export class AdminAPIService extends BaseService {
     }
 
     let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
@@ -231,6 +268,9 @@ export class AdminAPIService extends BaseService {
 
     let localVarHeaders = this.defaultHeaders;
 
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
     ]);
@@ -309,6 +349,9 @@ export class AdminAPIService extends BaseService {
         }
 
         let localVarHeaders = this.defaultHeaders;
+
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -397,6 +440,9 @@ export class AdminAPIService extends BaseService {
 
     let localVarHeaders = this.defaultHeaders;
 
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
     ]);
@@ -475,6 +521,9 @@ export class AdminAPIService extends BaseService {
         }
 
         let localVarHeaders = this.defaultHeaders;
+
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -10,7 +10,13 @@
 
 
 export interface PermissionRequestDto {
+  /**
+   * Privilege to grant or revoke.
+   */
   permission: PermissionRequestDto.PermissionEnum;
+  /**
+   * Administrative reason, recorded on the audit event.
+   */
   reason: string;
 }
 export namespace PermissionRequestDto {
