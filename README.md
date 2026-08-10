@@ -1,377 +1,650 @@
+# Book Shelf (Goodreads clone)
+
 > [!IMPORTANT]
-> **Project Status: In Development**
+> **Project Status: Deployed**
 > This repository contains the **final project** for the "Java Web - May 2026" module at **Software University**.
 
 ---
-# Book Shelf (Goodreads clone)
 
 ## Overview
 
-This project is the **final project** for the university course:
-**Java Web - May 2026** module at **Software University**.
+Book Shelf provides a REST API and Angular user interface for managing a book catalogue, personal bookshelves, reviews, user accounts, delegated moderation, and yearly reading challenges.
 
-## Project Introduction
-
-The **Book Shelf API** is a Java-based web application developed as a final project for the **Java Web** module at **Software University**. It provides a centralized RESTful API for managing a personal book collection, including features for cataloging books, managing user libraries, handling reviews, and tracking yearly reading challenges. The system supports various user roles (e.g., User, Admin) with distinct access levels, ensuring secure management of the book data. Roles are augmented by admin-managed permissions for delegating specific capabilities without granting full administrative rights. Reading challenges are provided by a dedicated REST microservice, consumed by the main application through a Feign client with JWT propagation.
+The main application owns identity, catalogue, bookshelf, and review data. A separate reading-challenge microservice owns reading-goal data. The main application communicates with the microservice through Spring Cloud OpenFeign and forwards the authenticated user's JWT.
 
 ## Table of Contents
+
+- [Overview](#overview)
+- [Live Demo](#live-demo)
 - [Architecture and Technologies](#architecture-and-technologies)
-- [Installation and Setup](#installation-and-setup)
-- [Configuration Toggles](#configuration-toggles)
 - [Implemented Features](#implemented-features)
-- [Integrations](#integrations)
+- [Backend Application Structure and Features](#backend-application-structure-and-features)
+- [Frontend Application Structure and Features](#frontend-application-structure-and-features)
+- [Reading Challenge Microservice](#reading-challenge-microservice)
 - [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
-- [Test Credentials](#test-credentials)
+- [Installation and Setup](#installation-and-setup)
+- [Configuration](#configuration)
+- [Local Email Verification and Password Reset](#local-email-verification-and-password-reset)
+- [Admin Recovery CLI](#admin-recovery-cli)
+- [Testing and Coverage](#testing-and-coverage)
+- [Docker and Hosted Deployment](#docker-and-hosted-deployment)
+- [Local Development Credentials](#local-development-credentials)
+- [Reviewer Walkthrough](#reviewer-walkthrough)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 - [Repository](#repository)
 
+## Live Demo
+
+- **Frontend:** [Open the hosted Book Shelf application](https://bookshelf-syankov.netlify.app)
+- **Backend API documentation:** [Open the hosted Swagger UI](https://bookshelf-app-syankoff-dev.apps.rm2.thpm.p1.openshiftapps.com/swagger-ui.html)
+- **Reading Challenge Service:** internal OpenShift service, accessed only through the main application
+
+> [!NOTE]
+> The backend runs in the OpenShift Developer Sandbox. The platform may idle workloads after inactivity, and hosted availability depends on the sandbox remaining active. The local setup remains the reproducible review path.
+
+> [!IMPORTANT]
+> The credentials documented below are for the self-hosted local development environment. They do not provide access to the hosted application. Hosted administrator credentials are not published in this repository.
+
+### Hosted Catalogue
+
+[![Hosted Book Catalogue](docs/images/book-catalogue-thumb.jpg)](docs/images/book-catalogue.png)
+
+_Click the screenshot to open the full-resolution hosted catalogue._
+
 ## Architecture and Technologies
-- **Backend**: Spring Boot 3.4.0 / Java 21
-- **Frontend**: Angular 22 (Standalone, Zoneless, Signals)
-- **Database**: PostgreSQL 17
-- **Migrations**: Flyway
-- **Containerization**: Docker and Docker Compose
-- **Security**: Spring Security 6+ with stateless JWT authentication and Servlet-based unauthenticated/forbidden entry point control.
-- **Inter-service communication**: Spring Cloud OpenFeign - the main application consumes the reading challenge microservice via a Feign client, forwarding the caller's JWT and translating downstream errors into the application's standard problem response.
-- **Scheduling and Caching**: Spring's scheduling (`@Scheduled`) runs periodic maintenance jobs; Spring's caching abstraction (`@Cacheable`/`@CacheEvict`) caches the book catalog with eviction on writes. The cache backend is selected by `spring.cache.type`: Redis where available, in-memory otherwise.
-- **Aspect-Oriented Programming**: Spring AOP provides execution-time logging (`@LogExecutionTime`) and audit logging of sensitive operations (`@Audited`).
-- **Image storage**: Cloudinary, behind an `ImageUploadService` abstraction. Cloudinary is used when enabled by configuration; otherwise a no-op implementation is used, so the application runs without a Cloudinary account.
-- **API Pattern**: RESTful with DTO/Entity separation, OpenAPI (Swagger) for documentation.
-- **Testing**:
-    - **Backend**: JUnit 5, Testcontainers (PostgreSQL, Redis), Mockito, AssertJ, WireMock (Spring Cloud Contract)
-    - **Frontend**: Vitest, JSDOM
+
+### Architecture
+
+```text
+        Browser
+           │
+           ▼
+        Angular SPA on Netlify
+           │ HTTPS
+           ▼
+        Book Shelf REST API on OpenShift
+           ├── Main PostgreSQL database
+           ├── Redis cache
+           └── Feign request with forwarded JWT
+                     │
+                     ▼
+              Reading Challenge Service
+                     │
+                     ▼
+              Dedicated PostgreSQL database
+```
+
+### Technology Stack
+
+- **Backend:** Java 21, Spring Boot 3.4.0, Gradle
+- **Frontend:** Angular 22, standalone components, Signals, Bootstrap
+- **Database:** PostgreSQL with Flyway migrations
+- **Security:** Spring Security with stateless JWT authentication
+- **Microservice communication:** Spring Cloud OpenFeign
+- **Caching:** Spring Cache with Redis
+- **API documentation:** OpenAPI and Swagger UI
+- **Testing:** JUnit 5, Mockito, AssertJ, Testcontainers, Vitest, JSDOM
+- **Coverage:** JaCoCo with a 70% line-coverage gate
+- **Containerization:** Docker and Docker Compose
+- **Hosting:** Netlify and OpenShift Developer Sandbox
+- **File storage integration:** Cloudinary with a configuration-controlled no-op fallback
 
 ## Implemented Features
 
-The project is being developed using a strict **Domain-Driven Design (DDD)** approach, organized into vertical slices:
+### Identity and Access Management
 
--   **Identity and Access Management (IAM)**:
-    -   Full Spring Security integration with stateless JWT (JSON Web Token) generation and validation.
-    -   Role-based access control (`USER`, `ADMIN`).
-    -   Permissions layered on top of roles: an administrator can grant or revoke specific capabilities (e.g. `MODERATE_REVIEWS`, `MODERATE_BOOKS`) to standard users. Permissions are embedded in the JWT as authorities alongside the role, and every grant/revoke is written to an auditable account-status event track.
-    -   Secure email verification and single-use password recovery tokens.
-    -   Public self-registration endpoint for new users with proactive duplication checks.
-    -   Declarative test harness via customized `@WithMockApplicationUser` annotations supporting role and permission slicing in unit tests.
--   **Book Discovery**:
-    -   Public-facing REST endpoints for searching and viewing books.
-    -   A Signal-based Angular UI for real-time book searching with debouncing.
-    -   A dedicated, routed component for viewing the full details of a single book.
--   **Catalog Management (administrators)**:
-    -   Administrators create, edit, and delete authors, genres, languages, and publishers through dedicated pages under `/admin`.
-    -   Each resource is served by an admin-only REST controller under `/api/admin`, secured by both the URL rule and a class-level `@PreAuthorize("hasRole('ADMIN')")`.
-    -   Author creation accepts an optional profile image, uploaded through the same `ImageUploadService` abstraction as book covers.
-    -   Deletes that would break referential integrity (e.g. a genre still used by a book) return a conflict rather than failing.
--   **Bookshelf Management**:
-    -   Custom user-defined bookshelf entities with database-level pagination tracking.
-    -   Dedicated controller endpoints for adding, listing, and removing items.
--   **Reviews**:
-    -   Polymorphic review targets via a soft `(targetId, targetType)` association, allowing reviews on books today and authors/publishers later without schema churn.
-    -   Full CRUD with ownership rules - a review may be edited only by its author and deleted by its author, an administrator, or a user holding the `MODERATE_REVIEWS` permission - enforced at the service layer.
-    -   Paginated listing that resolves author names through a single batched lookup (avoids the N+1 query pattern).
-    -   Composite uniqueness on `(user, target)` preventing duplicate reviews for the same target.
--   **Content Moderation**:
-    -   Book moderation is available to administrators and to standard users granted the delegatable `MODERATE_BOOKS` permission - mirroring how review moderation is delegated via `MODERATE_REVIEWS`.
-    -   Authorization is enforced per action at the API layer (`hasRole('ADMIN') or hasAuthority('MODERATE_BOOKS')`), so a delegated moderator is a first-class capability rather than a UI-only affordance.
-    -   Administrators retain the full moderation surface (books and bookshelves); delegated moderators receive a books-only moderation page.
--   **Cover Images**:
-    -   Book covers are uploaded through the `ImageUploadService` abstraction (Cloudinary when enabled, no-op otherwise).
-    -   Removing a book deletes its cover image after the removal commits: `deleteBook` publishes an event, and an asynchronous `@TransactionalEventListener` bound to `AFTER_COMMIT` deletes the image only when the transaction succeeds. The remote delete is best-effort and does not affect the transaction.
--   **Reading Challenges** (backed by the reading challenge microservice):
-    -   Users set a yearly reading goal and adjust their progress from the frontend; the main application proxies these operations to the microservice via a Feign client.
-    -   Progress is set to an absolute value, and completion is recomputed on every change, so reducing progress below the goal un-completes a challenge - allowing users to correct mistakes.
-    -   The caller's JWT is forwarded to the microservice, which independently validates it and resolves the user; downstream `404`/`409` responses are translated into the main application's standard problem response.
+- Public self-registration with duplicate-account checks
+- Email-verification tokens
+- Login with JWT issuance and validation
+- Single-use password-reset tokens
+- Forced password change for selected accounts
+- Profile and password management
+- Administrative account lock and unlock operations
+- Temporary account locks with scheduled expiry reconciliation
+- Roles: `USER` and `ADMIN`
+- Delegated permissions: `MODERATE_REVIEWS` and `MODERATE_BOOKS`
 
-### Backend Application Structure and Features
+### Book Discovery
 
--   **System Foundation**:
-    -   Centralized RFC 7807 `ProblemDetail` exception handling (`GlobalExceptionHandler`).
-    -   Consistent RFC 7807 `ProblemDetail` responses for both HTTP 401 (unauthenticated) and 403 (forbidden) failures raised in the security filter chain, matching the format emitted by the controller advice.
-    -   JSR-380 input validation on all DTOs.
-    -   Automated Flyway database migrations.
--   **Cross-cutting Concerns (AOP)**:
-    -   `@LogExecutionTime` - an `@Around` aspect logging method duration, applied to catalog reads.
-    -   `@Audited` - an `@Around` aspect recording the principal, operation, optional UUID target, and outcome for sensitive administrative and moderation operations; method arguments are not logged, to avoid recording sensitive data. This is distinct from the account-status event trail, which drives account state.
--   **Domain Model**:
-    -   A complete JPA entity model with relationships (`Book`, `Author`, `User`, etc.).
-    -   `@Version` annotation on base entities for optimistic locking.
-    -   `JOINED` inheritance strategy for the `User` hierarchy.
-    -   Soft, framework-agnostic references (`UUID`) for polymorphic associations such as review targets, keeping aggregates decoupled.
-    -   Admin-managed `Set<Permission>` on standard users (`user_permissions` table via Flyway `V7`), mapped to Spring Security authorities at authentication time.
--   **Core Services**:
-    -   Full CRUD services implemented for `Book`, `Language`, `Genre`, `Publisher`, and `Author`.
-    -   Application-level, case-insensitive duplicate name validation for all relevant entities.
-    -   Handling of `DataIntegrityViolationException` on delete operations.
--   **Book and Author Services**:
-    -   Paginated queries using `JOIN FETCH` to prevent N+1 problems for mapped associations.
-    -   Cross-aggregate lookups (e.g. resolving review author names) resolved via batched `findAllById` in the service layer rather than persistence-layer joins, keeping decoupled aggregates independent.
-    -   `ImageUploadService` abstraction for cloud storage providers, with a Cloudinary implementation and a no-op fallback selected by configuration.
-    -   Service-to-service communication between `AuthorService` and `BookService` to retrieve an author's books.
--   **Administrative Services**:
-    -   Decoupled web layer projections utilizing `UserSecurityDto` and `UserSecurityViewDto` to protect JPA boundaries.
-    -   Method security authorization controls enforcing access bounds via explicit `@PreAuthorize` declarations.
-    -   Stateful user locking and unlocking operations writing history to a persistent account-status event track. Locks may be permanent or temporary (time-boxed), with expired temporary locks reconciled automatically.
-    -   Strict validation guards blocking self-lock attempts (`ErrorCode.SELF_LOCK_PREVENTION`) with immediate HTTP 403 responses.
-    -   Permission management API: dedicated endpoints to grant, revoke, and read a user's permissions (`POST` / `DELETE` / `GET /api/admin/users/{id}/permissions`), each admin-guarded and audited via account-status events.
-    -   Catalog management API: admin-only controllers under `/api/admin/{authors,genres,languages,publishers}` for creating, reading, updating, and deleting each taxonomy resource, secured by both the URL rule and a class-level `@PreAuthorize("hasRole('ADMIN')")`.
-    -   Content moderation endpoints (`/api/moderation`): book moderation delegatable via `MODERATE_BOOKS`, bookshelf moderation and deletion administrator-only, each gated per action so URL-level role rules do not pre-empt method security.
--   **Scheduling and Caching**:
-    -   Book catalog reads (`getById`) are cached via Spring's caching abstraction and evicted on update, delete, and moderation, keeping cached data consistent with writes. Cached values are stored with a 30-minute time-to-live; the backend is Redis when `spring.cache.type=redis`, and in-memory otherwise.
-    -   A cron job purges expired verification and password-reset tokens nightly.
-    -   A fixed-delay job reconciles expired temporary account locks into unlock events; temporary locks (with an expiry) are lifted automatically, while permanent locks persist until an explicit administrative unlock.
--   **Reading Challenge Integration**:
-    -   `ReadingChallengeClient` - a Feign client mirroring the microservice's REST contract.
-    -   `FeignClientConfig` - forwards the caller's `Authorization` header to the microservice and translates downstream HTTP errors into `BusinessException` so clients receive the standard problem response.
-    -   `ReadingChallengeProxyService` and `ReadingChallengeController` expose `/api/challenges` (create, adjust progress, read) to the frontend.
+- Public paginated catalogue
+- Faceted catalogue search
+- Detailed book view
+- Author, genre, language, publisher, format, ISBN, and publication metadata
+- Cover-image URLs and optional image upload through the configured storage provider
 
-### Frontend Application Structure and Features
+### Bookshelf Management
 
-The Angular frontend is built with a standalone component architecture and follows a modular, feature-driven structure based on user roles:
+- Create personal bookshelves
+- Add books to a bookshelf
+- Remove books from a bookshelf
+- Paginate bookshelf contents
+- Enforce bookshelf ownership
 
--   **Core Authentication and Security Guards:**
-    -   `AuthService`: Manages JWT tokens, user login/logout, and token decoding; exposes reactive `authorities`, `isAdmin`, and `hasAuthority(...)` signals so the UI can gate actions on both roles and permissions.
-    -   `AuthInterceptor`: Transport-layer wrapper that appends headers without introducing routing side effects.
-    -   `LandingGuard`: Evaluates unauthenticated views and landing redirects for incoming public traffic.
-    -   `AuthGuard`: Validates session states and enforces global password rotation routes by checking `pwd_chg_req` status.
-    -   `UserGuard` / `AdminGuard`: Subsystem isolation gates that shield matching layout workspaces from conflicting roles.
-    -   `permissionGuard(permission)`: Functional guard factory admitting only users holding a specific authority, enabling permission-delegated routes (e.g. a `MODERATE_BOOKS` holder reaching the book moderation page).
--   **Public Zone (`features/public` and `features/auth`):**
-    -   `PublicLayout`: Shared public shell (Catalog browsing, Login, Registration) and footer for unauthenticated guest entry points.
-    -   `Login`, `Register`, `ForgotPassword`, `ResetPassword`: User authentication and account management forms.
--   **Authenticated User Zone (`layout/app-layout`):**
-    -   `AppLayout`: Workspace shell providing the catalog interface and bookshelves for authenticated users.
-    -   `AuthenticatedHeader`: Navigation shell linking the catalog, bookshelves, reading challenge, and profile; a moderation link is shown only to users holding `MODERATE_BOOKS`.
-    -   `Home`: Dashboard landing view with a reading challenge prompt card linking to the challenge page.
-    -   `Profile`: Component managing user details and personal security updates using reactive validation to enforce complexity parameters inline.
-    -   `ReadingChallenge`: Yearly reading challenge page (`/app/challenges`) with set-goal, progress, and completed states; progress is adjusted with +1 / -1 steppers that set the absolute books-read value.
-    -   `BookModeration`: Books-only moderation page (`/app/moderation`) for `MODERATE_BOOKS` holders, guarded by `permissionGuard`.
--   **Administrative Zone (`layout/admin-layout`):**
-    -   `AdminLayout`: Control panel shell segregated from user layouts to provide system-level administration interfaces.
-    -   `AdminHeader`: Restricts layout navigation paths when a forced credential rotation is active.
-    -   `AdminHome`: Dashboard landing view for the administrative root layout, with quick-action cards linking to the catalog management pages.
-    -   `UserList`: Deep-linked user management directory that updates route query parameters (`?page=X`) to support direct administrative link bookmarking; supports lock/unlock (permanent or temporary) and on-demand permission management - a user's permissions are lazily loaded on request and granted/revoked through a reason-gated dialog.
-    -   `AuthorManagement`, `GenreManagement`, `LanguageManagement`, `PublisherManagement`: Catalog management pages that list each resource and support create, edit, and delete with a confirmation step; author creation accepts an optional profile image. Each page talks to a dedicated facade over the generated API client.
-    -   `ContentModeration`: Administrator content moderation for books and bookshelves.
-    -   `AdminProfile`: Profile component using complexity rules to enforce administrative credential changes.
--   **Core Views and Components:**
-    -   `BookList`: Contextual Bootstrap action dropdown iterating user storage signal collections with an `@for` loop block.
-    -   `BookDetail`: Page for viewing all metadata for a single book, with integrated "Add to Shelf" functionality and an embedded review section (add, edit, delete) with a moderation-aware delete affordance.
+### Reviews
 
-## Integrations
+- Create, edit, and delete reviews
+- Prevent duplicate reviews by the same user for the same target
+- Enforce review ownership
+- Delegate review moderation through `MODERATE_REVIEWS`
 
-- **Reading Challenge Microservice**: The main application delegates reading challenge operations to a separate Spring Boot REST microservice through a Feign client. The main application authenticates the user and forwards the JWT; the microservice independently validates the token and owns the reading challenge data in its own PostgreSQL database.
-    - Microservice repository: https://github.com/StefanYankov/reading-challenge-svc
-- **Cloudinary**: Book cover images are stored in Cloudinary when the integration is enabled. See [Configuration Toggles](#configuration-toggles).
-- **Redis**: Used as the book-cache backend when `spring.cache.type=redis`. See [Configuration Toggles](#configuration-toggles).
+### Catalogue Administration
+
+Administrators can create, edit, and delete:
+
+- books;
+- authors;
+- genres;
+- languages;
+- publishers.
+
+Operations that would violate database relationships return a conflict response instead of an unhandled database error.
+
+### Content Moderation
+
+- Administrators can moderate books and bookshelves
+- Users with `MODERATE_BOOKS` can moderate book metadata
+- Users with `MODERATE_REVIEWS` can remove reviews
+- Administrators can grant and revoke delegated permissions
+- Permission changes apply after the affected user receives a new JWT
+
+
+### Reading Challenges
+
+- Create one challenge per user and year
+- Set a yearly reading goal
+- Retrieve a challenge by year
+- Update books-read progress
+- Recalculate completion when progress changes
+- Persist challenge data in a separate microservice database
+
+## Backend Application Structure and Features
+
+### System Foundation
+
+- REST controllers with DTO/entity separation
+- Jakarta Bean Validation for request models
+- Centralized RFC 7807 `ProblemDetail` handling
+- Flyway-controlled database schema
+- UUID identifiers
+- Optimistic locking through `@Version`
+- Joined inheritance for the user hierarchy
+- Transaction boundaries in the service layer
+
+### Services and Repositories
+
+- One Spring Data repository per persistence entity
+- Service-layer business rules and ownership checks
+- Paginated queries for catalogue, user, review, and bookshelf flows
+- `JOIN FETCH` queries where required to avoid N+1 access patterns
+- Case-insensitive duplicate checks for catalogue reference data
+- Referential-integrity handling for delete operations
+
+### Security
+
+- Stateless JWT authentication
+- URL-level and method-level authorization
+- Authorities embedded in JWT claims
+- Password hashing through Spring Security
+- Custom `401` and `403` `ProblemDetail` responses
+- Delegated permission model in addition to roles
+- Prevented administrator self-lock actions
+
+### Scheduling and Caching
+
+- Cron-based purge of expired verification and password-reset tokens
+- Fixed-delay reconciliation of expired temporary account locks
+- Book detail caching through Spring Cache
+- Redis-backed JSON cache with a 30-minute time-to-live
+- Cache eviction on update, delete, and moderation operations
+- In-memory cache fallback through configuration
+
+### Cross-Cutting Concerns
+
+- `@LogExecutionTime` advice for selected service operations
+- `@Audited` advice for selected administrative and moderation actions
+- Application event for deleting remote book-cover assets only after transaction commit
+
+### Image Storage
+
+The application defines an `ImageUploadService` abstraction with two implementations:
+
+- `CloudinaryImageUploadService` when `cloudinary.enabled=true`
+- `NoOpImageUploadService` when Cloudinary is disabled or not configured
+
+The no-op implementation allows the application and automated tests to run without Cloudinary credentials.
+
+## Frontend Application Structure and Features
+
+### Core Authentication
+
+- JWT storage and decoding through `AuthService`
+- Functional interceptor for Bearer-token propagation
+- Route guards for authenticated, administrative, and delegated-permission routes
+- Password-change guard for accounts that require rotation
+
+### Public Area
+
+- Public catalogue
+- Book details
+- Login
+- Registration
+- Email verification
+- Forgot password
+- Reset password
+
+### Authenticated Area
+
+- Personal profile
+- Password change
+- Bookshelf management
+- Book details and add-to-shelf actions
+- Review management
+- Reading challenge
+
+### Administration and Moderation
+
+- User administration
+- Permission management
+- Book moderation
+- Review moderation
+- Bookshelf moderation
+- Author management
+- Genre management
+- Language management
+- Publisher management
+
+The frontend uses a generated OpenAPI client. Development requests use `proxy.conf.json`; production builds use the hosted OpenShift API base path.
+
+## Reading Challenge Microservice
+
+The reading-challenge service is an independent Spring Boot application running on port `8081`.
+
+The service:
+
+- owns a dedicated PostgreSQL database;
+- exposes `POST`, `GET`, and `PUT` challenge operations;
+- validates JWTs propagated by the main application;
+- does not issue tokens or manage sessions;
+- is deployed without a public OpenShift Route.
+
+The hosted main application reaches it using the internal service address:
+
+```text
+http://reading-challenge-svc:8081
+```
+
+#### Reading Challenge
+
+[![Reading Challenge](docs/images/reading-challenge-thumb.png)](docs/images/reading-challenge.png)
+
+_Click the screenshot to open the full-resolution reading-challenge view._
+
+
+See the [Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc) for its setup and deployment details.
 
 ## Project Structure
-The project follows a standard monorepo structure with a clear separation between the backend and frontend applications.
 
-```
+```text
 book-shelf/
-├── 📂 .github/workflows/               # CI/CD Pipelines
-│   ├── 📄 backend-ci.yaml
-│   └── 📄 frontend-ci.yml
+├── 📂 .github/
+│   └── 📂 workflows/
+│       ├── 📄 backend-ci.yaml
+│       └── 📄 frontend-ci.yaml
 │
-├── 📂 frontend/                        # Angular Application
-│   ├── 📂 src/app/
-│   │   ├── 📂 api/                     # Auto-generated API client
-│   │   ├── 📂 core/                    # Core services, guards, interceptors
-│   │   ├── 📂 features/                # Feature components (pages)
-│   │   ├── 📂 layout/                  # Layout components (shells)
-│   │   └── 📂 shared/                  # Reusable components, pipes, etc.
-│   └── 📄 angular.json
+├── 📂 frontend/
+│   ├── 📂 public/
+│   │   └── 📄 _redirects              # Netlify SPA rewrite
+│   ├── 📂 src/
+│   │   ├── 📂 app/
+│   │   │   ├── 📂 api/                # Generated OpenAPI client
+│   │   │   ├── 📂 core/               # Authentication, guards, interceptors
+│   │   │   ├── 📂 features/           # Public, user, admin, moderation pages
+│   │   │   ├── 📂 layout/             # Public, user, and admin layouts
+│   │   │   └── 📂 shared/             # Shared UI components and types
+│   │   ├── 📂 environments/           # Development and production API paths
+│   │   └── 📄 main.ts
+│   ├── 📄 angular.json
+│   ├── 📄 package.json
+│   └── 📄 proxy.conf.json
 │
-├── 📂 src/                             # Spring Boot Application
+├── 📂 src/
 │   ├── 📂 main/
 │   │   ├── 📂 java/bg/softuni/bookshelf/
-│   │   │   ├── 📜 BookShelfApplication.java
-│   │   │   ├── 📂 config/              # Spring Security, Feign, caching, scheduling, async, Cloudinary, and App configuration
-│   │   │   ├── 📂 data/                # JPA Entities and Repositories
-│   │   │   ├── 📂 service/             # Service layer (business logic, Feign client)
-│   │   │   ├── 📂 shared/              # Cross-cutting concerns (including AOP aspects)
-│   │   │   └── 📂 web/                 # Controllers and Exception Handling
+│   │   │   ├── 📄 BookShelfApplication.java
+│   │   │   ├── 📂 config/             # Security, cache, Feign, scheduling
+│   │   │   ├── 📂 data/
+│   │   │   │   ├── 📂 entity/         # JPA entities and value objects
+│   │   │   │   ├── 📂 enums/          # Domain and security enums
+│   │   │   │   └── 📂 repository/     # Spring Data repositories
+│   │   │   ├── 📂 service/
+│   │   │   │   ├── 📂 auth/           # Authentication and tokens
+│   │   │   │   ├── 📂 author/         # Author operations
+│   │   │   │   ├── 📂 book/           # Book catalogue operations
+│   │   │   │   ├── 📂 bookshelf/      # Personal bookshelf operations
+│   │   │   │   ├── 📂 challenge/      # Reading-challenge proxy
+│   │   │   │   ├── 📂 genre/          # Genre operations
+│   │   │   │   ├── 📂 language/       # Language operations
+│   │   │   │   ├── 📂 publisher/      # Publisher operations
+│   │   │   │   ├── 📂 review/         # Review operations
+│   │   │   │   └── 📂 user/           # User and permission management
+│   │   │   ├── 📂 shared/
+│   │   │   │   ├── 📂 aop/            # Timing and audit advice
+│   │   │   │   ├── 📂 dto/            # Shared response DTOs
+│   │   │   │   ├── 📂 exception/      # Business errors and codes
+│   │   │   │   ├── 📂 infrastructure/ # Email and image storage
+│   │   │   │   └── 📂 security/       # Shared security helpers
+│   │   │   └── 📂 web/
+│   │   │       ├── 📂 controller/     # REST controllers
+│   │   │       └── 📄 GlobalExceptionHandler.java
 │   │   └── 📂 resources/
-│   │       ├── 📂 db/migration/        # Flyway SQL scripts
-│   │       ├── 📄 application.yaml     # General fallback configuration
-│   │       └── 📄 application-dev.yaml # Development profile parameters
-│   │
+│   │       ├── 📂 db/
+│   │       │   ├── 📂 migration/       # Versioned Flyway migrations
+│   │       │   └── 📂 dev-seed/        # Local demonstration data
+│   │       ├── 📄 application.yaml
+│   │       └── 📄 application-dev.yaml
 │   └── 📂 test/
+│       └── 📂 java/bg/softuni/bookshelf/ # Unit, slice, API, integration tests
 │
-├── 📄 build.gradle                     # Backend build script
-├── 📄 compose.yaml                     # Docker Compose (Postgres and Redis)
-└── 📄 README.md                        # Project documentation
+├── 📄 build.gradle
+├── 📄 compose.yaml
+├── 📄 Dockerfile
+└── 📄 README.md
 ```
 
 ## Installation and Setup
 
-The application is designed to be run with Docker Compose for the infrastructure and local servers for the backend and frontend.
+### Prerequisites
 
-> [!NOTE]
-> The reading challenge features require the reading challenge microservice to be running (default `http://localhost:8081`). See its repository for setup. When the microservice is not running, the main application returns an error for challenge operations but otherwise functions normally.
+- Java 21
+- Docker Desktop
+- Node.js 24 and npm
+- Git
 
-1. **Infrastructure**:
-    ```bash
-    docker compose up -d
-    ```
-    This starts PostgreSQL and Redis.
+### 1. Clone both repositories
 
-2. **Run Backend**:
-    -   Open the project in IntelliJ IDEA.
-    -   Run the `BookShelfApplication.java` file.
-    -   The backend will be available on `http://localhost:8080`.
-    -   Note: Flyway will automatically create the database schema and seed development reference data using the application-dev profile parameters.
-
-3.  **Run the Frontend**:
-    -   Navigate to the `frontend/` directory in a separate terminal.
-    -   Run `npm install` to install dependencies.
-    -   Run `npm start` (which is an alias for `ng serve`).
-    -   The frontend will be available on `http://localhost:4200`.
-
-4. **Run Backend Tests**:
-    -   To run the complete test suite, use the Gradle wrapper:
-    ```bash
-    ./gradlew test
-    ```
-
-5. **Run Frontend Tests**:
-    -   Navigate to the `frontend/` directory in a separate terminal.
-    ```bash
-    ng test
-    ```
-
-## Configuration Toggles
-
-The application runs with sensible defaults and does not require any optional integration to be configured. The following toggles are provided for reviewers who want to activate optional or environment-specific behavior.
-
-### Cache backend (Redis or in-memory)
-
-The book cache is provider-agnostic and selected by `spring.cache.type`:
-
-- `simple` (default in the base configuration and tests) - an in-memory cache, no Redis required.
-- `redis` (the `dev` profile) - a Redis-backed cache, storing values as JSON with a 30-minute time-to-live. Redis host/port are read from `spring.data.redis.host`/`spring.data.redis.port` (default `localhost:6379`, provided by Docker Compose).
-
-Cached service methods are unchanged regardless of backend. To point at an external Redis, set `CACHE_TYPE=redis`, `REDIS_HOST`, and `REDIS_PORT`.
-
-### Cloudinary image storage (optional)
-
-Book cover upload uses Cloudinary only when explicitly enabled. When disabled (the default), a no-op image service returns a placeholder, so the application runs without a Cloudinary account and all tests pass.
-
-To enable, provide the following environment variables (e.g. via the IntelliJ run configuration) and restart the backend:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `CLOUDINARY_ENABLED` | Yes (to enable) | Set to `true` to activate Cloudinary; defaults to `false`. |
-| `CLOUDINARY_CLOUD_NAME` | Yes (when enabled) | Cloudinary cloud name. |
-| `CLOUDINARY_API_KEY` | Yes (when enabled) | Cloudinary API key. |
-| `CLOUDINARY_API_SECRET` | Yes (when enabled) | Cloudinary API secret. |
-
-Credentials are read only from environment variables and are never committed. With Cloudinary enabled, uploading a cover (via `POST /api/books` multipart) returns a Cloudinary URL, and deleting a book removes its cover image after the deletion commits.
-
-### Scheduling (enabled by default; disabled under the test profile)
-
-Scheduled maintenance jobs are controlled by `application.scheduling.enabled` (`true` in the base configuration, `false` under the `test` profile so jobs do not run during integration tests).
-
-### Admin auto-seeding (development only)
-
-Development-profile user seeding is controlled by `application.security.auto-seed-admin` (`true` in the `dev` profile, `false` in the base configuration). See [Test Credentials](#test-credentials).
-
-## **User Registration and Email Verification**
-
-When registering a new user profile via the frontend application, the system generates a secure, one-time verification token. Since no physical mail server is configured locally, the verification details are printed directly to the **Backend Console Logs**.
-
-### **1. Locate the Verification Link**
-
-Upon submitting the registration form, watch your backend console for logs from the NoOpEmailServiceImpl block:
-
-```text
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Email verification token generated for user [syankov2].
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : 📧 MOCK EMAIL DISPATCHED
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Type: EMAIL VERIFICATION
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : To: syankoff3@gmail.com
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Action Required: Please click the following link to activate your account.
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Link: http://localhost:4200/verify?token=dc08bf4b-700e-40a6-a186-e1bc3ea819fd
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
-12:49:48 INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Verification email sent to: syankoff3@gmail.com
+```bash
+git clone https://github.com/StefanYankov/book-shelf.git
+git clone https://github.com/StefanYankov/reading-challenge-svc.git
 ```
 
-### **2. Verify Your Account**
+### 2. Configure local infrastructure
 
-1. Copy the link provided in the console log (e.g., http://localhost:4200/verify?token=dc08bf4b...).
-2. Paste this URL into your web browser.
-3. The frontend application will capture the token parameters and make a request to /api/auth/verify-email to activate your account.
+The Docker Compose files read database and Redis settings from local environment variables.
 
-## API Documentation
-Once the application is running, the OpenAPI (Swagger UI) documentation is available at:
+`.env`
+```text
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+CLOUDINARY_ENABLED=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
 
-http://localhost:8080/swagger-ui.html
+### 3. Start the main PostgreSQL and Redis services
 
-## Test Credentials
+From the main repository:
 
-The development environment seeds the following accounts on startup. Their passwords are encoded at boot using the application's runtime `PasswordEncoder`, so the credentials below always work against a freshly seeded database.
+```bash
+docker compose up -d
+```
 
-| Username | Password | Role | Delegated permission |
-|----------|----------|------|----------------------|
-| `admin`  | `admin`  | ADMIN | - |
-| `user1`  | `password` | USER | - |
-| `user2`  | `password` | USER | - |
-| `user3`  | `password` | USER | `MODERATE_REVIEWS` |
-| `user4`  | `password` | USER | `MODERATE_BOOKS` |
-| `user5`  | *(reset required)* | USER | - |
+### 4. Start the reading-challenge microservice
 
-> [!IMPORTANT]
-> The `admin` account is required to change its password on first login. Admin accounts do not use the self-service "forgot password" flow (which is restricted to standard users); if an administrator is locked out, use the Admin Recovery CLI described below, or reset the development database.
+Follow the microservice README and run `ReadingChallengeSvcApplication` with the `dev` profile on port `8081`.
 
-> [!NOTE]
-> **Delegated permissions take effect on next login.** Authorities are embedded in the JWT at authentication time, so a permission granted to a currently logged-in user appears only after they log out and back in (a fresh token). `user3` and `user4` are pre-seeded with their permissions, so they demonstrate review and book moderation immediately after logging in.
+The main application can start without the microservice, but reading-challenge requests will return a service-unavailable response.
 
-> [!NOTE]
-> **`user5` demonstrates the password-reset flow.** It is seeded with an unrecoverable password, so there are no known credentials - use the **Forgot Password** page with `user5@bookshelf.com`, then open the backend console for the dispatched reset link (see below) to set a working password.
+### 5. Start the main backend
 
-#### Resolving Login via Password Reset
+Run `BookShelfApplication` with the `dev` Spring profile active.
 
-For any account without known credentials (e.g. `user5`), use the reset flow to assign a password hashed with the current runtime encoder:
+- Backend: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Health endpoint: `http://localhost:8080/actuator/health`
 
-1. Navigate to the **Forgot Password** page in the UI.
-2. Enter the account's email (e.g. `user5@bookshelf.com`).
-3. Open the backend console to locate the dispatched reset link:
+The development profile applies Flyway migrations, loads demonstration data, enables Redis, and creates local development accounts.
+
+### 6. Start the Angular frontend
+
+```bash
+cd frontend
+npm ci
+npm start
+```
+
+Open `http://localhost:4200`.
+
+## Configuration
+
+### Main application
+
+| Variable | Purpose |
+|---|---|
+| `JWT_SECRET_KEY` | Base64-encoded JWT signing key |
+| `APP_CORS_ALLOWED_ORIGINS` | Allowed frontend origin |
+| `READING_CHALLENGE_SERVICE_URL` | Reading-challenge service URL |
+| `CACHE_TYPE` | Select Redis or in-memory caching |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL |
+| `SPRING_DATASOURCE_USERNAME` | PostgreSQL username |
+| `SPRING_DATASOURCE_PASSWORD` | PostgreSQL password |
+
+### Redis
+
+| Variable | Purpose |
+|---|---|
+| `SPRING_DATA_REDIS_HOST` | Redis host |
+| `SPRING_DATA_REDIS_PORT` | Redis port |
+| `SPRING_DATA_REDIS_PASSWORD` | Redis password where required |
+
+### Cloudinary
+
+| Variable | Purpose |
+|---|---|
+| `CLOUDINARY_ENABLED` | Enable the Cloudinary implementation |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+
+## Local Email Verification and Password Reset
+
+Local development uses `NoOpEmailServiceImpl`. The application creates verification and reset tokens normally and writes the action link to the backend console instead of sending email.
+
+### Account Verification
+
+#### 1. Locate the Verification Link
+
+Submit the registration form and inspect the backend console for the `NoOpEmailServiceImpl` block:
+
+```text
+INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Email verification token generated for user [example-user].
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : 📧 MOCK EMAIL DISPATCHED
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Type: EMAIL VERIFICATION
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : To: example@bookshelf.local
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Action Required: Please click the following link to activate your account.
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : Link: http://localhost:4200/verify?token=example-token
+INFO  --- [nio-8080-exec-7] b.s.b.s.i.email.NoOpEmailServiceImpl     : ==========================================================================
+INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Verification email sent to: example@bookshelf.local
+```
+
+#### 2. Verify the Account
+
+1. Copy the verification link from the console.
+2. Paste the link into the browser.
+3. The Angular route submits the token to `/api/auth/verify-email`.
+4. Sign in after the account is activated.
+
+### Resolving Login via Password Reset
+
+For an account without known credentials, such as `user5`, use the reset flow to assign a password hashed by the current runtime encoder:
+
+1. Navigate to the **Forgot Password** page.
+2. Enter the account email, for example `user5@bookshelf.com`.
+3. Locate the dispatched reset link in the backend console:
+
    ```text
    📧 MOCK EMAIL DISPATCHED
    Type: PASSWORD RESET
-   Link: http://localhost:4200/reset-password?token=some-reset-token-uuid
+   Link: http://localhost:4200/reset-password?token=example-reset-token
    ```
-4. Copy the link, paste it into your browser, and set a new password.
+
+4. Open the link in the browser.
+5. Submit and confirm the new password.
+6. Sign in using the new password.
 
 ## Admin Recovery CLI
 
-In a production environment, if the primary administrator is locked out, a privileged user with SSH access to the server can perform an emergency password reset.
+If the primary administrator is locked out in a self-hosted environment, a user with server access can run the Spring Shell recovery command.
 
-1.  **Access the Server**: Securely connect to the server where the application `.jar` is running.
-2.  **Run the Command**: Execute the following command to force a password reset for the specified user.
+1. Access the server where the application JAR is available.
+2. Run the password-reset command:
 
-    ```bash
-    java -jar app.jar --spring.shell.command.script.enabled=true force-password-reset <username>
-    ```
+   ```bash
+   java -jar app.jar --spring.shell.command.script.enabled=true force-password-reset <username>
+   ```
 
-3.  **Retrieve Temporary Password**: The command will output a new, secure, one-time password to the console.
+3. Retrieve the generated one-time password from the console:
 
-    ```text
-    Password for user 'admin' has been reset to: aBcDeFg12345
-    ```
+   ```text
+   Password for user 'admin' has been reset to: <generated-one-time-password>
+   ```
 
-4.  **Securely Transmit**: Securely provide this temporary password to the administrator. Upon their next login, they will be required to change it immediately.
+4. Transmit the temporary password through a separate secure channel.
+5. The account must change the password after the next login.
 
----
+## Testing and Coverage
+
+### Backend
+
+Run tests, generate JaCoCo reports, and enforce the line-coverage gate:
+
+```bash
+./gradlew clean check
+```
+
+Windows PowerShell:
+
+```powershell
+.\gradlew clean check
+```
+
+Verified results:
+
+- **502 tests passed**
+- **93% JaCoCo line coverage**
+- **80% branch coverage** for information only
+- **70% minimum line coverage** enforced through Gradle `check`
+
+HTML report:
+
+```text
+build/reports/jacoco/test/html/index.html
+```
+
+Backend CI runs `./gradlew check` for pushes and pull requests targeting `master`.
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm run lint
+npm test -- --watch=false
+npm run build -- --configuration=production
+```
+
+Frontend CI runs linting, Vitest, and the production build.
+
+## Docker and Hosted Deployment
+
+### Docker Images
+
+```text
+syankoff/bookshelf-app:1.0.0
+syankoff/reading-challenge-svc:1.0.0
+```
+
+Build the main image locally:
+
+```bash
+docker build -t bookshelf-app .
+```
+
+### Hosted Topology
+
+| Component | Platform | Access |
+|---|---|---|
+| Angular frontend | Netlify | Public HTTPS |
+| Main Book Shelf API | OpenShift | Public HTTPS route |
+| Reading Challenge Service | OpenShift | Internal service only |
+| Main PostgreSQL | OpenShift | Internal service only |
+| Challenge PostgreSQL | OpenShift | Internal service only |
+| Redis | OpenShift | Internal service only |
+
+The hosted databases and Redis use persistent volume claims. The OpenShift Developer Sandbox may scale inactive workloads to zero replicas without deleting the associated persistent volumes.
+
+Netlify build settings are configured in the Netlify project UI:
+
+- Base directory: `frontend`
+- Build command: `npm run build`
+- Publish directory: `dist/book-shelf-ui/browser`
+- Production branch: `master`
+
+The repository uses `frontend/public/_redirects` for Angular SPA route rewriting.
+
+## Local Development Credentials
+
+> [!IMPORTANT]
+> These credentials are created by the local `dev` profile. These credentials do not provide access to the hosted deployment.
+
+| Account | Username | Password | Role / Permission | Intended Review Flow |
+|---|---|---|---|---|
+| Administrator | `admin` | `admin` | `ADMIN` | Administration; password change required at first login |
+| Standard user | `user1` | `password` | `USER` | Standard authenticated operations |
+| Standard user | `user2` | `password` | `USER` | Additional user-owned data |
+| Review moderator | `user3` | `password` | `USER`, `MODERATE_REVIEWS` | Delegated review moderation |
+| Book moderator | `user4` | `password` | `USER`, `MODERATE_BOOKS` | Delegated book moderation |
+| Password-reset user | `user5` | Reset required | `USER` | Password-reset demonstration |
+
+Permissions are embedded in the JWT. Sign out and sign in again after a permission change to receive updated authorities.
+
+The hosted environment uses separate credentials. Hosted administrator credentials are not stored in this repository.
+
+## Reviewer Walkthrough
+
+### Hosted Review
+
+1. Open the hosted frontend.
+2. Browse and search the public catalogue.
+3. Open book details and inspect seeded cover images.
+4. Confirm that the Netlify frontend calls the OpenShift API.
+
+The hosted deployment does not publish administrator credentials.
+
+### Local Review
+
+1. Start both repositories and the required Docker infrastructure.
+2. Sign in as `user1`.
+3. Create a bookshelf and add a book.
+4. Create, update, and delete a review.
+5. Create a reading challenge and update progress.
+6. Sign in as `user3` and verify delegated review moderation.
+7. Sign in as `user4` and verify delegated book moderation.
+8. Sign in as `admin`, change the initial password, and review account, permission, catalogue, and moderation operations.
+9. Run `./gradlew clean check` and inspect the JaCoCo report.
+10. Run frontend linting, tests, and the production build.
 
 ## License
 
-The project is licensed under the MIT License.
+This project is licensed under the MIT License.
 
 ## Acknowledgments
-- Developed as part of the [**Java Web**](https://softuni.bg/modules/120/java-web-may-2026/1629) module at [**Software University**](https://softuni.bg/).
-- Special thanks to the course instructor for creating the project requirements.
+
+Developed for the [Java Web - May 2026 module](https://softuni.bg/modules/120/java-web-may-2026/1629) at [Software University](https://softuni.bg/).
 
 ## Repository
-GitHub Repository: [https://github.com/StefanYankov/book-shelf](https://github.com/StefanYankov/book-shelf)
+
+[Book Shelf repository](https://github.com/StefanYankov/book-shelf)
