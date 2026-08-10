@@ -10,6 +10,4 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminUser extends User {
-    // This entity can be expanded with admin-specific fields in the future,
-    // such as permissions or internal notes.
 }
