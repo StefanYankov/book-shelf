@@ -1,8 +1,9 @@
-import { TestBed } from '@angular/core/testing';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { BookshelfService } from './bookshelf.service';
-import { UserShelfAPIService } from '../../api';
-import { of } from 'rxjs';
+import {TestBed} from '@angular/core/testing';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {BookshelfService} from './bookshelf.service';
+import {UserShelfAPIService} from '../../api';
+import {PageQuery} from '../models/page-query';
+import {of} from 'rxjs';
 
 describe('BookshelfService', () => {
   let service: BookshelfService;
@@ -27,15 +28,15 @@ describe('BookshelfService', () => {
   });
 
   describe('getShelvesForUser', () => {
-    it('should call the API service with the correct parameters', () => {
+    it('should unpack the pageable into positional page, size and sort', () => {
       // Arrange
-      const pageable = { page: 0, size: 20, sort: ['name,asc'] };
+      const pageable: PageQuery = {page: 0, size: 20, sort: ['name,asc']};
 
       // Act
       service.getShelvesForUser(pageable);
 
       // Assert
-      expect(mockUserShelfApiService.getUserShelves).toHaveBeenCalledWith(pageable);
+      expect(mockUserShelfApiService.getUserShelves).toHaveBeenCalledWith(pageable.page, pageable.size, pageable.sort);
     });
   });
 });

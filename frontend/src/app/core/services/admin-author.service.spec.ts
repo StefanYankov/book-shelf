@@ -3,6 +3,7 @@ import {beforeEach, describe, expect, it, Mock, vi} from 'vitest';
 import {of} from 'rxjs';
 import {AdminAuthorService} from './admin-author.service';
 import {AdminAuthorAPIService, AuthorDetailsDto} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 describe('AdminAuthorService', () => {
   let service: AdminAuthorService;
@@ -12,7 +13,6 @@ describe('AdminAuthorService', () => {
     updateAuthor: Mock;
     deleteAuthor: Mock;
   };
-
   const id = 'author-1';
 
   beforeEach(() => {
@@ -22,7 +22,6 @@ describe('AdminAuthorService', () => {
       updateAuthor: vi.fn().mockReturnValue(of({id, name: 'Tolkien'} as AuthorDetailsDto)),
       deleteAuthor: vi.fn().mockReturnValue(of(undefined)),
     };
-
     TestBed.configureTestingModule({
       providers: [
         AdminAuthorService,
@@ -36,10 +35,10 @@ describe('AdminAuthorService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('getAllAuthors delegates with the pageable', () => {
-    const pageable = {page: 0, size: 100};
+  it('getAllAuthors unpacks the pageable into positional page, size and sort', () => {
+    const pageable: PageQuery = {page: 0, size: 100, sort: ['name,asc']};
     service.getAllAuthors(pageable);
-    expect(mockAuthorApi.getAllAuthors).toHaveBeenCalledWith(pageable);
+    expect(mockAuthorApi.getAllAuthors).toHaveBeenCalledWith(pageable.page, pageable.size, pageable.sort);
   });
 
   it('createAuthor delegates the payload without an image', () => {

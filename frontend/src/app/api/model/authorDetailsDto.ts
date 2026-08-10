@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -7,14 +7,29 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import {PageBookSummaryDto} from './pageBookSummaryDto';
+import {PagedResponseBookSummaryDto} from './pagedResponseBookSummaryDto';
 
 
 export interface AuthorDetailsDto {
+  /**
+   * Unique author identifier.
+   */
   id?: string;
+  /**
+   * Author\'s full name.
+   */
   name?: string;
+  /**
+   * Short biography of the author.
+   */
   summary?: string;
+  /**
+   * URL of the author\'s image; null when none is set.
+   */
   imageUrl?: string;
-  books?: PageBookSummaryDto;
+  /**
+   * A page of books written by the author.
+   */
+  books?: PagedResponseBookSummaryDto;
 }
 

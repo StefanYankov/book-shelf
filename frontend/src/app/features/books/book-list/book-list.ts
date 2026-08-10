@@ -1,15 +1,15 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, startWith, switchMap } from 'rxjs/operators';
-import { BookAPIService, Pageable, PageBookSummaryDto, PagedResponseBookshelfSummaryDto } from '../../../api';
-import { BookshelfService } from '../../../core/services/bookshelf.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { BookFormat } from '../../../core/models/book-format.enum';
+import {Component, inject, signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormBuilder, ReactiveFormsModule} from '@angular/forms';
+import {toSignal} from '@angular/core/rxjs-interop';
+import {RouterLink} from '@angular/router';
+import {of} from 'rxjs';
+import {catchError, debounceTime, distinctUntilChanged, startWith, switchMap} from 'rxjs/operators';
+import {BookAPIService, PagedResponseBookshelfSummaryDto, PagedResponseBookSummaryDto} from '../../../api';
+import {BookshelfService} from '../../../core/services/bookshelf.service';
+import {ToastService} from '../../../core/services/toast.service';
+import {AuthService} from '../../../core/services/auth.service';
+import {BookFormat} from '../../../core/models/book-format.enum';
 
 /**
  * Component for browsing, searching, and filtering the book catalog.
@@ -29,11 +29,13 @@ export class BookList {
   private readonly fb = inject(FormBuilder);
 
   /** Empty page used as a safe fallback for guests and on search failure. */
-  private static readonly EMPTY_BOOK_PAGE: PageBookSummaryDto = {
+  private static readonly EMPTY_BOOK_PAGE: PagedResponseBookSummaryDto = {
     content: [],
-    totalPages: 0,
-    number: 0,
+    pageNumber: 0,
+    pageSize: 0,
     totalElements: 0,
+    totalPages: 0,
+    isLast: true,
   };
 
   /** Exposes the BookFormat enum to the template. */
@@ -59,14 +61,15 @@ export class BookList {
       distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
       startWith(this.searchForm.getRawValue()),
       switchMap(filters => {
-        const pageable: Pageable = { page: 0, size: 20 };
+        // searchBooks positional args: (query, genres, format, yearMin, yearMax, page, size, sort)
         return this.bookApiService.searchBooks(
-          pageable,
           filters.query || undefined,
           new Set<string>(), // Native Set alignment
           filters.format || undefined,
           filters.yearMin || undefined,
-          filters.yearMax || undefined
+          filters.yearMax || undefined,
+          0,
+          20
         ).pipe(
           // Degrade gracefully: a failed search shows "no results" instead of
           // leaving the signal undefined forever (a permanent "Loading..." hang).
@@ -106,6 +109,7 @@ export class BookList {
     if (!bookId || !shelfId) {
       return;
     }
+
     this.bookshelfService.addBookToShelf(shelfId, { bookId }).subscribe({
       next: () => {
         this.toastService.showSuccess('Book added to shelf successfully!');

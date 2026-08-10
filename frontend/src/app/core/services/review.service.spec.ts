@@ -1,8 +1,9 @@
-import { TestBed } from '@angular/core/testing';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { of } from 'rxjs';
-import { ReviewService } from './review.service';
-import { ReviewAPIService, ReviewCreateDto, ReviewUpdateDto } from '../../api';
+import {TestBed} from '@angular/core/testing';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {of} from 'rxjs';
+import {ReviewService} from './review.service';
+import {ReviewAPIService, ReviewCreateDto, ReviewUpdateDto} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 describe('ReviewService', () => {
   let service: ReviewService;
@@ -12,7 +13,6 @@ describe('ReviewService', () => {
     updateReview: ReturnType<typeof vi.fn>;
     deleteReview: ReturnType<typeof vi.fn>;
   };
-
   const targetId = 'book-123';
   const reviewId = 'review-456';
 
@@ -23,7 +23,6 @@ describe('ReviewService', () => {
       updateReview: vi.fn().mockReturnValue(of({})),
       deleteReview: vi.fn().mockReturnValue(of(undefined)),
     };
-
     TestBed.configureTestingModule({
       providers: [
         ReviewService,
@@ -38,21 +37,18 @@ describe('ReviewService', () => {
   });
 
   describe('getReviewsForTarget', () => {
-    it('should delegate to the API client with target and pageable', () => {
-      const pageable = { page: 0, size: 20 };
-
+    it('should delegate the target and unpack the pageable into positional page, size and sort', () => {
+      const pageable: PageQuery = {page: 0, size: 20, sort: ['createdAt,desc']};
       service.getReviewsForTarget(targetId, 'BOOK', pageable);
-
-      expect(mockReviewApiService.getReviewsForTarget).toHaveBeenCalledWith(targetId, 'BOOK', pageable);
+      expect(mockReviewApiService.getReviewsForTarget).toHaveBeenCalledWith(
+        targetId, 'BOOK', pageable.page, pageable.size, pageable.sort);
     });
   });
 
   describe('addReview', () => {
     it('should delegate to the API client with target and payload', () => {
       const dto: ReviewCreateDto = { title: 'Great', comment: 'Loved it', rating: 5 };
-
       service.addReview(targetId, 'BOOK', dto);
-
       expect(mockReviewApiService.addReview).toHaveBeenCalledWith(targetId, 'BOOK', dto);
     });
   });
@@ -60,9 +56,7 @@ describe('ReviewService', () => {
   describe('updateReview', () => {
     it('should delegate to the API client with review id and payload', () => {
       const dto: ReviewUpdateDto = { title: 'Updated', comment: 'Still good', rating: 4 };
-
       service.updateReview(reviewId, dto);
-
       expect(mockReviewApiService.updateReview).toHaveBeenCalledWith(reviewId, dto);
     });
   });
@@ -70,7 +64,6 @@ describe('ReviewService', () => {
   describe('deleteReview', () => {
     it('should delegate to the API client with the review id', () => {
       service.deleteReview(reviewId);
-
       expect(mockReviewApiService.deleteReview).toHaveBeenCalledWith(reviewId);
     });
   });

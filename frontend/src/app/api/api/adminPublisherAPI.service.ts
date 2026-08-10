@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -14,8 +14,6 @@ import {HttpClient, HttpContext, HttpEvent, HttpResponse} from '@angular/common/
 import {Observable} from 'rxjs';
 import {OpenApiHttpParams, QueryParamStyle} from '../query.params';
 
-// @ts-ignore
-import {Pageable} from '../model/pageable';
 // @ts-ignore
 import {PagedResponsePublisherDto} from '../model/pagedResponsePublisherDto';
 // @ts-ignore
@@ -76,6 +74,9 @@ export class AdminPublisherAPIService extends BaseService {
     }
 
     let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
@@ -160,6 +161,9 @@ export class AdminPublisherAPIService extends BaseService {
 
     let localVarHeaders = this.defaultHeaders;
 
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
     ]);
@@ -210,47 +214,67 @@ export class AdminPublisherAPIService extends BaseService {
    * List publishers
    * Retrieves a paginated list of all publishers.
    * @endpoint get /api/admin/publishers
-   * @param pageable
+   * @param page Zero-based page index (0..N)
+   * @param size The size of the page to be returned
+   * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
    * @param options additional options
    */
-  public getAllPublishers(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {
+  public getAllPublishers(page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
     httpHeaderAccept?: 'application/json',
     context?: HttpContext,
     transferCache?: boolean
   }): Observable<PagedResponsePublisherDto>;
-  public getAllPublishers(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {
+  public getAllPublishers(page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
     httpHeaderAccept?: 'application/json',
     context?: HttpContext,
     transferCache?: boolean
   }): Observable<HttpResponse<PagedResponsePublisherDto>>;
-  public getAllPublishers(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {
+  public getAllPublishers(page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
     httpHeaderAccept?: 'application/json',
     context?: HttpContext,
     transferCache?: boolean
   }): Observable<HttpEvent<PagedResponsePublisherDto>>;
-  public getAllPublishers(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {
+  public getAllPublishers(page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
     httpHeaderAccept?: 'application/json',
     context?: HttpContext,
     transferCache?: boolean
   }): Observable<any> {
-    if (pageable === null || pageable === undefined) {
-      throw new Error('Required parameter pageable was null or undefined when calling getAllPublishers.');
-    }
 
     let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
     localVarQueryParameters = this.addToHttpParams(
       localVarQueryParameters,
-      'pageable',
-      <any>pageable,
+      'page',
+      <any>page,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
       QueryParamStyle.Form,
       true,
     );
 
 
     let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
@@ -325,6 +349,9 @@ export class AdminPublisherAPIService extends BaseService {
     }
 
     let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'
@@ -410,6 +437,9 @@ export class AdminPublisherAPIService extends BaseService {
     }
 
     let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
     const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
       'application/json'

@@ -1,13 +1,8 @@
 import {inject, Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {
-  AdminAPIService,
-  LockUserRequestDto,
-  Pageable,
-  PagedResponseAdminUserViewDto,
-  PermissionRequestDto,
-} from '../../api';
+import {AdminAPIService, LockUserRequestDto, PagedResponseAdminUserViewDto, PermissionRequestDto,} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Service responsible for administrative user management.
@@ -25,8 +20,8 @@ export class AdminUserService {
    * @param pageable Pagination configuration.
    * @returns An observable emitting a paginated result of admin user views.
    */
-  getAllUsers(pageable: Pageable): Observable<PagedResponseAdminUserViewDto> {
-    return this.adminApiService.getAllUsers(pageable);
+  getAllUsers(pageable: PageQuery): Observable<PagedResponseAdminUserViewDto> {
+    return this.adminApiService.getAllUsers(pageable.page, pageable.size, pageable.sort);
   }
 
   /**

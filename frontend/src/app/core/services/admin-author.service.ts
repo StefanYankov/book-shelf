@@ -5,9 +5,9 @@ import {
   AuthorCreateDto,
   AuthorDetailsDto,
   AuthorUpdateDto,
-  Pageable,
   PagedResponseAuthorSummaryDto,
 } from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Administrative facade over the generated `AdminAuthorAPIService`.
@@ -23,8 +23,8 @@ export class AdminAuthorService {
    * @param pageable Pagination configuration.
    * @returns An observable emitting a paginated result of author summaries.
    */
-  getAllAuthors(pageable: Pageable): Observable<PagedResponseAuthorSummaryDto> {
-    return this.authorApi.getAllAuthors(pageable);
+  getAllAuthors(pageable: PageQuery): Observable<PagedResponseAuthorSummaryDto> {
+    return this.authorApi.getAllAuthors(pageable.page, pageable.size, pageable.sort);
   }
 
   /**
