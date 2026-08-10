@@ -32,7 +32,7 @@ The main application owns identity, catalogue, bookshelf, and review data. A sep
 - [Reviewer Walkthrough](#reviewer-walkthrough)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
-- [Repository](#repository)
+- [Repositories](#repository)
 
 ## Live Demo
 
@@ -645,6 +645,7 @@ This project is licensed under the MIT License.
 
 Developed for the [Java Web - May 2026 module](https://softuni.bg/modules/120/java-web-may-2026/1629) at [Software University](https://softuni.bg/).
 
-## Repository
+## Repositories
 
 [Book Shelf repository](https://github.com/StefanYankov/book-shelf)
+[Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc) 
