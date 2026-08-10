@@ -32,7 +32,7 @@ The main application owns identity, catalogue, bookshelf, and review data. A sep
 - [Reviewer Walkthrough](#reviewer-walkthrough)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
-- [Repositories](#repository)
+- [Repositories](#repositories)
 
 ## Live Demo
 
