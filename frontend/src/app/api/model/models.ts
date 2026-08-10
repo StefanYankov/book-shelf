@@ -7,6 +7,7 @@ export * from './authorDetailsDto';
 export * from './authorSummaryDto';
 export * from './authorUpdateDto';
 export * from './bookAuthorDto';
+export * from './bookCreateDto';
 export * from './bookDetailsDto';
 export * from './bookGenreDto';
 export * from './bookLanguageDto';

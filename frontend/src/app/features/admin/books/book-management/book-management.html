@@ -1,0 +1,177 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold m-0">Book Management</h2>
+    <button (click)="startCreate()" class="btn btn-primary">Create Book</button>
+  </div>
+
+  @if (formOpen()) {
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">{{ formTitle() }}</h5>
+        <form (ngSubmit)="submit()" [formGroup]="form">
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <label class="form-label" for="bookTitle">Title</label>
+              <input class="form-control" formControlName="title" id="bookTitle" type="text">
+              @if (form.controls.title.hasError('required') && form.controls.title.touched) {
+                <div class="text-danger small">Title is required.</div>
+              }
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookIsbn">ISBN (Optional)</label>
+              <input class="form-control" formControlName="isbn" id="bookIsbn" type="text">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookPages">Pages</label>
+              <input class="form-control" formControlName="pages" id="bookPages" min="1" type="number">
+              @if (form.controls.pages.hasError('required') && form.controls.pages.touched) {
+                <div class="text-danger small">Pages is required.</div>
+              }
+              @if (form.controls.pages.hasError('min') && form.controls.pages.touched) {
+                <div class="text-danger small">Pages must be positive.</div>
+              }
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookYear">Year Published</label>
+              <input class="form-control" formControlName="yearPublished" id="bookYear" type="number">
+              @if (form.controls.yearPublished.hasError('required') && form.controls.yearPublished.touched) {
+                <div class="text-danger small">Year is required.</div>
+              }
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookFormat">Format</label>
+              <select class="form-select" formControlName="format" id="bookFormat">
+                <option disabled value="">Select a format</option>
+                @for (fmt of bookFormats; track fmt) {
+                  <option [value]="fmt">{{ formatLabels[fmt] }}</option>
+                }
+              </select>
+              @if (form.controls.format.hasError('required') && form.controls.format.touched) {
+                <div class="text-danger small">Format is required.</div>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="bookSummary">Summary</label>
+            <textarea class="form-control" formControlName="summary" id="bookSummary" rows="3"></textarea>
+            @if (form.controls.summary.hasError('required') && form.controls.summary.touched) {
+              <div class="text-danger small">Summary is required.</div>
+            }
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookAuthor">Author</label>
+              <select class="form-select" formControlName="authorId" id="bookAuthor">
+                <option disabled value="">Select an author</option>
+                @for (author of authors()?.content; track author.id) {
+                  <option [value]="author.id">{{ author.name }}</option>
+                }
+              </select>
+              @if (form.controls.authorId.hasError('required') && form.controls.authorId.touched) {
+                <div class="text-danger small">Author is required.</div>
+              }
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookLanguage">Language</label>
+              <select class="form-select" formControlName="languageId" id="bookLanguage">
+                <option disabled value="">Select a language</option>
+                @for (language of languages()?.content; track language.id) {
+                  <option [value]="language.id">{{ language.name }}</option>
+                }
+              </select>
+              @if (form.controls.languageId.hasError('required') && form.controls.languageId.touched) {
+                <div class="text-danger small">Language is required.</div>
+              }
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="bookPublisher">Publisher</label>
+              <select class="form-select" formControlName="publisherId" id="bookPublisher">
+                <option disabled value="">Select a publisher</option>
+                @for (publisher of publishers()?.content; track publisher.id) {
+                  <option [value]="publisher.id">{{ publisher.name }}</option>
+                }
+              </select>
+              @if (form.controls.publisherId.hasError('required') && form.controls.publisherId.touched) {
+                <div class="text-danger small">Publisher is required.</div>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="bookGenres">Genres (hold Ctrl/Cmd to select multiple)</label>
+            <select class="form-select" formControlName="genreIds" id="bookGenres" multiple>
+              @for (genre of genres()?.content; track genre.id) {
+                <option [value]="genre.id">{{ genre.name }}</option>
+              }
+            </select>
+            @if (form.controls.genreIds.hasError('required') && form.controls.genreIds.touched) {
+              <div class="text-danger small">At least one genre is required.</div>
+            }
+          </div>
+
+          @if (imageInputVisible()) {
+            <div class="mb-3">
+              <label class="form-label" for="bookImage">Cover Image (Optional)</label>
+              <input (change)="onImageSelected($event)" accept="image/*" class="form-control" id="bookImage"
+                     type="file">
+            </div>
+          }
+
+          <div class="d-flex justify-content-end gap-2">
+            <button (click)="cancelForm()" class="btn btn-light" type="button">Cancel</button>
+            <button [disabled]="form.invalid" class="btn btn-success" type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (books(); as page) {
+    <table class="table align-middle table-hover">
+      <thead class="table-light">
+      <tr>
+        <th style="width: 64px;">Cover</th>
+        <th>Title</th>
+        <th>Author</th>
+        <th class="text-end">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+        @for (book of page.content; track book.id) {
+          <tr>
+            <td>
+              <img [src]="book.coverImageUrl || 'https://placehold.co/48x64?text=%3F'"
+                   alt="Cover of {{ book.title }}" class="rounded" height="56" width="40">
+            </td>
+            <td class="fw-semibold">{{ book.title }}</td>
+            <td class="text-muted">{{ book.authorName }}</td>
+            <td class="text-end">
+              @if (confirmingDeleteId() === book.id) {
+                <span class="me-2 small text-danger">Delete?</span>
+                <button (click)="confirmDelete(book.id!)" class="btn btn-sm btn-danger rounded-pill px-3">Yes</button>
+                <button (click)="cancelDelete()" class="btn btn-sm btn-light rounded-pill px-3">No</button>
+              } @else {
+                <button (click)="startEdit(book)" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2">Edit
+                </button>
+                <button (click)="requestDelete(book.id!)" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                  Delete
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="text-center py-4 text-muted" colspan="4">No books yet. Create one to get started.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <p class="text-center text-muted py-4">Loading books...</p>
+  }
+</div>

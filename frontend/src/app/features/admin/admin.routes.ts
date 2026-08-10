@@ -33,6 +33,11 @@ export const ADMIN_ROUTES: Routes = [
     loadComponent: () => import('./publishers/publisher-management/publisher-management').then(m => m.PublisherManagement)
   },
   {
+    path: 'books',
+    title: `${APP_TITLE} | Book Management`,
+    loadComponent: () => import('./books/book-management/book-management').then(m => m.BookManagement)
+  },
+  {
     path: 'profile',
     title: `${APP_TITLE} | Admin Security`,
     loadComponent: () => import('./profile/admin-profile').then(m => m.AdminProfile)
