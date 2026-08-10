@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -99,7 +100,6 @@ public class UserServiceImpl extends BaseService implements UserService {
 
         // A null duration is a permanent lock. A duration produces a temporary lock.
         Instant expiry = duration == null ? null : Instant.now().plus(duration);
-
         recordStatusEvent(user, actor, reason, StatusEventType.ACCOUNT_LOCKED, expiry);
         log.info("User {} locked by admin {} ({})", userId, actorId,
                 expiry == null ? "permanent" : "until " + expiry);
@@ -125,7 +125,6 @@ public class UserServiceImpl extends BaseService implements UserService {
 
         user.getPermissions().add(permission);
         userRepository.save(user);
-
         recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_GRANTED, null);
         log.info("Admin {} granted permission {} to user {}", actorId, permission, userId);
     }
@@ -139,7 +138,6 @@ public class UserServiceImpl extends BaseService implements UserService {
 
         user.getPermissions().remove(permission);
         userRepository.save(user);
-
         recordStatusEvent(user, actor, reason, StatusEventType.PERMISSION_REVOKED, null);
         log.info("Admin {} revoked permission {} from user {}", actorId, permission, userId);
     }
@@ -148,8 +146,9 @@ public class UserServiceImpl extends BaseService implements UserService {
     @Transactional(readOnly = true)
     public UserPermissionsDto getUserPermissions(UUID userId) {
         ApplicationUser user = findApplicationUserOrThrow(userId);
+        Set<Permission> permissions = Set.copyOf(user.getPermissions());
         log.info("Permissions retrieved for user {}", userId);
-        return new UserPermissionsDto(user.getId(), user.getPermissions());
+        return new UserPermissionsDto(user.getId(), permissions);
     }
 
     // Permissions apply only to standard user accounts; admins derive all capability from their role.
