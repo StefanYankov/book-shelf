@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  * 
  *

@@ -5,9 +5,9 @@ import {
   LanguageCreateDto,
   LanguageDto,
   LanguageUpdateDto,
-  Pageable,
   PagedResponseLanguageDto,
 } from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Administrative facade over the generated `AdminLanguageAPIService`.
@@ -23,8 +23,8 @@ export class AdminLanguageService {
    * @param pageable Pagination configuration.
    * @returns An observable emitting a paginated result of languages.
    */
-  getAllLanguages(pageable: Pageable): Observable<PagedResponseLanguageDto> {
-    return this.languageApi.getAllLanguages(pageable);
+  getAllLanguages(pageable: PageQuery): Observable<PagedResponseLanguageDto> {
+    return this.languageApi.getAllLanguages(pageable.page, pageable.size, pageable.sort);
   }
 
   /**

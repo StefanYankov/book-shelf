@@ -3,6 +3,7 @@ import {beforeEach, describe, expect, it, Mock, vi} from 'vitest';
 import {of} from 'rxjs';
 import {AdminPublisherService} from './admin-publisher.service';
 import {AdminPublisherAPIService, PublisherDto} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 describe('AdminPublisherService', () => {
   let service: AdminPublisherService;
@@ -12,7 +13,6 @@ describe('AdminPublisherService', () => {
     updatePublisher: Mock;
     deletePublisher: Mock;
   };
-
   const id = 'pub-1';
 
   beforeEach(() => {
@@ -22,7 +22,6 @@ describe('AdminPublisherService', () => {
       updatePublisher: vi.fn().mockReturnValue(of({id, name: 'Doubleday'} as PublisherDto)),
       deletePublisher: vi.fn().mockReturnValue(of(undefined)),
     };
-
     TestBed.configureTestingModule({
       providers: [
         AdminPublisherService,
@@ -36,10 +35,10 @@ describe('AdminPublisherService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('getAllPublishers delegates with the pageable', () => {
-    const pageable = {page: 0, size: 100};
+  it('getAllPublishers unpacks the pageable into positional page, size and sort', () => {
+    const pageable: PageQuery = {page: 0, size: 100, sort: ['name,asc']};
     service.getAllPublishers(pageable);
-    expect(mockPublisherApi.getAllPublishers).toHaveBeenCalledWith(pageable);
+    expect(mockPublisherApi.getAllPublishers).toHaveBeenCalledWith(pageable.page, pageable.size, pageable.sort);
   });
 
   it('createPublisher delegates the payload', () => {

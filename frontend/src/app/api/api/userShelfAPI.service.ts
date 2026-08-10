@@ -1,5 +1,5 @@
 /**
- * OpenAPI definition
+ * Book Shelf API
  *
  *
  *
@@ -22,8 +22,6 @@ import {BookshelfCreateDto} from '../model/bookshelfCreateDto';
 import {BookshelfDetailsDto} from '../model/bookshelfDetailsDto';
 // @ts-ignore
 import {BookshelfUpdateDto} from '../model/bookshelfUpdateDto';
-// @ts-ignore
-import {Pageable} from '../model/pageable';
 // @ts-ignore
 import {PagedResponseBookSummaryDto} from '../model/pagedResponseBookSummaryDto';
 // @ts-ignore
@@ -68,6 +66,9 @@ export class UserShelfAPIService extends BaseService {
         }
 
         let localVarHeaders = this.defaultHeaders;
+
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -136,6 +137,9 @@ export class UserShelfAPIService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -203,6 +207,9 @@ export class UserShelfAPIService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -246,34 +253,70 @@ export class UserShelfAPIService extends BaseService {
      * Retrieves a paginated list of all books contained within a specific bookshelf.
      * @endpoint get /api/users/me/shelves/{shelfId}/books
      * @param shelfId The UUID of the shelf
-     * @param pageable
+     * @param page Zero-based page index (0..N)
+     * @param size The size of the page to be returned
+     * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getBooksInShelf(shelfId: string, pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookSummaryDto>;
-    public getBooksInShelf(shelfId: string, pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
-    public getBooksInShelf(shelfId: string, pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
-    public getBooksInShelf(shelfId: string, pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getBooksInShelf(shelfId: string, page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
+      httpHeaderAccept?: 'application/json',
+      context?: HttpContext,
+      transferCache?: boolean
+    }): Observable<PagedResponseBookSummaryDto>;
+  public getBooksInShelf(shelfId: string, page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpResponse<PagedResponseBookSummaryDto>>;
+  public getBooksInShelf(shelfId: string, page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpEvent<PagedResponseBookSummaryDto>>;
+  public getBooksInShelf(shelfId: string, page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<any> {
         if (shelfId === null || shelfId === undefined) {
             throw new Error('Required parameter shelfId was null or undefined when calling getBooksInShelf.');
-        }
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling getBooksInShelf.');
         }
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
-            'pageable',
-            <any>pageable,
+          'page',
+          <any>page,
+          QueryParamStyle.Form,
+          true,
+        );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
             QueryParamStyle.Form,
             true,
         );
 
 
         let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -333,6 +376,9 @@ export class UserShelfAPIService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -375,31 +421,67 @@ export class UserShelfAPIService extends BaseService {
      * Get all shelves for the current user
      * Retrieves a paginated list of all bookshelves created by the authenticated user.
      * @endpoint get /api/users/me/shelves
-     * @param pageable
+     * @param page Zero-based page index (0..N)
+     * @param size The size of the page to be returned
+     * @param sort Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options
      */
-    public getUserShelves(pageable: Pageable, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PagedResponseBookshelfSummaryDto>;
-    public getUserShelves(pageable: Pageable, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PagedResponseBookshelfSummaryDto>>;
-    public getUserShelves(pageable: Pageable, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PagedResponseBookshelfSummaryDto>>;
-    public getUserShelves(pageable: Pageable, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (pageable === null || pageable === undefined) {
-            throw new Error('Required parameter pageable was null or undefined when calling getUserShelves.');
-        }
+    public getUserShelves(page?: number, size?: number, sort?: Array<string>, observe?: 'body', reportProgress?: boolean, options?: {
+      httpHeaderAccept?: 'application/json',
+      context?: HttpContext,
+      transferCache?: boolean
+    }): Observable<PagedResponseBookshelfSummaryDto>;
+  public getUserShelves(page?: number, size?: number, sort?: Array<string>, observe?: 'response', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpResponse<PagedResponseBookshelfSummaryDto>>;
+  public getUserShelves(page?: number, size?: number, sort?: Array<string>, observe?: 'events', reportProgress?: boolean, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<HttpEvent<PagedResponseBookshelfSummaryDto>>;
+  public getUserShelves(page?: number, size?: number, sort?: Array<string>, observe: any = 'body', reportProgress: boolean = false, options?: {
+    httpHeaderAccept?: 'application/json',
+    context?: HttpContext,
+    transferCache?: boolean
+  }): Observable<any> {
 
         let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
 
         localVarQueryParameters = this.addToHttpParams(
             localVarQueryParameters,
-            'pageable',
-            <any>pageable,
+          'page',
+          <any>page,
+          QueryParamStyle.Form,
+          true,
+        );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'size',
+      <any>size,
+      QueryParamStyle.Form,
+      true,
+    );
+
+
+    localVarQueryParameters = this.addToHttpParams(
+      localVarQueryParameters,
+      'sort',
+      <any>sort,
             QueryParamStyle.Form,
             true,
         );
 
 
         let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -463,6 +545,9 @@ export class UserShelfAPIService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -523,6 +608,9 @@ export class UserShelfAPIService extends BaseService {
         }
 
         let localVarHeaders = this.defaultHeaders;
+
+      // authentication (bearerAuth) required
+      localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

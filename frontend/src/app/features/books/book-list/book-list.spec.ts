@@ -1,14 +1,14 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
-import { BookList } from './book-list';
-import { BookAPIService, PageBookSummaryDto } from '../../../api';
-import { BookshelfService } from '../../../core/services/bookshelf.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { AuthService } from '../../../core/services/auth.service';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideHttpClient} from '@angular/common/http';
+import {provideHttpClientTesting} from '@angular/common/http/testing';
+import {provideRouter} from '@angular/router';
+import {of, throwError} from 'rxjs';
+import {afterEach, beforeEach, describe, expect, it, Mock, vi} from 'vitest';
+import {BookList} from './book-list';
+import {BookAPIService, PagedResponseBookSummaryDto} from '../../../api';
+import {BookshelfService} from '../../../core/services/bookshelf.service';
+import {ToastService} from '../../../core/services/toast.service';
+import {AuthService} from '../../../core/services/auth.service';
 
 describe('BookList Component Unit Tests', () => {
   let component: BookList;
@@ -18,11 +18,13 @@ describe('BookList Component Unit Tests', () => {
   let mockToastService: { showSuccess: Mock; showError: Mock };
   let mockAuthService: { isLoggedIn: Mock };
 
-  const mockEmptyPage: PageBookSummaryDto = {
+  const mockEmptyPage: PagedResponseBookSummaryDto = {
     content: [],
     totalPages: 0,
-    number: 0,
-    totalElements: 0
+    pageNumber: 0,
+    pageSize: 0,
+    totalElements: 0,
+    isLast: true
   };
 
   beforeEach(async () => {
@@ -71,36 +73,36 @@ describe('BookList Component Unit Tests', () => {
 
   it('should call searchBooks on init with default criteria', () => {
     mockBookApiService.searchBooks.mockReturnValue(of(mockEmptyPage));
-
     fixture.detectChanges();
     vi.advanceTimersByTime(300);
-
+    // searchBooks positional args: (query, genres, format, yearMin, yearMax, page, size, sort)
     expect(mockBookApiService.searchBooks).toHaveBeenCalledWith(
-      { page: 0, size: 20 },
       undefined,
       expect.any(Set),
       undefined,
       undefined,
-      undefined
+      undefined,
+      0,
+      20
     );
   });
 
   it('should display books from the service when data arrives', () => {
     // Arrange
-    const mockBookPage: PageBookSummaryDto = {
+    const mockBookPage: PagedResponseBookSummaryDto = {
       content: [
         { id: '1', title: 'The Hobbit', authorName: 'J.R.R. Tolkien', coverImageUrl: '' },
         { id: '2', title: 'The Lord of the Rings', authorName: 'J.R.R. Tolkien', coverImageUrl: '' }
       ],
       totalPages: 1,
-      number: 0,
-      totalElements: 2
+      pageNumber: 0,
+      pageSize: 20,
+      totalElements: 2,
+      isLast: true
     };
     mockBookApiService.searchBooks.mockReturnValue(of(mockBookPage));
-
     component['searchForm'].patchValue({ query: 'Hobbit' });
     fixture.detectChanges();
-
     vi.advanceTimersByTime(300);
     fixture.detectChanges();
 
@@ -117,24 +119,22 @@ describe('BookList Component Unit Tests', () => {
     mockBookApiService.searchBooks.mockReturnValue(of(mockEmptyPage));
     fixture.detectChanges();
     vi.advanceTimersByTime(300);
-
     mockBookApiService.searchBooks.mockClear();
+
     component['searchForm'].patchValue({ query: 'The Hobbit' });
-
     fixture.detectChanges();
-
     expect(mockBookApiService.searchBooks).not.toHaveBeenCalled();
-
     vi.advanceTimersByTime(300);
 
     // Assert
     expect(mockBookApiService.searchBooks).toHaveBeenCalledWith(
-      { page: 0, size: 20 },
       'The Hobbit',
       expect.any(Set),
       undefined,
       undefined,
-      undefined
+      undefined,
+      0,
+      20
     );
   });
 

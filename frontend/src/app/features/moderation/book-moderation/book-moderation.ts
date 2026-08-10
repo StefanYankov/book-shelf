@@ -29,7 +29,9 @@ import {ToastService} from '../../../core/services/toast.service';
 export class BookModeration {
   private readonly moderationApiService = inject(ModerationAPIService);
   private readonly bookApiService = inject(BookAPIService);
+
   protected moderationForm = signal<{ id: string, title: string, summary: string } | null>(null);
+
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
@@ -41,7 +43,8 @@ export class BookModeration {
       debounceTime(300),
       distinctUntilChanged(),
       startWith(''),
-      switchMap(query => this.bookApiService.searchBooks({page: 0, size: 10}, query || undefined))
+      // searchBooks positional args: (query, genres, format, yearMin, yearMax, page, size, sort)
+      switchMap(query => this.bookApiService.searchBooks(query || undefined, undefined, undefined, undefined, undefined, 0, 10))
     ),
     {
       initialValue: {
@@ -85,7 +88,6 @@ export class BookModeration {
     if (!form) return;
 
     const dto: BookUpdateDto = {title: form.title, summary: form.summary};
-
     this.moderationApiService.moderateBook(form.id, dto).subscribe({
       next: (updatedBook: BookDetailsDto) => {
         this.toast.showSuccess(`Book "${updatedBook.title}" moderated successfully.`);

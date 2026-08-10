@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { BookAPIService, BookDetailsDto, PageBookSummaryDto } from '../../api';
+import {inject, Injectable} from '@angular/core';
+import {Observable} from 'rxjs';
+import {BookAPIService, BookDetailsDto, PagedResponseBookSummaryDto} from '../../api';
 
 /**
  * @Injectable
@@ -23,8 +23,8 @@ export class BookService {
    * @param size The number of items per page.
    * @returns An Observable emitting a paginated result of book summaries.
    */
-  getAllBooks(page: number, size: number): Observable<PageBookSummaryDto> {
-    return this.bookApi.getAllBooks({ page, size });
+  getAllBooks(page: number, size: number): Observable<PagedResponseBookSummaryDto> {
+    return this.bookApi.getAllBooks(page, size);
   }
 
   /**
@@ -35,8 +35,9 @@ export class BookService {
    * @param size The number of items per page.
    * @returns An Observable emitting a paginated result of book summaries.
    */
-  searchBooks(query: string, page: number, size: number): Observable<PageBookSummaryDto> {
-    return this.bookApi.searchBooks({ page, size }, query);
+  searchBooks(query: string, page: number, size: number): Observable<PagedResponseBookSummaryDto> {
+    // searchBooks positional args: (query, genres, format, yearMin, yearMax, page, size, sort)
+    return this.bookApi.searchBooks(query, undefined, undefined, undefined, undefined, page, size);
   }
 
   /**

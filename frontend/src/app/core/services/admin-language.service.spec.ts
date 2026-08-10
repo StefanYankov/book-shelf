@@ -3,6 +3,7 @@ import {beforeEach, describe, expect, it, Mock, vi} from 'vitest';
 import {of} from 'rxjs';
 import {AdminLanguageService} from './admin-language.service';
 import {AdminLanguageAPIService, LanguageDto} from '../../api';
+import {PageQuery} from '../models/page-query';
 
 describe('AdminLanguageService', () => {
   let service: AdminLanguageService;
@@ -12,7 +13,6 @@ describe('AdminLanguageService', () => {
     updateLanguage: Mock;
     deleteLanguage: Mock;
   };
-
   const id = 'lang-1';
 
   beforeEach(() => {
@@ -22,7 +22,6 @@ describe('AdminLanguageService', () => {
       updateLanguage: vi.fn().mockReturnValue(of({id, name: 'German'} as LanguageDto)),
       deleteLanguage: vi.fn().mockReturnValue(of(undefined)),
     };
-
     TestBed.configureTestingModule({
       providers: [
         AdminLanguageService,
@@ -36,10 +35,10 @@ describe('AdminLanguageService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('getAllLanguages delegates with the pageable', () => {
-    const pageable = {page: 0, size: 100};
+  it('getAllLanguages unpacks the pageable into positional page, size and sort', () => {
+    const pageable: PageQuery = {page: 0, size: 100, sort: ['name,asc']};
     service.getAllLanguages(pageable);
-    expect(mockLanguageApi.getAllLanguages).toHaveBeenCalledWith(pageable);
+    expect(mockLanguageApi.getAllLanguages).toHaveBeenCalledWith(pageable.page, pageable.size, pageable.sort);
   });
 
   it('createLanguage delegates the payload', () => {

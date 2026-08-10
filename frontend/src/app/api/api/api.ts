@@ -13,11 +13,8 @@ import {UserProfileAPIService} from './userProfileAPI.service';
 import {UserShelfAPIService} from './userShelfAPI.service';
 
 export * from './adminAuthorAPI.service';
-
 export * from './adminGenreAPI.service';
-
 export * from './adminLanguageAPI.service';
-
 export * from './adminPublisherAPI.service';
 export * from './authenticationAPI.service';
 export * from './bookAPI.service';
@@ -26,5 +23,4 @@ export * from './readingChallengeAPI.service';
 export * from './reviewAPI.service';
 export * from './userProfileAPI.service';
 export * from './userShelfAPI.service';
-
 export const APIS = [AdminAPIService, AdminAuthorAPIService, AdminGenreAPIService, AdminLanguageAPIService, AdminPublisherAPIService, AuthenticationAPIService, BookAPIService, ModerationAPIService, ReadingChallengeAPIService, ReviewAPIService, UserProfileAPIService, UserShelfAPIService];

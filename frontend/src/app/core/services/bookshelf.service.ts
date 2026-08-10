@@ -1,15 +1,15 @@
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import {inject, Injectable} from '@angular/core';
+import {Observable} from 'rxjs';
 import {
   AddBookToBookshelfDto,
   BookshelfCreateDto,
   BookshelfDetailsDto,
   BookshelfUpdateDto,
-  Pageable,
   PagedResponseBookshelfSummaryDto,
   PagedResponseBookSummaryDto,
   UserShelfAPIService,
 } from '../../api';
+import {PageQuery} from '../models/page-query';
 
 /**
  * Service responsible for managing user bookshelves.
@@ -24,8 +24,8 @@ export class BookshelfService {
    * @param pageable Pagination and sorting configuration.
    * @returns An observable emitting a paginated result of bookshelf summaries.
    */
-  getShelvesForUser(pageable: Pageable): Observable<PagedResponseBookshelfSummaryDto> {
-    return this.userShelfApiService.getUserShelves(pageable);
+  getShelvesForUser(pageable: PageQuery): Observable<PagedResponseBookshelfSummaryDto> {
+    return this.userShelfApiService.getUserShelves(pageable.page, pageable.size, pageable.sort);
   }
 
   /**
@@ -52,8 +52,8 @@ export class BookshelfService {
    * @param pageable Pagination and sorting configuration.
    * @returns An observable emitting a paginated result of book summaries.
    */
-  getBooksInShelf(shelfId: string, pageable: Pageable): Observable<PagedResponseBookSummaryDto> {
-    return this.userShelfApiService.getBooksInShelf(shelfId, pageable);
+  getBooksInShelf(shelfId: string, pageable: PageQuery): Observable<PagedResponseBookSummaryDto> {
+    return this.userShelfApiService.getBooksInShelf(shelfId, pageable.page, pageable.size, pageable.sort);
   }
 
   /**
