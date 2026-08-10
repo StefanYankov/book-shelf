@@ -1,6 +1,7 @@
 export * from './adminAPI.service';
 import {AdminAPIService} from './adminAPI.service';
 import {AdminAuthorAPIService} from './adminAuthorAPI.service';
+import {AdminBookAPIService} from './adminBookAPI.service';
 import {AdminGenreAPIService} from './adminGenreAPI.service';
 import {AdminLanguageAPIService} from './adminLanguageAPI.service';
 import {AdminPublisherAPIService} from './adminPublisherAPI.service';
@@ -13,6 +14,8 @@ import {UserProfileAPIService} from './userProfileAPI.service';
 import {UserShelfAPIService} from './userShelfAPI.service';
 
 export * from './adminAuthorAPI.service';
+
+export * from './adminBookAPI.service';
 export * from './adminGenreAPI.service';
 export * from './adminLanguageAPI.service';
 export * from './adminPublisherAPI.service';
@@ -23,4 +26,5 @@ export * from './readingChallengeAPI.service';
 export * from './reviewAPI.service';
 export * from './userProfileAPI.service';
 export * from './userShelfAPI.service';
-export const APIS = [AdminAPIService, AdminAuthorAPIService, AdminGenreAPIService, AdminLanguageAPIService, AdminPublisherAPIService, AuthenticationAPIService, BookAPIService, ModerationAPIService, ReadingChallengeAPIService, ReviewAPIService, UserProfileAPIService, UserShelfAPIService];
+
+export const APIS = [AdminAPIService, AdminAuthorAPIService, AdminBookAPIService, AdminGenreAPIService, AdminLanguageAPIService, AdminPublisherAPIService, AuthenticationAPIService, BookAPIService, ModerationAPIService, ReadingChallengeAPIService, ReviewAPIService, UserProfileAPIService, UserShelfAPIService];

@@ -1,10 +1,10 @@
 .gitignore
-.openapi-generator-ignore
 README.md
 api.base.service.ts
 api.module.ts
 api/adminAPI.service.ts
 api/adminAuthorAPI.service.ts
+api/adminBookAPI.service.ts
 api/adminGenreAPI.service.ts
 api/adminLanguageAPI.service.ts
 api/adminPublisherAPI.service.ts
@@ -29,6 +29,7 @@ model/authorDetailsDto.ts
 model/authorSummaryDto.ts
 model/authorUpdateDto.ts
 model/bookAuthorDto.ts
+model/bookCreateDto.ts
 model/bookDetailsDto.ts
 model/bookGenreDto.ts
 model/bookLanguageDto.ts
