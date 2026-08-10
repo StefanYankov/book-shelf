@@ -648,4 +648,5 @@ Developed for the [Java Web - May 2026 module](https://softuni.bg/modules/120/ja
 ## Repositories
 
 [Book Shelf repository](https://github.com/StefanYankov/book-shelf)
+
 [Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc) 
