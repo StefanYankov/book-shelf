@@ -17,6 +17,7 @@ The main application owns identity, catalogue, bookshelf, and review data. A sep
 - [Overview](#overview)
 - [Live Demo](#live-demo)
 - [Architecture and Technologies](#architecture-and-technologies)
+- [Database Structure](#database-structure)
 - [Implemented Features](#implemented-features)
 - [Backend Application Structure and Features](#backend-application-structure-and-features)
 - [Frontend Application Structure and Features](#frontend-application-structure-and-features)
@@ -26,7 +27,7 @@ The main application owns identity, catalogue, bookshelf, and review data. A sep
 - [Configuration](#configuration)
 - [Local Email Verification and Password Reset](#local-email-verification-and-password-reset)
 - [Admin Recovery CLI](#admin-recovery-cli)
-- [Testing and Coverage](#testing-and-coverage)
+- [Testing and Quality Gates](#testing-and-quality-gates)
 - [Docker and Hosted Deployment](#docker-and-hosted-deployment)
 - [Local Development Credentials](#local-development-credentials)
 - [Reviewer Walkthrough](#reviewer-walkthrough)
@@ -50,7 +51,13 @@ The main application owns identity, catalogue, bookshelf, and review data. A sep
 
 [![Hosted Book Catalogue](docs/images/book-catalogue-thumb.jpg)](docs/images/book-catalogue.png)
 
-_Click the screenshot to open the full-resolution hosted catalogue._
+[_Click the screenshot to open the full-resolution hosted catalogue._](docs/images/book-catalogue.png)
+
+### Admin Book Management
+
+[![Admin Book Management](docs/images/admin-book-management-thumb.jpg)](docs/images/admin-book-management.png)
+
+[_Click the screenshot to open the full-resolution hosted catalogue._](docs/images/admin-book-management.png)
 
 ## Architecture and Technologies
 
@@ -90,6 +97,183 @@ _Click the screenshot to open the full-resolution hosted catalogue._
 - **Hosting:** Netlify and OpenShift Developer Sandbox
 - **File storage integration:** Cloudinary with a configuration-controlled no-op fallback
 
+## Database Structure
+
+The main application database and its relationships:
+
+```mermaid
+classDiagram
+direction BT
+class account_status_events {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   uuid user_id
+   varchar(255) event_type
+   varchar(500) reason
+   uuid actor_id
+   timestamp expiry_date
+   uuid id
+}
+class admin_users {
+   uuid id
+}
+class application_users {
+   boolean email_verified
+   uuid id
+}
+class user_permissions {
+   uuid user_id
+   varchar(255) permission
+}
+class authors {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(100) name
+   varchar(1000) summary
+   varchar(255) image_url
+   varchar(255) image_public_id
+   uuid id
+}
+class books {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(26000) title
+   varchar(255) isbn
+   uuid author_id
+   integer pages
+   integer year_published
+   uuid language_id
+   uuid publisher_id
+   varchar(255) format
+   varchar(1000) summary
+   varchar(255) image_url
+   varchar(255) image_public_id
+   uuid id
+}
+class books_genres {
+   uuid book_id
+   uuid genre_id
+}
+class bookshelf_books {
+   timestamp added_at
+   uuid bookshelf_id
+   uuid book_id
+}
+class bookshelves {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(255) name
+   text description
+   uuid user_id
+   uuid id
+}
+class genres {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(50) name
+   varchar(1000) description
+   uuid id
+}
+class languages {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(100) name
+   uuid id
+}
+class publishers {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(100) name
+   uuid id
+}
+class reviews {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(100) title
+   text comment
+   integer rating
+   uuid user_id
+   uuid target_id
+   varchar(50) target_type
+   uuid id
+}
+class user_books {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   uuid user_id
+   uuid book_id
+   varchar(255) status
+   boolean is_favorite
+   uuid id
+}
+class users {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(50) username
+   varchar(100) email
+   varchar(255) password
+   varchar(50) first_name
+   varchar(50) last_name
+   boolean password_change_required
+   uuid id
+}
+class verification_tokens {
+   bigint version
+   timestamp created_at
+   timestamp updated_at
+   varchar(64) token_hash
+   varchar(32) token_type
+   timestamp expiry_date
+   uuid user_id
+   uuid id
+}
+
+account_status_events --> users
+
+admin_users --> users
+
+application_users --> users
+
+user_permissions --> application_users
+
+verification_tokens --> users
+
+books --> authors
+
+books --> languages
+
+books --> publishers
+
+books_genres --> books
+
+books_genres --> genres
+
+bookshelf_books --> books
+
+bookshelf_books --> bookshelves
+
+bookshelves --> users
+
+reviews --> application_users
+
+user_books --> application_users
+
+user_books --> books
+```
+
+Reviews use `target_id` and `target_type` so the same review model can support different content types.
+
+
 ## Implemented Features
 
 ### Identity and Access Management
@@ -116,6 +300,7 @@ _Click the screenshot to open the full-resolution hosted catalogue._
 ### Bookshelf Management
 
 - Create personal bookshelves
+- Open individual shelf-detail pages
 - Add books to a bookshelf
 - Remove books from a bookshelf
 - Paginate bookshelf contents
@@ -132,11 +317,11 @@ _Click the screenshot to open the full-resolution hosted catalogue._
 
 Administrators can create, edit, and delete:
 
-- books;
-- authors;
-- genres;
-- languages;
-- publishers.
+- books
+- authors
+- genres
+- languages
+- publishers
 
 Operations that would violate database relationships return a conflict response instead of an unhandled database error.
 
@@ -147,7 +332,6 @@ Operations that would violate database relationships return a conflict response 
 - Users with `MODERATE_REVIEWS` can remove reviews
 - Administrators can grant and revoke delegated permissions
 - Permission changes apply after the affected user receives a new JWT
-
 
 ### Reading Challenges
 
@@ -237,8 +421,9 @@ The no-op implementation allows the application and automated tests to run witho
 
 - Personal profile
 - Password change
-- Bookshelf management
-- Book details and add-to-shelf actions
+- Bookshelf list and shelf-detail navigation
+- Add-to-shelf and remove-from-shelf actions
+- Book details
 - Review management
 - Reading challenge
 
@@ -246,6 +431,7 @@ The no-op implementation allows the application and automated tests to run witho
 
 - User administration
 - Permission management
+- Book management with create, edit, delete, reference selection, and optional cover upload
 - Book moderation
 - Review moderation
 - Bookshelf moderation
@@ -276,10 +462,9 @@ http://reading-challenge-svc:8081
 
 #### Reading Challenge
 
-[![Reading Challenge](docs/images/reading-challenge-thumb.png)](docs/images/reading-challenge.png)
+[![Reading Challenge](docs/images/reading-challenge-thumb.jpg)](docs/images/reading-challenge.png)
 
 _Click the screenshot to open the full-resolution reading-challenge view._
-
 
 See the [Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc) for its setup and deployment details.
 
@@ -370,14 +555,13 @@ git clone https://github.com/StefanYankov/reading-challenge-svc.git
 
 ### 2. Configure local infrastructure
 
-The Docker Compose files read database and Redis settings from local environment variables.
+The Docker Compose files read database and Redis settings from local environment variables. Create a local `.env` file and do not commit it:
 
-`.env`
-```text
+```dotenv
 DB_USER=
 DB_PASSWORD=
 DB_NAME=
-CLOUDINARY_ENABLED=
+CLOUDINARY_ENABLED=false
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -395,7 +579,7 @@ docker compose up -d
 
 Follow the microservice README and run `ReadingChallengeSvcApplication` with the `dev` profile on port `8081`.
 
-The main application can start without the microservice, but reading-challenge requests will return a service-unavailable response.
+The main application can start without the microservice, but reading-challenge requests return a service-unavailable response while the microservice is offline.
 
 ### 5. Start the main backend
 
@@ -481,7 +665,7 @@ INFO  --- [nio-8080-exec-7] b.s.b.s.auth.AuthenticationServiceImpl   : Verificat
 
 For an account without known credentials, such as `user5`, use the reset flow to assign a password hashed by the current runtime encoder:
 
-1. Navigate to the **Forgot Password** page.
+1. Navigate to **Forgot Password**.
 2. Enter the account email, for example `user5@bookshelf.com`.
 3. Locate the dispatched reset link in the backend console:
 
@@ -515,7 +699,16 @@ If the primary administrator is locked out in a self-hosted environment, a user 
 4. Transmit the temporary password through a separate secure channel.
 5. The account must change the password after the next login.
 
-## Testing and Coverage
+## Testing and Quality Gates
+
+Current CI status and detailed run history are available from GitHub Actions:
+
+- [Backend CI workflow](https://github.com/StefanYankov/book-shelf/actions/workflows/backend-ci.yaml)
+- [Frontend CI workflow](https://github.com/StefanYankov/book-shelf/actions/workflows/frontend-ci.yaml)
+- [All GitHub Actions runs](https://github.com/StefanYankov/book-shelf/actions)
+
+The README intentionally does not duplicate changing test totals or coverage percentages. The workflow runs are the source of truth for the latest validated commit.
+
 
 ### Backend
 
@@ -528,15 +721,8 @@ Run tests, generate JaCoCo reports, and enforce the line-coverage gate:
 Windows PowerShell:
 
 ```powershell
-.\gradlew clean check
+.\gradlew.bat clean check
 ```
-
-Verified results:
-
-- **502 tests passed**
-- **93% JaCoCo line coverage**
-- **80% branch coverage** for information only
-- **70% minimum line coverage** enforced through Gradle `check`
 
 HTML report:
 
@@ -583,8 +769,9 @@ docker build -t bookshelf-app .
 | Main PostgreSQL | OpenShift | Internal service only |
 | Challenge PostgreSQL | OpenShift | Internal service only |
 | Redis | OpenShift | Internal service only |
+| Image storage | Cloudinary | External managed service |
 
-The hosted databases and Redis use persistent volume claims. The OpenShift Developer Sandbox may scale inactive workloads to zero replicas without deleting the associated persistent volumes.
+The hosted databases and Redis use persistent volume claims. The OpenShift Developer Sandbox may scale inactive workloads to zero replicas without deleting associated persistent volumes.
 
 Netlify build settings are configured in the Netlify project UI:
 
@@ -621,6 +808,7 @@ The hosted environment uses separate credentials. Hosted administrator credentia
 2. Browse and search the public catalogue.
 3. Open book details and inspect seeded cover images.
 4. Confirm that the Netlify frontend calls the OpenShift API.
+5. Review the hosted Swagger documentation and JWT Authorize support.
 
 The hosted deployment does not publish administrator credentials.
 
@@ -628,7 +816,7 @@ The hosted deployment does not publish administrator credentials.
 
 1. Start both repositories and the required Docker infrastructure.
 2. Sign in as `user1`.
-3. Create a bookshelf and add a book.
+3. Create a bookshelf, add a book, open the shelf details, and remove a book.
 4. Create, update, and delete a review.
 5. Create a reading challenge and update progress.
 6. Sign in as `user3` and verify delegated review moderation.
@@ -643,10 +831,10 @@ This project is licensed under the MIT License.
 
 ## Acknowledgments
 
-Developed for the [Java Web - May 2026 module](https://softuni.bg/modules/120/java-web-may-2026/1629) at [Software University](https://softuni.bg/).
+- Developed for the [Java Web - May 2026 module](https://softuni.bg/modules/120/java-web-may-2026/1629) at [Software University](https://softuni.bg/).
+- Special thanks to the course instructors for the guidance, project requirements, and practical foundation provided throughout the module.
 
 ## Repositories
 
-[Book Shelf repository](https://github.com/StefanYankov/book-shelf)
-
-[Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc) 
+- [Book Shelf repository](https://github.com/StefanYankov/book-shelf)
+- [Reading Challenge Service repository](https://github.com/StefanYankov/reading-challenge-svc)
