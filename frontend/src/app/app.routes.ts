@@ -19,18 +19,62 @@ export const routes: Routes = [
         path: '',
         title: `${APP_TITLE} | Welcome`,
         canActivate: [landingGuard],
-        loadComponent: () => import('./features/public-home/public-home').then(m => m.PublicHome)
+        loadComponent: () =>
+          import('./features/public-home/public-home')
+            .then(m => m.PublicHome)
       },
-      { path: 'login', title: `${APP_TITLE} | Login`, loadComponent: () => import('./features/auth/login/login').then(m => m.Login) },
-      { path: 'register', title: `${APP_TITLE} | Register`, loadComponent: () => import('./features/auth/register/register').then(m => m.Register) },
+      {
+        path: 'login',
+        title: `${APP_TITLE} | Login`,
+        loadComponent: () =>
+          import('./features/auth/login/login')
+            .then(m => m.Login)
+      },
+      {
+        path: 'register',
+        title: `${APP_TITLE} | Register`,
+        loadComponent: () =>
+          import('./features/auth/register/register')
+            .then(m => m.Register)
+      },
 
-      // --- Password recovery (public, unguarded) ---
-      { path: 'forgot-password', title: `${APP_TITLE} | Forgot Password`, loadComponent: () => import('./features/auth/forgot-password/forgot-password').then(m => m.ForgotPassword) },
-      { path: 'reset-password', title: `${APP_TITLE} | Reset Password`, loadComponent: () => import('./features/auth/reset-password/reset-password').then(m => m.ResetPassword) },
-      { path: 'verify', title: `${APP_TITLE} | Verify Email`, loadComponent: () => import('./features/auth/verify-email/verify-email').then(m => m.VerifyEmail) },
+      // Password recovery (public, unguarded)
+      {
+        path: 'forgot-password',
+        title: `${APP_TITLE} | Forgot Password`,
+        loadComponent: () =>
+          import('./features/auth/forgot-password/forgot-password')
+            .then(m => m.ForgotPassword)
+      },
+      {
+        path: 'reset-password',
+        title: `${APP_TITLE} | Reset Password`,
+        loadComponent: () =>
+          import('./features/auth/reset-password/reset-password')
+            .then(m => m.ResetPassword)
+      },
+      {
+        path: 'verify',
+        title: `${APP_TITLE} | Verify Email`,
+        loadComponent: () =>
+          import('./features/auth/verify-email/verify-email')
+            .then(m => m.VerifyEmail)
+      },
 
-      { path: 'books', title: `${APP_TITLE} | Catalog`, loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList) },
-      { path: 'books/:id', title: `${APP_TITLE} | Book Details`, loadComponent: () => import('./features/books/book-detail/book-detail').then(m => m.BookDetail) }
+      {
+        path: 'books',
+        title: `${APP_TITLE} | Catalog`,
+        loadComponent: () =>
+          import('./features/books/book-list/book-list')
+            .then(m => m.BookList)
+      },
+      {
+        path: 'books/:id',
+        title: `${APP_TITLE} | Book Details`,
+        loadComponent: () =>
+          import('./features/books/book-detail/book-detail')
+            .then(m => m.BookDetail)
+      }
     ]
   },
 
@@ -40,27 +84,68 @@ export const routes: Routes = [
     component: AppLayout,
     canActivate: [authGuard, userGuard],
     children: [
-      { path: 'home', title: `${APP_TITLE} | Dashboard`, loadComponent: () => import('./features/home/home').then(m => m.Home) },
-      { path: 'books', title: `${APP_TITLE} | Catalog`, loadComponent: () => import('./features/books/book-list/book-list').then(m => m.BookList) },
+      {
+        path: 'home',
+        title: `${APP_TITLE} | Dashboard`,
+        loadComponent: () =>
+          import('./features/home/home')
+            .then(m => m.Home)
+      },
+      {
+        path: 'books',
+        title: `${APP_TITLE} | Catalog`,
+        loadComponent: () =>
+          import('./features/books/book-list/book-list')
+            .then(m => m.BookList)
+      },
       {
         path: 'books/:id',
         title: `${APP_TITLE} | Book Details`,
-        loadComponent: () => import('./features/books/book-detail/book-detail').then(m => m.BookDetail)
+        loadComponent: () =>
+          import('./features/books/book-detail/book-detail')
+            .then(m => m.BookDetail)
       },
-      { path: 'my-shelves', title: `${APP_TITLE} | My Shelves`, loadComponent: () => import('./features/shelves/my-shelves/my-shelves').then(m => m.MyShelves) },
-      { path: 'profile', title: `${APP_TITLE} | Profile`, loadComponent: () => import('./features/profile/profile').then(m => m.Profile) },
+      {
+        path: 'my-shelves',
+        title: `${APP_TITLE} | My Shelves`,
+        loadComponent: () =>
+          import('./features/shelves/my-shelves/my-shelves')
+            .then(m => m.MyShelves)
+      },
+      {
+        path: 'shelves/:id',
+        title: `${APP_TITLE} | Shelf Details`,
+        loadComponent: () =>
+          import('./features/shelves/shelf-detail/shelf-detail')
+            .then(m => m.ShelfDetail)
+      },
+      {
+        path: 'profile',
+        title: `${APP_TITLE} | Profile`,
+        loadComponent: () =>
+          import('./features/profile/profile')
+            .then(m => m.Profile)
+      },
       {
         path: 'challenges',
         title: `${APP_TITLE} | Reading Challenge`,
-        loadComponent: () => import('./features/challenges/reading-challenge/reading-challenge').then(m => m.ReadingChallenge)
+        loadComponent: () =>
+          import('./features/challenges/reading-challenge/reading-challenge')
+            .then(m => m.ReadingChallenge)
       },
       {
         path: 'moderation',
         title: `${APP_TITLE} | Book Moderation`,
         canActivate: [permissionGuard('MODERATE_BOOKS')],
-        loadComponent: () => import('./features/moderation/book-moderation/book-moderation').then(m => m.BookModeration)
+        loadComponent: () =>
+          import('./features/moderation/book-moderation/book-moderation')
+            .then(m => m.BookModeration)
       },
-      { path: '', redirectTo: 'home', pathMatch: 'full' }
+      {
+        path: '',
+        redirectTo: 'home',
+        pathMatch: 'full'
+      }
     ]
   },
 
@@ -69,9 +154,14 @@ export const routes: Routes = [
     path: 'admin',
     component: AdminLayout,
     canActivate: [authGuard, adminGuard],
-    loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
+    loadChildren: () =>
+      import('./features/admin/admin.routes')
+        .then(m => m.ADMIN_ROUTES)
   },
 
   // Wildcard Fallback
-  { path: '**', redirectTo: '' }
+  {
+    path: '**',
+    redirectTo: ''
+  }
 ];
